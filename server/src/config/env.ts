@@ -119,6 +119,11 @@ export const env = {
   mongodbUri: process.env.MONGODB_URI,
   // bcrypt work factor for password hashing (consumed by utils/password.ts).
   bcryptRounds: toBcryptRounds(process.env.BCRYPT_ROUNDS),
+  // Cloudinary media upload credentials (server-only). Optional at import time;
+  // validated in config/cloudinary.ts - never exposed to the client.
+  cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME,
+  cloudinaryApiKey: process.env.CLOUDINARY_API_KEY,
+  cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET,
   // Server-only JWT secrets - never exposed to the client.
   authAccessTokenSecret,
   authRefreshTokenSecret,

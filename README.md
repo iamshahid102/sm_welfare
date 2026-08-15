@@ -38,6 +38,24 @@ npm run dev
 
 The client expects the API at `http://localhost:4000/api/v1` by default.
 
+### Initial SUPER_ADMIN provisioning (one-time)
+
+The first (and only) SUPER_ADMIN account is created through a server-side CLI -
+there is deliberately no HTTP endpoint for it. Credentials come from the
+environment (non-interactive shells) or from hidden interactive prompts
+(terminal); never pass them on the command line.
+
+```bash
+cd server
+SUPER_ADMIN_EMAIL=admin@example.com SUPER_ADMIN_PASSWORD='a-strong-password' npm run provision:super-admin
+```
+
+Optional: `SUPER_ADMIN_NAME` sets the display name (defaults to "Super Admin").
+
+The command fails safely (exit code 1, nothing created) if a SUPER_ADMIN already
+exists, credentials are missing/invalid, the email is taken, or MongoDB is
+unreachable. See `server/.env.example` for the full variable reference.
+
 > **Windows note:** on this machine the top-level folders are currently on disk
 > as `Client`/`Server` (a file lock prevented the lowercase rename during setup).
 > `npm run dev` works from any casing, but the **production build** of Next.js 16

@@ -8,6 +8,7 @@ import { UserModel } from '../models/user.model.js';
 import type { SafeUser } from '../types/auth.js';
 import { ApiError } from '../utils/ApiError.js';
 import { serializeSafeUser } from '../utils/auth.js';
+import { isDuplicateKeyError } from '../utils/mongo.js';
 import { hashPassword, MAX_PASSWORD_BYTES } from '../utils/password.js';
 
 /**
@@ -51,16 +52,6 @@ export interface AdminListResult {
   limit: number;
   total: number;
   totalPages: number;
-}
-
-/** Identifies MongoDB duplicate-key (E11000) errors from the unique email index. */
-function isDuplicateKeyError(error: unknown): boolean {
-  return (
-    error !== null &&
-    typeof error === 'object' &&
-    'code' in error &&
-    error.code === 11000
-  );
 }
 
 function assertValidName(name: unknown): string {
