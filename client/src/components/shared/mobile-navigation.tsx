@@ -15,17 +15,28 @@ import { Navigation } from "@/components/shared/navigation";
 import { DONATE_HREF } from "@/constants/navigation";
 import { cn } from "@/lib/utils";
 
+interface MobileNavigationProps {
+  /** Style the trigger for the blue overlay header. */
+  light?: boolean;
+}
+
 /**
  * Mobile navigation in a shadcn Sheet. The trigger is the only visible
  * affordance below lg; desktop uses Navigation directly.
  */
-export function MobileNavigation() {
+export function MobileNavigation({ light }: MobileNavigationProps) {
   const [open, setOpen] = useState(false);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger
-        render={<Button variant="outline" size="icon" />}
+        render={
+          <Button
+            variant={light ? "outline" : "outline"}
+            size="icon"
+            className={light ? "border-white/40 text-white hover:bg-white/10 hover:text-white" : undefined}
+          />
+        }
         aria-label="Open menu"
       >
         <Menu aria-hidden="true" />

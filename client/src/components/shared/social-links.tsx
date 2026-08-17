@@ -30,10 +30,12 @@ interface SocialLinksProps {
   className?: string;
   /** Icon size in px — brand glyphs are square. */
   size?: number;
+  /** Light variant (white icons) for dark/blue backgrounds. */
+  light?: boolean;
 }
 
 /** Row of social profile links with accessible labels. */
-export function SocialLinks({ className, size = 16 }: SocialLinksProps) {
+export function SocialLinks({ className, size = 16, light }: SocialLinksProps) {
   return (
     <ul className={cn("flex items-center gap-2", className)}>
       {SOCIAL_LINKS.map(({ platform, label, href }) => (
@@ -41,7 +43,12 @@ export function SocialLinks({ className, size = 16 }: SocialLinksProps) {
           <a
             href={href}
             aria-label={`${SITE.name} on ${label}`}
-            className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className={cn(
+              "flex size-8 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              light
+                ? "text-blue-100 hover:bg-white/10 hover:text-white"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            )}
           >
             <svg
               width={size}

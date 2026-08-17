@@ -4,29 +4,39 @@ import { NAV_ITEMS, DONATE_HREF } from "@/constants/navigation";
 import { Container } from "@/components/shared/container";
 import { SocialLinks } from "@/components/shared/social-links";
 
-/** Public site footer. Values come from SITE constants (Site Settings later). */
+/** Footer heading used in the dark footer. */
+function FooterHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="font-heading text-sm font-bold uppercase tracking-wider text-white">
+      {children}
+    </p>
+  );
+}
+
+/** Public site footer — dark navy gradient per the template. */
 export function Footer() {
   return (
-    <footer className="mt-auto border-t bg-muted/40">
-      <Container className="grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="flex flex-col gap-3">
-          <p className="font-heading text-lg font-semibold">{SITE.name}</p>
-          <p className="text-sm leading-relaxed text-muted-foreground">
+    <footer className="bg-footer-gradient text-blue-100">
+      <Container className="grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="flex flex-col gap-4">
+          <p className="font-heading text-lg font-bold text-white">{SITE.name}</p>
+          <p className="text-sm leading-relaxed">
             One of the most reputable non-profit welfare organisations in
             Pakistan, dedicated to social development and relief for low-income
             families since {SITE.establishedYear}.
           </p>
-          <p className="text-xs text-muted-foreground">{SITE.registrationNote}</p>
+          <p className="text-xs text-blue-200">{SITE.registrationNote}</p>
+          <SocialLinks light className="mt-1" />
         </div>
 
-        <div className="flex flex-col gap-3">
-          <p className="text-sm font-semibold">Useful links</p>
-          <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
+        <div className="flex flex-col gap-4">
+          <FooterHeading>Useful links</FooterHeading>
+          <ul className="flex flex-col gap-2.5 text-sm">
             {NAV_ITEMS.map((item) => (
               <li key={item.href}>
                 <a
                   href={item.href}
-                  className="transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
                 >
                   {item.label}
                 </a>
@@ -35,7 +45,7 @@ export function Footer() {
             <li>
               <a
                 href={DONATE_HREF}
-                className="transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="font-semibold text-accent transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               >
                 Donate
               </a>
@@ -43,46 +53,47 @@ export function Footer() {
           </ul>
         </div>
 
-        <div className="flex flex-col gap-3">
-          <p className="text-sm font-semibold">Get in touch</p>
-          <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
+        <div className="flex flex-col gap-4">
+          <FooterHeading>Get in touch</FooterHeading>
+          <ul className="flex flex-col gap-2.5 text-sm">
             <li>
               <a
                 href={`mailto:${SITE.email}`}
-                className="inline-flex items-center gap-2 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="inline-flex items-center gap-2.5 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               >
-                <Mail className="size-4 shrink-0" aria-hidden="true" />
+                <Mail className="size-4 shrink-0 text-accent" aria-hidden="true" />
                 {SITE.email}
               </a>
             </li>
             <li>
               <a
                 href={`tel:${SITE.phone.replace(/\s/g, "")}`}
-                className="inline-flex items-center gap-2 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="inline-flex items-center gap-2.5 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               >
-                <Phone className="size-4 shrink-0" aria-hidden="true" />
+                <Phone className="size-4 shrink-0 text-accent" aria-hidden="true" />
                 {SITE.phone}
               </a>
             </li>
-            <li className="inline-flex items-center gap-2">
-              <MapPin className="size-4 shrink-0" aria-hidden="true" />
+            <li className="inline-flex items-center gap-2.5">
+              <MapPin className="size-4 shrink-0 text-accent" aria-hidden="true" />
               {SITE.location}
             </li>
           </ul>
         </div>
 
-        <div className="flex flex-col gap-3">
-          <p className="text-sm font-semibold">Follow us</p>
-          <SocialLinks />
-          <p className="mt-2 text-xs text-muted-foreground">
-            {SITE.activeProjects} active projects
+        <div className="flex flex-col gap-4">
+          <FooterHeading>Our work</FooterHeading>
+          <p className="text-sm leading-relaxed">
+            {SITE.activeProjects} active projects serving food, education and
+            healthcare across Karachi.
           </p>
+          <p className="text-xs text-blue-200">{SITE.registrationNote}</p>
         </div>
       </Container>
 
-      <div className="border-t">
-        <Container className="flex h-12 items-center justify-between gap-4">
-          <p className="text-xs text-muted-foreground">
+      <div className="border-t border-white/15">
+        <Container className="flex h-14 items-center justify-center sm:justify-between">
+          <p className="text-xs text-blue-200">
             © {new Date().getFullYear()} {SITE.copyrightHolder}. All rights
             reserved.
           </p>

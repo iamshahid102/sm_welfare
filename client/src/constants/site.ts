@@ -11,6 +11,8 @@
 export const SITE = {
   name: "SM Welfare Trust",
   legalName: "Sirat-e-Mustaqeem Welfare Trust",
+  /** Compact legal name used under the wordmark (template header style). */
+  legalShortName: "Sirat-e-Mustaqeem",
   tagline: "Charity efforts that are for happiness",
   establishedYear: 2017,
   location: "Orangi Town, Karachi, Pakistan",

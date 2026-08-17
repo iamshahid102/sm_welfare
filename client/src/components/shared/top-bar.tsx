@@ -4,25 +4,26 @@ import { Container } from "@/components/shared/container";
 import { SocialLinks } from "@/components/shared/social-links";
 
 /**
- * Top utility bar: contact details + social links.
- * Values come from the SITE constants (single source of truth) and may later
- * be hydrated from the Site Settings API.
+ * Top utility bar — dark navy strip per the template.
+ * Contact details left, social links right. Values come from the SITE
+ * constants (single source of truth) and may later be hydrated from the
+ * Site Settings API.
  */
 export function TopBar() {
   return (
-    <div className="border-b bg-primary text-primary-foreground">
-      <Container className="flex h-9 items-center justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-4 text-xs">
+    <div className="bg-primary-deep text-white">
+      <Container className="flex h-10 items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-5 text-xs text-blue-100">
           <a
             href={`mailto:${SITE.email}`}
-            className="hidden items-center gap-1.5 truncate transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:inline-flex"
+            className="hidden items-center gap-1.5 truncate transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:inline-flex"
           >
             <Mail className="size-3.5 shrink-0" aria-hidden="true" />
             <span className="truncate">{SITE.email}</span>
           </a>
           <a
             href={`tel:${SITE.phone.replace(/\s/g, "")}`}
-            className="inline-flex items-center gap-1.5 transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex items-center gap-1.5 transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
           >
             <Phone className="size-3.5 shrink-0" aria-hidden="true" />
             <span>{SITE.phone}</span>
@@ -32,10 +33,7 @@ export function TopBar() {
             <span>{SITE.location}</span>
           </span>
         </div>
-        <SocialLinks
-          className="[&_a]:text-primary-foreground [&_a:hover]:bg-primary-foreground/10 [&_a:hover]:text-primary-foreground"
-          size={14}
-        />
+        <SocialLinks light size={14} />
       </Container>
     </div>
   );
