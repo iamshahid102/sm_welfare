@@ -104,8 +104,6 @@ export default function AboutPage() {
           <SectionHeading
             kicker="What we do"
             title="Six areas of focus"
-            description="Every rupee is spent with transparency and accounted for. Choose an amount, or speak to our team directly."
-            center
           />
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {PROGRAMS.map((program) => (

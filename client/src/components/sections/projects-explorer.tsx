@@ -20,19 +20,25 @@ const CATEGORIES = [
   "Free Eid Shopping",
 ] as const;
 
-function ProjectDetail({ project }: { project: Project }) {
+function ProjectDetail({ project, index }: { project: Project; index: number }) {
+  /* Template alternates: even = image left, odd = image right. */
+  const imageRight = index % 2 === 1;
+
   return (
     <article
       id={project.slug}
       className="grid items-start gap-8 rounded-2xl border border-border bg-white p-6 shadow-sm sm:p-8 lg:grid-cols-[0.9fr_1.1fr]"
     >
-      <div className="relative">
+      {/* Image column — position depends on alternating index. */}
+      <div
+        className={cn("relative", imageRight && "lg:order-2")}
+      >
         <div className="photo-placeholder aspect-[16/11] rounded-xl" aria-hidden="true" />
         <Badge className="absolute left-4 top-4 bg-accent text-accent-foreground hover:bg-accent">
           {project.stat} {project.statLabel}
         </Badge>
       </div>
-      <div className="flex flex-col gap-4">
+      <div className={cn("flex flex-col gap-4", imageRight && "lg:order-1")}>
         <h2 className="font-heading text-2xl font-bold tracking-tight">
           {project.name}
         </h2>
@@ -73,8 +79,8 @@ export function ProjectsExplorer() {
           className="justify-center"
         />
         <div className="flex flex-col gap-8">
-          {visible.map((project) => (
-            <ProjectDetail key={project.slug} project={project} />
+          {visible.map((project, index) => (
+            <ProjectDetail key={project.slug} project={project} index={index} />
           ))}
         </div>
       </Container>

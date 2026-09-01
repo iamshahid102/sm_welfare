@@ -4,6 +4,10 @@ import { Container } from "@/components/shared/container";
 import { SITE } from "@/constants/site";
 import { DONATE_HREF } from "@/constants/navigation";
 import { cn } from "@/lib/utils";
+import {
+  BTN_PRIMARY_BLUE,
+  BTN_OUTLINE_DEFAULT,
+} from "@/components/shared/home-styles";
 
 /**
  * Donation call-to-action panel per the Home template ("Your donation starts
@@ -23,15 +27,12 @@ export function CtaBand() {
             amount, or speak to our team directly.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <a href={DONATE_HREF} className={buttonVariants({ size: "lg" })}>
+            <a href={DONATE_HREF} className={cn(buttonVariants(), BTN_PRIMARY_BLUE)}>
               Donate now
             </a>
             <a
               href={`tel:${SITE.phone.replace(/\s/g, "")}`}
-              className={cn(
-                buttonVariants({ size: "lg", variant: "outline" }),
-                "hover:bg-white"
-              )}
+              className={cn(buttonVariants(), BTN_OUTLINE_DEFAULT)}
             >
               <Phone className="mr-1.5 size-4" aria-hidden="true" />
               Talk to our team

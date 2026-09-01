@@ -12,6 +12,10 @@ import { PROJECTS } from "@/data/projects";
 import { MEDIA_UPDATES } from "@/data/media";
 import { IMPACT_STATS, MISSION_AREAS } from "@/data/programs";
 import { cn } from "@/lib/utils";
+import {
+  BTN_PRIMARY_BLUE,
+  BTN_OUTLINE_DEFAULT,
+} from "@/components/shared/home-styles";
 
 const PROGRAM_CHIPS = [
   { name: "Food Distribution", icon: Utensils },
@@ -71,67 +75,73 @@ export default function HomePage() {
 
       {/* Media updates + Our mission */}
       <section className="border-t border-border bg-section">
-        <Container className="grid gap-14 py-16 sm:py-20 lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="flex flex-col gap-8">
-            <SectionHeading
-              kicker="Media updates"
-              title="Stories from the field"
-              description="Reports, field notes and photographs from the communities we serve across Karachi."
-            />
-            <div className="grid gap-6 sm:grid-cols-2">
-              {MEDIA_UPDATES.slice(0, 3).map((update) => (
-                <MediaCard key={update.slug} update={update} />
-              ))}
+        <Container className="flex flex-col gap-10 py-16 sm:py-20">
+          {/* Side-by-side: media heading left, mission content right */}
+          <div className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr]">
+            <div className="flex flex-col gap-4">
+              <SectionHeading
+                kicker="Media updates"
+                title="Stories from the field"
+              />
+              <div>
+                <a
+                  href="/media"
+                  className={cn(buttonVariants(), BTN_OUTLINE_DEFAULT, "group")}
+                >
+                  View all updates
+                  <ArrowRight
+                    className="ml-1.5 size-4 transition-transform group-hover:translate-x-0.5"
+                    aria-hidden="true"
+                  />
+                </a>
+              </div>
             </div>
-            <div>
-              <a
-                href="/media"
-                className={cn(buttonVariants({ variant: "outline" }), "group")}
-              >
-                View all updates
-                <ArrowRight
-                  className="ml-1.5 size-4 transition-transform group-hover:translate-x-0.5"
-                  aria-hidden="true"
-                />
-              </a>
+
+            <div className="flex flex-col gap-6">
+              <SectionHeading
+                kicker="Our mission"
+                title="A ray of light in education, health, work and welfare"
+              />
+              <p className="text-base leading-relaxed text-muted-foreground">
+                We stand with families who face growing challenges with each
+                passing day. Our goal is to brighten their tomorrow, give them
+                practical opportunities, and help them move toward a better and
+                more successful future.
+              </p>
+              <ul className="flex flex-col gap-4">
+                {MISSION_AREAS.map((area) => (
+                  <li
+                    key={area.title}
+                    className="flex gap-3 rounded-lg border border-border bg-white p-4"
+                  >
+                    <CheckCircle2
+                      className="mt-0.5 size-5 shrink-0 text-primary"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <p className="font-heading text-sm font-bold">
+                        {area.title}
+                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {area.description}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <div>
+                <a href="/about" className={cn(buttonVariants(), BTN_PRIMARY_BLUE)}>
+                  More about us
+                </a>
+              </div>
             </div>
           </div>
 
-          <div className="flex flex-col gap-6">
-            <SectionHeading
-              kicker="Our mission"
-              title="A ray of light in education, health, work and welfare"
-            />
-            <p className="text-base leading-relaxed text-muted-foreground">
-              We stand with families who face growing challenges with each
-              passing day. Our goal is to brighten their tomorrow, give them
-              practical opportunities, and help them move toward a better and
-              more successful future.
-            </p>
-            <ul className="flex flex-col gap-4">
-              {MISSION_AREAS.map((area) => (
-                <li
-                  key={area.title}
-                  className="flex gap-3 rounded-lg border border-border bg-white p-4"
-                >
-                  <CheckCircle2
-                    className="mt-0.5 size-5 shrink-0 text-primary"
-                    aria-hidden="true"
-                  />
-                  <div>
-                    <p className="font-heading text-sm font-bold">{area.title}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {area.description}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <div>
-              <a href="/about" className={buttonVariants()}>
-                More about us
-              </a>
-            </div>
+          {/* Full-width media cards row below the side-by-side layout */}
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {MEDIA_UPDATES.slice(0, 3).map((update) => (
+              <MediaCard key={update.slug} update={update} />
+            ))}
           </div>
         </Container>
       </section>

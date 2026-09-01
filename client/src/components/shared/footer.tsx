@@ -82,10 +82,8 @@ export function Footer() {
         </div>
 
         <div className="flex flex-col gap-4">
-          <FooterHeading>Our work</FooterHeading>
           <p className="text-sm leading-relaxed">
-            {SITE.activeProjects} active projects serving food, education and
-            healthcare across Karachi.
+            {SITE.activeProjects} active projects
           </p>
           <p className="text-xs text-blue-200">{SITE.registrationNote}</p>
         </div>

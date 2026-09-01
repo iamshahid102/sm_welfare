@@ -15,6 +15,7 @@ import { SITE } from "@/constants/site";
  */
 export function ContactForm() {
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [topic, setTopic] = useState("");
   const [message, setMessage] = useState("");
   const [sent, setSent] = useState(false);
@@ -24,7 +25,9 @@ export function ContactForm() {
     const subject = encodeURIComponent(
       topic ? `${topic} — ${name}` : `Message from ${name}`
     );
-    const body = encodeURIComponent(`${message}\n\n— ${name}`);
+    const body = encodeURIComponent(
+      `${message}\n\n— ${name}${email ? `\nEmail: ${email}` : ""}`
+    );
     window.location.href = `mailto:${SITE.email}?subject=${subject}&body=${body}`;
     setSent(true);
   }
@@ -46,6 +49,18 @@ export function ContactForm() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Your name"
+        />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="contact-email">Email address</Label>
+        <Input
+          id="contact-email"
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
         />
       </div>
 
