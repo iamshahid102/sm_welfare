@@ -2,15 +2,14 @@ import { api } from "@/lib/api/client";
 import type { SafeUser } from "@/types/api";
 
 /**
- * Authentication service — ARCHITECTURE BOUNDARY (foundation only).
+ * Authentication service — consumes the backend auth API contracts.
  *
- * Full authentication is implemented in a dedicated phase. These functions
- * define the exact contract the UI will consume. Nothing here stores tokens:
- * the Express backend owns the HttpOnly cookies, so these calls only need
- * `credentials: "include"` (handled by the shared API client).
+ * The backend owns HttpOnly cookies (smw_access_token, smw_refresh_token).
+ * These functions never store, read, or manipulate tokens directly.
+ * All requests use `credentials: "include"` (handled by the shared API client),
+ * and 401 handling (refresh + single retry) lives in that client.
  *
- * Frontend role checks are UX only — the backend remains the security
- * authority.
+ * Frontend role checks are UX only — the backend remains the security authority.
  */
 
 export interface LoginCredentials {
@@ -18,22 +17,20 @@ export interface LoginCredentials {
   password: string;
 }
 
-export interface LoginResult {
+export interface AuthUserResponse {
   user: SafeUser;
 }
 
-export async function login(credentials: LoginCredentials): Promise<LoginResult> {
-  return api.post<LoginResult>("/auth/login", credentials);
+export async function login(credentials: LoginCredentials): Promise<SafeUser> {
+  const data = await api.post<AuthUserResponse>("/auth/login", credentials);
+  return data.user;
 }
 
-export async function logout(): Promise<null> {
-  return api.post<null>("/auth/logout");
+export async function logout(): Promise<void> {
+  await api.post<null>("/auth/logout");
 }
 
-export async function refreshSession(): Promise<LoginResult> {
-  return api.post<LoginResult>("/auth/refresh");
-}
-
-export async function getCurrentUser(): Promise<LoginResult> {
-  return api.get<LoginResult>("/auth/me");
+export async function getCurrentUser(): Promise<SafeUser> {
+  const data = await api.get<AuthUserResponse>("/auth/me");
+  return data.user;
 }
