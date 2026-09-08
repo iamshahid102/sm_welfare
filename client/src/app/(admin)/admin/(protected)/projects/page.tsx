@@ -2,16 +2,35 @@
 
 import type { Metadata } from "next";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { isSuperAdmin } from "@/types/auth";
 import {
@@ -53,11 +72,23 @@ type PageState =
       lastError: string | null;
     };
 
-function isReadyState(state: PageState): state is Extract<PageState, { status: "ready" }> {
+function isReadyState(
+  state: PageState,
+): state is Extract<PageState, { status: "ready" }> {
   return state.status === "ready";
 }
 
-const STATUS_BADGE_VARIANT: Record<ProjectStatus, "secondary" | "default" | "outline" | "ghost" | "destructive" | "link" | null | undefined> = {
+const STATUS_BADGE_VARIANT: Record<
+  ProjectStatus,
+  | "secondary"
+  | "default"
+  | "outline"
+  | "ghost"
+  | "destructive"
+  | "link"
+  | null
+  | undefined
+> = {
   DRAFT: "secondary",
   PUBLISHED: "default",
   ARCHIVED: "outline",
@@ -77,7 +108,10 @@ function ProjectRow({
       <td className="px-4 py-3 align-middle font-medium">
         <div className="flex flex-wrap items-center gap-2">
           <span>{project.title}</span>
-          <Badge variant={STATUS_BADGE_VARIANT[project.status]} className="whitespace-nowrap">
+          <Badge
+            variant={STATUS_BADGE_VARIANT[project.status]}
+            className="whitespace-nowrap"
+          >
             {project.status}
           </Badge>
         </div>
@@ -98,15 +132,13 @@ function ProjectRow({
         {project.shortDescription}
       </td>
       <td className="px-4 py-3 align-middle text-sm">
-        <span className="font-mono text-muted-foreground">{project.displayOrder}</span>
+        <span className="font-mono text-muted-foreground">
+          {project.displayOrder}
+        </span>
       </td>
       <td className="px-4 py-3 align-middle">
         {canEdit && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onEdit}
-          >
+          <Button variant="ghost" size="sm" onClick={onEdit}>
             Edit
           </Button>
         )}
@@ -130,9 +162,7 @@ export default function AdminProjectsPage() {
     try {
       const data = await listProgramsForSelector({ limit: 100 });
       setState((prev) =>
-        prev.status === "ready"
-          ? { ...prev, programs: data.items }
-          : prev,
+        prev.status === "ready" ? { ...prev, programs: data.items } : prev,
       );
     } catch {
       // Silently fail - programs will be empty
@@ -140,10 +170,7 @@ export default function AdminProjectsPage() {
   }, []);
 
   const loadProjects = useCallback(
-    async (
-      query: ListProjectsQuery = {},
-      keepData: boolean = false,
-    ) => {
+    async (query: ListProjectsQuery = {}, keepData: boolean = false) => {
       setState((prev) =>
         keepData && prev.status === "ready"
           ? { ...prev, status: "loading" }
@@ -185,7 +212,14 @@ export default function AdminProjectsPage() {
         setState({ status: "loading" });
         try {
           const [projectsData, programsData] = await Promise.all([
-            listProjects({ page, limit: PAGE_SIZE, search: search || undefined, status: status !== "all" ? status : undefined, programId: programIdFilter !== "all" ? programIdFilter : undefined }),
+            listProjects({
+              page,
+              limit: PAGE_SIZE,
+              search: search || undefined,
+              status: status !== "all" ? status : undefined,
+              programId:
+                programIdFilter !== "all" ? programIdFilter : undefined,
+            }),
             listProgramsForSelector({ limit: 100 }),
           ]);
           setState({
@@ -208,7 +242,9 @@ export default function AdminProjectsPage() {
           setState({
             status: "error",
             message:
-              error instanceof Error ? error.message : "Failed to load projects.",
+              error instanceof Error
+                ? error.message
+                : "Failed to load projects.",
           });
         }
       };
@@ -216,60 +252,45 @@ export default function AdminProjectsPage() {
     }
   }, [user, page, search, status, programIdFilter]);
 
-  const handleSearch = useCallback(
-    (value: string) => {
-      setSearch(value);
-      setPage(1);
-    },
-    [],
-  );
+  const handleSearch = useCallback((value: string) => {
+    setSearch(value);
+    setPage(1);
+  }, []);
 
-  const handleStatusFilter = useCallback(
-    (filter: ProjectStatus | "all") => {
-      setStatus(filter);
-      setPage(1);
-    },
-    [],
-  );
+  const handleStatusFilter = useCallback((filter: ProjectStatus | "all") => {
+    setStatus(filter);
+    setPage(1);
+  }, []);
 
-  const handleProgramFilter = useCallback(
-    (id: string | "all") => {
-      setProgramIdFilter(id);
-      setPage(1);
-    },
-    [],
-  );
+  const handleProgramFilter = useCallback((id: string | "all") => {
+    setProgramIdFilter(id);
+    setPage(1);
+  }, []);
 
-  const handlePageChange = useCallback(
-    (newPage: number) => {
-      setPage(newPage);
-    },
-    [],
-  );
+  const handlePageChange = useCallback((newPage: number) => {
+    setPage(newPage);
+  }, []);
 
-  const openEditDialog = useCallback(
-    (project: Project) => {
-      setState((prev) =>
-        prev.status === "ready"
-          ? {
-              ...prev,
-              editingProject: project,
-              editingForm: {
-                programId: project.programId,
-                title: project.title,
-                slug: project.slug,
-                shortDescription: project.shortDescription,
-                description: project.description,
-                displayOrder: project.displayOrder,
-              },
-              saving: false,
-              lastError: null,
-            }
-          : prev,
-      );
-    },
-    [],
-  );
+  const openEditDialog = useCallback((project: Project) => {
+    setState((prev) =>
+      prev.status === "ready"
+        ? {
+            ...prev,
+            editingProject: project,
+            editingForm: {
+              programId: project.programId,
+              title: project.title,
+              slug: project.slug,
+              shortDescription: project.shortDescription,
+              description: project.description,
+              displayOrder: project.displayOrder,
+            },
+            saving: false,
+            lastError: null,
+          }
+        : prev,
+    );
+  }, []);
 
   const closeDialog = useCallback(() => {
     setState((prev) =>
@@ -300,14 +321,33 @@ export default function AdminProjectsPage() {
         setProgramIdFilter("all");
         setState((prev) =>
           prev.status === "ready"
-            ? { ...prev, editingProject: null, editingForm: {}, saving: false, lastError: null }
+            ? {
+                ...prev,
+                editingProject: null,
+                editingForm: {},
+                saving: false,
+                lastError: null,
+              }
             : prev,
         );
-        loadProjects({ page: 1, limit: PAGE_SIZE, search: undefined, status: undefined, programId: undefined });
+        loadProjects({
+          page: 1,
+          limit: PAGE_SIZE,
+          search: undefined,
+          status: undefined,
+          programId: undefined,
+        });
       } catch (error) {
         setState((prev) =>
           prev.status === "ready"
-            ? { ...prev, saving: false, lastError: error instanceof Error ? error.message : "Failed to create project." }
+            ? {
+                ...prev,
+                saving: false,
+                lastError:
+                  error instanceof Error
+                    ? error.message
+                    : "Failed to create project.",
+              }
             : prev,
         );
       }
@@ -325,12 +365,17 @@ export default function AdminProjectsPage() {
       try {
         const readyState = isReadyState(state) ? state : null;
         if (!readyState || !readyState.editingProject) return;
-        const updated = await updateProject(readyState.editingProject.id, values);
+        const updated = await updateProject(
+          readyState.editingProject.id,
+          values,
+        );
         setState((prev) =>
           prev.status === "ready"
             ? {
                 ...prev,
-                projects: prev.projects.map((p) => p.id === updated.id ? updated : p),
+                projects: prev.projects.map((p) =>
+                  p.id === updated.id ? updated : p,
+                ),
                 editingProject: updated,
                 editingForm: values,
                 saving: false,
@@ -341,7 +386,14 @@ export default function AdminProjectsPage() {
       } catch (error) {
         setState((prev) =>
           prev.status === "ready"
-            ? { ...prev, saving: false, lastError: error instanceof Error ? error.message : "Failed to update project." }
+            ? {
+                ...prev,
+                saving: false,
+                lastError:
+                  error instanceof Error
+                    ? error.message
+                    : "Failed to update project.",
+              }
             : prev,
         );
       }
@@ -349,22 +401,36 @@ export default function AdminProjectsPage() {
     [state],
   );
 
-  const handleStatusChange = useCallback(async (projectId: string, newStatus: ProjectStatus) => {
-    try {
-      const updated = await updateProjectStatus(projectId, newStatus);
-      setState((prev) =>
-        prev.status === "ready"
-          ? { ...prev, projects: prev.projects.map((p) => p.id === updated.id ? updated : p) }
-          : prev,
-      );
-    } catch (error) {
-      setState((prev) =>
-        prev.status === "ready"
-          ? { ...prev, lastError: error instanceof Error ? error.message : "Failed to change status." }
-          : prev,
-      );
-    }
-  }, []);
+  const handleStatusChange = useCallback(
+    async (projectId: string, newStatus: ProjectStatus) => {
+      try {
+        const updated = await updateProjectStatus(projectId, newStatus);
+        setState((prev) =>
+          prev.status === "ready"
+            ? {
+                ...prev,
+                projects: prev.projects.map((p) =>
+                  p.id === updated.id ? updated : p,
+                ),
+              }
+            : prev,
+        );
+      } catch (error) {
+        setState((prev) =>
+          prev.status === "ready"
+            ? {
+                ...prev,
+                lastError:
+                  error instanceof Error
+                    ? error.message
+                    : "Failed to change status.",
+              }
+            : prev,
+        );
+      }
+    },
+    [],
+  );
 
   if (!user) {
     return null;
@@ -416,7 +482,20 @@ export default function AdminProjectsPage() {
             <span className="text-sm text-muted-foreground">
               {state.message}
             </span>
-            <Button variant="outline" size="sm" onClick={() => loadProjects({ page: 1, limit: PAGE_SIZE, search: search || undefined, status: status !== "all" ? status : undefined, programId: programIdFilter !== "all" ? programIdFilter : undefined })}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                loadProjects({
+                  page: 1,
+                  limit: PAGE_SIZE,
+                  search: search || undefined,
+                  status: status !== "all" ? status : undefined,
+                  programId:
+                    programIdFilter !== "all" ? programIdFilter : undefined,
+                })
+              }
+            >
               Retry
             </Button>
           </CardContent>
@@ -429,7 +508,16 @@ export default function AdminProjectsPage() {
     return null;
   }
 
-  const { projects, total, totalPages, editingProject, editingForm, saving, lastError, programs } = state;
+  const {
+    projects,
+    total,
+    totalPages,
+    editingProject,
+    editingForm,
+    saving,
+    lastError,
+    programs,
+  } = state;
 
   const EmptyState = (
     <Card className="border-dashed">
@@ -487,7 +575,13 @@ export default function AdminProjectsPage() {
             />
             <Select
               value={status === "all" ? "all" : status}
-              onValueChange={(val) => handleStatusFilter(val === "all" ? ("all" as ProjectStatus | "all") : (val as ProjectStatus))}
+              onValueChange={(val) =>
+                handleStatusFilter(
+                  val === "all"
+                    ? ("all" as ProjectStatus | "all")
+                    : (val as ProjectStatus),
+                )
+              }
             >
               <SelectTrigger className="w-36">
                 <SelectValue placeholder="All statuses" />
@@ -517,12 +611,17 @@ export default function AdminProjectsPage() {
             </Select>
             {canEdit && (
               <Dialog>
-                <DialogTrigger render={<Button size="sm">Create project</Button>} />
+                <DialogTrigger
+                  render={<Button size="sm">Create project</Button>}
+                />
                 <DialogContent className="max-w-2xl">
                   <DialogHeader>
-                    <DialogTitle className="font-heading">Create project</DialogTitle>
+                    <DialogTitle className="font-heading">
+                      Create project
+                    </DialogTitle>
                     <DialogDescription>
-                      Add a new project under a program. It will start as a draft.
+                      Add a new project under a program. It will start as a
+                      draft.
                     </DialogDescription>
                   </DialogHeader>
                   <CreateProjectForm
@@ -549,7 +648,9 @@ export default function AdminProjectsPage() {
                       <th className="px-4 py-2 text-sm font-medium">Name</th>
                       <th className="px-4 py-2 text-sm font-medium">Program</th>
                       <th className="px-4 py-2 text-sm font-medium">Slug</th>
-                      <th className="px-4 py-2 text-sm font-medium">Short description</th>
+                      <th className="px-4 py-2 text-sm font-medium">
+                        Short description
+                      </th>
                       <th className="px-4 py-2 text-sm font-medium">Order</th>
                       <th className="px-4 py-2 text-sm font-medium">Actions</th>
                     </tr>
@@ -584,13 +685,11 @@ export default function AdminProjectsPage() {
       </Card>
 
       {editingProject && canEdit && (
-        <Dialog open>
-          <DialogContent className="max-w-2xl">
+        <Dialog open onOpenChange={(open) => !open && closeDialog()}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="font-heading">Edit project</DialogTitle>
-              <DialogDescription>
-                Update the project details.
-              </DialogDescription>
+              <DialogDescription>Update the project details.</DialogDescription>
             </DialogHeader>
             <EditProjectForm
               project={editingProject}
@@ -602,6 +701,11 @@ export default function AdminProjectsPage() {
               lastError={lastError}
               onClose={closeDialog}
             />
+            <div className="mt-4 flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={closeDialog}>
+                Close
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
       )}
@@ -668,7 +772,9 @@ function CreateProjectForm({
   const [slug, setSlug] = useState("");
   const [shortDescription, setShortDescription] = useState("");
   const [description, setDescription] = useState("");
-  const [displayOrder, setDisplayOrder] = useState<number | undefined>(undefined);
+  const [displayOrder, setDisplayOrder] = useState<number | undefined>(
+    undefined,
+  );
 
   useEffect(() => {
     if (programs.length > 0 && !hasSelectedProgramRef.current) {
@@ -708,7 +814,9 @@ function CreateProjectForm({
             <SelectValue placeholder="Select a program" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all" disabled>Select a program</SelectItem>
+            <SelectItem value="all" disabled>
+              Select a program
+            </SelectItem>
             {programs.map((program) => (
               <SelectItem key={program.id} value={program.id}>
                 {program.title}
@@ -792,7 +900,14 @@ function CreateProjectForm({
           type="button"
           variant="outline"
           disabled={saving}
-          onClick={() => {}}
+          onClick={() => {
+            setTitle("");
+            setSlug("");
+            setShortDescription("");
+            setDescription("");
+            setDisplayOrder(undefined);
+            setSelectedProgramId("");
+          }}
         >
           Cancel
         </Button>
@@ -823,12 +938,20 @@ function EditProjectForm({
   lastError: string | null;
   onClose: () => void;
 }) {
-  const [selectedProgramId, setSelectedProgramId] = useState(initialValues.programId ?? project.programId);
+  const [selectedProgramId, setSelectedProgramId] = useState(
+    initialValues.programId ?? project.programId,
+  );
   const [title, setTitle] = useState(initialValues.title ?? project.title);
   const [slug, setSlug] = useState(initialValues.slug ?? project.slug);
-  const [shortDescription, setShortDescription] = useState(initialValues.shortDescription ?? project.shortDescription);
-  const [description, setDescription] = useState(initialValues.description ?? project.description);
-  const [displayOrderValue, setDisplayOrderValue] = useState<number | undefined>(initialValues.displayOrder ?? project.displayOrder);
+  const [shortDescription, setShortDescription] = useState(
+    initialValues.shortDescription ?? project.shortDescription,
+  );
+  const [description, setDescription] = useState(
+    initialValues.description ?? project.description,
+  );
+  const [displayOrderValue, setDisplayOrderValue] = useState<
+    number | undefined
+  >(initialValues.displayOrder ?? project.displayOrder);
 
   const hasChanges =
     selectedProgramId !== project.programId ||
@@ -841,12 +964,20 @@ function EditProjectForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
-      ...(selectedProgramId !== project.programId && { programId: selectedProgramId }),
+      ...(selectedProgramId !== project.programId && {
+        programId: selectedProgramId,
+      }),
       ...(title !== project.title && { title: title.trim() }),
       ...(slug !== project.slug && { slug: slug.trim() }),
-      ...(shortDescription !== project.shortDescription && { shortDescription: shortDescription.trim() }),
-      ...(description !== project.description && { description: description.trim() }),
-      ...(displayOrderValue !== project.displayOrder && { displayOrder: displayOrderValue }),
+      ...(shortDescription !== project.shortDescription && {
+        shortDescription: shortDescription.trim(),
+      }),
+      ...(description !== project.description && {
+        description: description.trim(),
+      }),
+      ...(displayOrderValue !== project.displayOrder && {
+        displayOrder: displayOrderValue,
+      }),
     });
   };
 
@@ -953,10 +1084,7 @@ function EditProjectForm({
           >
             Cancel
           </Button>
-          <Button
-            type="submit"
-            disabled={saving || !hasChanges}
-          >
+          <Button type="submit" disabled={saving || !hasChanges}>
             {saving ? "Saving…" : "Save changes"}
           </Button>
         </div>
@@ -967,17 +1095,22 @@ function EditProjectForm({
       <div>
         <h3 className="font-heading text-base font-medium mb-3">Status</h3>
         <div className="flex flex-wrap gap-2">
-          {["DRAFT", "PUBLISHED", "ARCHIVED"].filter((s) => s !== project.status).map((nextStatus) => (
-            <Button
-              key={nextStatus}
-              variant="outline"
-              size="sm"
-              disabled={saving}
-              onClick={() => onStatusChange(project.id, nextStatus as ProjectStatus)}
-            >
-              Set to {nextStatus.charAt(0) + nextStatus.slice(1).toLowerCase()}
-            </Button>
-          ))}
+          {["DRAFT", "PUBLISHED", "ARCHIVED"]
+            .filter((s) => s !== project.status)
+            .map((nextStatus) => (
+              <Button
+                key={nextStatus}
+                variant="outline"
+                size="sm"
+                disabled={saving}
+                onClick={() =>
+                  onStatusChange(project.id, nextStatus as ProjectStatus)
+                }
+              >
+                Set to{" "}
+                {nextStatus.charAt(0) + nextStatus.slice(1).toLowerCase()}
+              </Button>
+            ))}
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
           Status changes are made through a dedicated endpoint.
