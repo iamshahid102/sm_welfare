@@ -1,4 +1,4 @@
-import { ArrowRight, Heart } from "lucide-react";
+import { HiArrowRight, HiHeart } from "react-icons/hi2";
 import { buttonVariants } from "@/components/ui/button";
 import { Container } from "@/components/shared/container";
 import { Kicker } from "@/components/shared/kicker";
@@ -46,9 +46,9 @@ export function Hero() {
               href={DONATE_HREF}
               className={cn(buttonVariants(), BTN_PRIMARY_AMBER, "p-6")}
             >
-              <Heart className="ml-1.5 size-4" aria-hidden="true" />
+              <HiHeart className="ml-1.5 size-4" aria-hidden="true" />
               Donate now
-              <ArrowRight className="ml-1.5 size-4" aria-hidden="true" />
+              <HiArrowRight className="ml-1.5 size-4" aria-hidden="true" />
             </a>
             <a
               href="/projects"

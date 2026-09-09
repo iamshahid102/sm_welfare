@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Menu } from "lucide-react";
+import { HiBars3 } from "react-icons/hi2";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Sheet,
@@ -39,7 +39,7 @@ export function MobileNavigation({ light }: MobileNavigationProps) {
         }
         aria-label="Open menu"
       >
-        <Menu aria-hidden="true" />
+        <HiBars3 aria-hidden="true" />
       </SheetTrigger>
       <SheetContent side="right" className="w-80">
         <SheetHeader>

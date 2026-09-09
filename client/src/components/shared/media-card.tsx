@@ -1,4 +1,4 @@
-import { ArrowRight } from "lucide-react";
+import { HiArrowRight } from "react-icons/hi2";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { PublicMedia } from "@/types/public-api";
@@ -74,7 +74,7 @@ export function MediaCard(props: MediaCardProps) {
             className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors hover:text-primary-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             View
-            <ArrowRight
+            <HiArrowRight
               className="size-4 transition-transform group-hover:translate-x-0.5"
               aria-hidden="true"
             />
@@ -109,7 +109,7 @@ export function MediaCard(props: MediaCardProps) {
           className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors hover:text-primary-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           Read more
-          <ArrowRight
+          <HiArrowRight
             className="size-4 transition-transform group-hover:translate-x-0.5"
             aria-hidden="true"
           />

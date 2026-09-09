@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Menu, X } from "lucide-react";
+import { HiBars3, HiXMark } from "react-icons/hi2";
 
 /**
  * Admin navigation items.
@@ -145,9 +145,9 @@ export default function AdminProtectedLayout({ children }: LayoutProps<"/admin">
             aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
           >
             {mobileMenuOpen ? (
-              <X className="size-4" aria-hidden="true" />
+              <HiXMark className="size-4" aria-hidden="true" />
             ) : (
-              <Menu className="size-4" aria-hidden="true" />
+              <HiBars3 className="size-4" aria-hidden="true" />
             )}
           </Button>
 

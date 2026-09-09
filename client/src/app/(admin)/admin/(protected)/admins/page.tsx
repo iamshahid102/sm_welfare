@@ -1,14 +1,28 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { isSuperAdmin } from "@/types/auth";
 import {
@@ -21,6 +35,7 @@ import {
   type AdminStatus,
   type SafeUser,
 } from "@/services/admins";
+import { HiLockClosed, HiUsers } from "react-icons/hi2";
 
 // Title is set via the layout
 
@@ -109,7 +124,8 @@ export default function AdminAdminsPage() {
   // Access current state values safely
   const currentState = state.status === "ready" ? state : null;
   const currentSearch = currentState?.search ?? "";
-  const currentFilterStatus = currentState?.filterStatus ?? ("all" as AdminStatus | "all");
+  const currentFilterStatus =
+    currentState?.filterStatus ?? ("all" as AdminStatus | "all");
   const currentPage = currentState?.page ?? 1;
 
   const userIsSuperAdmin = isSuperAdmin(user);
@@ -118,9 +134,7 @@ export default function AdminAdminsPage() {
   // State setters
   const setSearchState = useCallback((value: string) => {
     setState((prev) =>
-      prev.status === "ready"
-        ? { ...prev, search: value, page: 1 }
-        : prev,
+      prev.status === "ready" ? { ...prev, search: value, page: 1 } : prev,
     );
   }, []);
   const setFilterStatusState = useCallback((value: AdminStatus | "all") => {
@@ -132,9 +146,7 @@ export default function AdminAdminsPage() {
   }, []);
   const setPageState = useCallback((value: number) => {
     setState((prev) =>
-      prev.status === "ready"
-        ? { ...prev, page: value }
-        : prev,
+      prev.status === "ready" ? { ...prev, page: value } : prev,
     );
   }, []);
 
@@ -142,7 +154,10 @@ export default function AdminAdminsPage() {
     setState({ status: "loading" });
     try {
       const currentSearch = state.status === "ready" ? state.search : "";
-      const currentFilterStatus = state.status === "ready" ? state.filterStatus : ("all" as AdminStatus | "all");
+      const currentFilterStatus =
+        state.status === "ready"
+          ? state.filterStatus
+          : ("all" as AdminStatus | "all");
       const data = await listAdmins({
         page: 1,
         limit: PAGE_SIZE,
@@ -224,25 +239,22 @@ export default function AdminAdminsPage() {
     );
   }, []);
 
-  const openEditDialog = useCallback(
-    (admin: SafeUser) => {
-      setState((prev) =>
-        prev.status === "ready"
-          ? {
-              ...prev,
-              editingAdmin: admin,
-              editingForm: {
-                name: admin.name,
-                email: admin.email,
-              },
-              saving: false,
-              lastError: null,
-            }
-          : prev,
-      );
-    },
-    [],
-  );
+  const openEditDialog = useCallback((admin: SafeUser) => {
+    setState((prev) =>
+      prev.status === "ready"
+        ? {
+            ...prev,
+            editingAdmin: admin,
+            editingForm: {
+              name: admin.name,
+              email: admin.email,
+            },
+            saving: false,
+            lastError: null,
+          }
+        : prev,
+    );
+  }, []);
 
   const closeDialog = useCallback(() => {
     setState((prev) =>
@@ -291,7 +303,9 @@ export default function AdminAdminsPage() {
                 ...prev,
                 saving: false,
                 createError:
-                  error instanceof Error ? error.message : "Failed to create admin.",
+                  error instanceof Error
+                    ? error.message
+                    : "Failed to create admin.",
               }
             : prev,
         );
@@ -311,32 +325,30 @@ export default function AdminAdminsPage() {
         const readyState = state as ReadyState;
         const updated = await updateAdmin(readyState.editingAdmin!.id, values);
         setState((prev) => {
-        if (!isReadyState(prev)) return prev;
-        return {
-          ...prev,
-          admins: prev.admins.map((a) =>
+          if (!isReadyState(prev)) return prev;
+          return {
+            ...prev,
+            admins: prev.admins.map((a) => (a.id === updated.id ? updated : a)),
+            editingAdmin: updated,
+            editingForm: values,
+            saving: false,
+            lastError: null,
+          };
+        });
+        setState((prev) => {
+          if (!isReadyState(prev)) return prev;
+          const admins = prev.admins.map((a) =>
             a.id === updated.id ? updated : a,
-          ),
-          editingAdmin: updated,
-          editingForm: values,
-          saving: false,
-          lastError: null,
-        };
-      });
-      setState((prev) => {
-        if (!isReadyState(prev)) return prev;
-        const admins = prev.admins.map((a) =>
-          a.id === updated.id ? updated : a,
-        );
-        return {
-          ...prev,
-          admins,
-          editingAdmin: updated,
-          editingForm: values,
-          saving: false,
-          lastError: null,
-        };
-      });
+          );
+          return {
+            ...prev,
+            admins,
+            editingAdmin: updated,
+            editingForm: values,
+            saving: false,
+            lastError: null,
+          };
+        });
       } catch (error) {
         setState((prev) =>
           prev.status === "ready"
@@ -344,7 +356,9 @@ export default function AdminAdminsPage() {
                 ...prev,
                 saving: false,
                 lastError:
-                  error instanceof Error ? error.message : "Failed to update admin.",
+                  error instanceof Error
+                    ? error.message
+                    : "Failed to update admin.",
               }
             : prev,
         );
@@ -356,20 +370,26 @@ export default function AdminAdminsPage() {
   const handleStatusChange = useCallback(
     async (adminId: string, newStatus: AdminStatus) => {
       try {
-        const updated = await updateAdminStatus(adminId, newStatus);      setState((prev) =>
-        prev.status === "ready" && "admins" in prev
-          ? { ...prev, admins: prev.admins.map((a) =>
-              a.id === updated.id ? updated : a,
-            ) }
-          : prev,
-      );
+        const updated = await updateAdminStatus(adminId, newStatus);
+        setState((prev) =>
+          prev.status === "ready" && "admins" in prev
+            ? {
+                ...prev,
+                admins: prev.admins.map((a) =>
+                  a.id === updated.id ? updated : a,
+                ),
+              }
+            : prev,
+        );
       } catch (error) {
         setState((prev) =>
           prev.status === "ready"
             ? {
                 ...prev,
                 lastError:
-                  error instanceof Error ? error.message : "Failed to change status.",
+                  error instanceof Error
+                    ? error.message
+                    : "Failed to change status.",
               }
             : prev,
         );
@@ -448,25 +468,10 @@ export default function AdminAdminsPage() {
         </div>
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
-            <svg
+            <HiLockClosed
               className="size-10 text-muted-foreground/60"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.5}
-              viewBox="0 0 24 24"
               aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.78 1.128a6.75 6.75 0 016.75-6.75 2.25 2.25 0 001.128 2.25 4.5 4.5 0 008.4 2.245c0 .399-.078.78-.22 1.128z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 12.75h.008v.008h-.008V12.75z"
-              />
-            </svg>
+            />
             <span className="text-sm font-medium">
               Admin management is restricted
             </span>
@@ -479,25 +484,23 @@ export default function AdminAdminsPage() {
     );
   }
 
-  const { admins, total, totalPages, editingAdmin, editingForm, saving, lastError } = state;
+  const {
+    admins,
+    total,
+    totalPages,
+    editingAdmin,
+    editingForm,
+    saving,
+    lastError,
+  } = state;
 
   const EmptyState = (
     <Card className="border-dashed">
       <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
-        <svg
+        <HiUsers
           className="size-10 text-muted-foreground/60"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.5}
-          viewBox="0 0 24 24"
           aria-hidden="true"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.124-1.352 4.125 4.125 0 00-7.533-2.053M15 19.128v-.003c0-1.113-.285-2.16-.765-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.004-.106M15 19.128a9.38 9.38 0 002.625-.372 9.337 9.337 0 004.124 1.352 4.125 4.125 0 00-7.533 2.053M12 6.302a4.125 4.125 0 00-4.125 4.125 4.125 4.125 0 004.125 4.125M12 6.302v12.376m12.376-24.752a4.125 4.125 0 00-4.125 4.125 4.125 4.125 0 004.125 4.125M3.375 20.625a4.125 4.125 0 004.125 4.125 4.125 4.125 0 004.125-4.125V20.625z"
-          />
-        </svg>
+        />
         <span className="text-sm font-medium">No admins found</span>
         <span className="text-sm text-muted-foreground">
           Create an admin account to get started.
@@ -541,12 +544,22 @@ export default function AdminAdminsPage() {
               <option value="">All statuses</option>
               <option value="ACTIVE">Active</option>
               <option value="INACTIVE">Inactive</option>
-            </select>              {canManage && (
-              <Dialog>
-                <DialogTrigger render={<Button size="sm">Create admin</Button>} />
+            </select>{" "}
+            {canManage && (
+              <Dialog
+                open={state.creating}
+                onOpenChange={(open) =>
+                  open ? openCreateDialog() : closeDialog()
+                }
+              >
+                <DialogTrigger
+                  render={<Button size="sm">Create admin</Button>}
+                />
                 <DialogContent className="max-w-lg">
                   <DialogHeader>
-                    <DialogTitle className="font-heading">Create admin</DialogTitle>
+                    <DialogTitle className="font-heading">
+                      Create admin
+                    </DialogTitle>
                     <DialogDescription>
                       Create a new administrator account.
                     </DialogDescription>
@@ -555,6 +568,7 @@ export default function AdminAdminsPage() {
                     onSubmit={handleCreate}
                     saving={saving}
                     createError={state.createError}
+                    onClose={closeDialog}
                   />
                 </DialogContent>
               </Dialog>
@@ -672,23 +686,103 @@ function PaginationControls({
       </Button>
     </div>
   );
-}function CreateAdminForm({
+}
+const CREATE_NAME_MAX_LENGTH = 100; // mirrors server: User schema maxlength
+const CREATE_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // mirrors server EMAIL_PATTERN
+const CREATE_PASSWORD_MAX_BYTES = 72; // mirrors server: bcrypt 72-byte limit
+
+const encoder = new TextEncoder();
+
+type CreateFormErrors = {
+  name?: string;
+  email?: string;
+  password?: string;
+  confirmPassword?: string;
+};
+
+/**
+ * Validates create-admin input client-side with the same rules the server
+ * enforces (see server admin.service.ts), so users get immediate, readable
+ * messages instead of relying on native browser bubbles.
+ */
+function validateCreateForm(values: {
+  name: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}): CreateFormErrors {
+  const errors: CreateFormErrors = {};
+  const name = values.name.trim();
+  const email = values.email.trim();
+
+  if (!name) {
+    errors.name = "Name is required.";
+  } else if (name.length > CREATE_NAME_MAX_LENGTH) {
+    errors.name = `Name must not exceed ${CREATE_NAME_MAX_LENGTH} characters.`;
+  }
+
+  if (!email) {
+    errors.email = "Email is required.";
+  } else if (!CREATE_EMAIL_PATTERN.test(email)) {
+    errors.email = "Provide a valid email address.";
+  }
+
+  if (!values.password.trim()) {
+    errors.password = "Password is required.";
+  } else if (
+    encoder.encode(values.password).length > CREATE_PASSWORD_MAX_BYTES
+  ) {
+    errors.password = `Password must not exceed ${CREATE_PASSWORD_MAX_BYTES} bytes.`;
+  }
+
+  if (!values.confirmPassword) {
+    errors.confirmPassword = "Please confirm your password.";
+  } else if (values.password !== values.confirmPassword) {
+    errors.confirmPassword = "Passwords do not match.";
+  }
+
+  return errors;
+}
+
+function CreateAdminForm({
   onSubmit,
   saving,
   createError,
+  onClose,
 }: {
   onSubmit: (values: CreateAdminInput) => void;
   saving: boolean;
   createError: string | null;
+  onClose: () => void;
 }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [errors, setErrors] = useState<CreateFormErrors>({});
+
+  // Live check: when both fields are filled and differ, flag the mismatch
+  // immediately instead of waiting for submit.
+  const syncConfirmError = (
+    pw: string,
+    confirm: string,
+  ): string | undefined => {
+    if (pw && confirm && pw !== confirm) {
+      return "Passwords do not match.";
+    }
+    return undefined;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) {
+    const nextErrors = validateCreateForm({
+      name,
+      email,
+      password,
+      confirmPassword,
+    });
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
       return;
     }
     onSubmit({
@@ -699,7 +793,7 @@ function PaginationControls({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} noValidate className="space-y-4">
       {createError && (
         <div className="rounded-lg border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
           {createError}
@@ -712,10 +806,18 @@ function PaginationControls({
           value={name}
           onChange={(e) => {
             setName(e.target.value);
+            setErrors((prev) => ({ ...prev, name: undefined }));
           }}
           required
           disabled={saving}
+          aria-invalid={!!errors.name}
+          aria-describedby={errors.name ? "createName-error" : undefined}
         />
+        {errors.name && (
+          <p id="createName-error" className="text-sm text-destructive">
+            {errors.name}
+          </p>
+        )}
       </div>
       <div className="grid gap-2">
         <Label htmlFor="createEmail">Email *</Label>
@@ -725,43 +827,78 @@ function PaginationControls({
           value={email}
           onChange={(e) => {
             setEmail(e.target.value);
+            setErrors((prev) => ({ ...prev, email: undefined }));
           }}
           required
           disabled={saving}
+          aria-invalid={!!errors.email}
+          aria-describedby={errors.email ? "createEmail-error" : undefined}
         />
+        {errors.email && (
+          <p id="createEmail-error" className="text-sm text-destructive">
+            {errors.email}
+          </p>
+        )}
       </div>
       <div className="grid gap-2">
         <Label htmlFor="createPassword">Password *</Label>
-        <Input
+        <PasswordInput
           id="createPassword"
-          type="password"
           value={password}
           onChange={(e) => {
-            setPassword(e.target.value);
+            const value = e.target.value;
+            setPassword(value);
+            setErrors((prev) => ({
+              ...prev,
+              password: undefined,
+              confirmPassword: syncConfirmError(value, confirmPassword),
+            }));
           }}
           required
           disabled={saving}
+          aria-invalid={!!errors.password}
+          aria-describedby={
+            errors.password ? "createPassword-error" : undefined
+          }
         />
+        {errors.password && (
+          <p id="createPassword-error" className="text-sm text-destructive">
+            {errors.password}
+          </p>
+        )}
       </div>
       <div className="grid gap-2">
         <Label htmlFor="confirmPassword">Confirm password *</Label>
-        <Input
+        <PasswordInput
           id="confirmPassword"
-          type="password"
           value={confirmPassword}
           onChange={(e) => {
-            setConfirmPassword(e.target.value);
+            const value = e.target.value;
+            setConfirmPassword(value);
+            setErrors((prev) => ({
+              ...prev,
+              confirmPassword: syncConfirmError(password, value),
+            }));
           }}
           required
           disabled={saving}
+          aria-invalid={!!errors.confirmPassword}
+          aria-describedby={
+            errors.confirmPassword ? "confirmPassword-error" : undefined
+          }
         />
+        {errors.confirmPassword && (
+          <p id="confirmPassword-error" className="text-sm text-destructive">
+            {errors.confirmPassword}
+          </p>
+        )}
       </div>
       <div className="flex justify-end gap-2 pt-2">
         <Button
           type="button"
           variant="outline"
           disabled={saving}
-          onClick={() => {}}
+          onClick={onClose}
         >
           Cancel
         </Button>
@@ -771,7 +908,8 @@ function PaginationControls({
       </div>
     </form>
   );
-}function EditAdminForm({
+}
+function EditAdminForm({
   admin,
   initialValues,
   onSave,
@@ -791,8 +929,7 @@ function PaginationControls({
   const [name, setName] = useState(initialValues.name ?? admin.name);
   const [email, setEmail] = useState(initialValues.email ?? admin.email);
 
-  const hasChanges =
-    name !== admin.name || email !== admin.email;
+  const hasChanges = name !== admin.name || email !== admin.email;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -845,10 +982,7 @@ function PaginationControls({
           >
             Cancel
           </Button>
-          <Button
-            type="submit"
-            disabled={saving || !hasChanges}
-          >
+          <Button type="submit" disabled={saving || !hasChanges}>
             {saving ? "Saving…" : "Save changes"}
           </Button>
         </div>

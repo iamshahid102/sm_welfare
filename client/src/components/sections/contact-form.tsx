@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Send } from "lucide-react";
+import { HiPaperAirplane } from "react-icons/hi2";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -87,7 +87,7 @@ export function ContactForm() {
       </div>
 
       <Button type="submit" size="lg" className="w-full sm:w-auto">
-        <Send className="mr-1.5 size-4" aria-hidden="true" />
+        <HiPaperAirplane className="mr-1.5 size-4" aria-hidden="true" />
         Send message
       </Button>
 

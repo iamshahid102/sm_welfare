@@ -1,4 +1,4 @@
-import { Mail, MapPin, Phone } from "lucide-react";
+import { HiEnvelope, HiMapPin, HiPhone } from "react-icons/hi2";
 import { SITE } from "@/constants/site";
 import { NAV_ITEMS, DONATE_HREF } from "@/constants/navigation";
 import { Container } from "@/components/shared/container";
@@ -61,7 +61,7 @@ export function Footer() {
                 href={`mailto:${SITE.email}`}
                 className="inline-flex items-center gap-2.5 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               >
-                <Mail className="size-4 shrink-0 text-accent" aria-hidden="true" />
+                <HiEnvelope className="size-4 shrink-0 text-accent" aria-hidden="true" />
                 {SITE.email}
               </a>
             </li>
@@ -70,12 +70,12 @@ export function Footer() {
                 href={`tel:${SITE.phone.replace(/\s/g, "")}`}
                 className="inline-flex items-center gap-2.5 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               >
-                <Phone className="size-4 shrink-0 text-accent" aria-hidden="true" />
+                <HiPhone className="size-4 shrink-0 text-accent" aria-hidden="true" />
                 {SITE.phone}
               </a>
             </li>
             <li className="inline-flex items-center gap-2.5">
-              <MapPin className="size-4 shrink-0 text-accent" aria-hidden="true" />
+              <HiMapPin className="size-4 shrink-0 text-accent" aria-hidden="true" />
               {SITE.location}
             </li>
           </ul>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ArrowRight } from "lucide-react";
+import { HiArrowRight } from "react-icons/hi2";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -65,7 +65,7 @@ function ProjectDetail({
             className={cn(buttonVariants(), "group")}
           >
             Support this project
-            <ArrowRight
+            <HiArrowRight
               className="ml-1.5 size-4 transition-transform group-hover:translate-x-0.5"
               aria-hidden="true"
             />

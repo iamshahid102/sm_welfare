@@ -1,4 +1,4 @@
-import { Mail, MapPin, Phone } from "lucide-react";
+import { HiEnvelope, HiMapPin, HiPhone } from "react-icons/hi2";
 import { SITE } from "@/constants/site";
 import { Container } from "@/components/shared/container";
 import { SocialLinks } from "@/components/shared/social-links";
@@ -18,18 +18,18 @@ export function TopBar() {
             href={`mailto:${SITE.email}`}
             className="hidden items-center gap-1.5 truncate transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:inline-flex"
           >
-            <Mail className="size-3.5 shrink-0" aria-hidden="true" />
+            <HiEnvelope className="size-3.5 shrink-0" aria-hidden="true" />
             <span className="truncate">{SITE.email}</span>
           </a>
           <a
             href={`tel:${SITE.phone.replace(/\s/g, "")}`}
             className="inline-flex items-center gap-1.5 transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
           >
-            <Phone className="size-3.5 shrink-0" aria-hidden="true" />
+            <HiPhone className="size-3.5 shrink-0" aria-hidden="true" />
             <span>{SITE.phone}</span>
           </a>
           <span className="hidden items-center gap-1.5 lg:inline-flex">
-            <MapPin className="size-3.5 shrink-0" aria-hidden="true" />
+            <HiMapPin className="size-3.5 shrink-0" aria-hidden="true" />
             <span>{SITE.location}</span>
           </span>
         </div>

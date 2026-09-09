@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { HeartHandshake } from "lucide-react";
+import { LuHeartHandshake } from "react-icons/lu";
 import { cn } from "@/lib/utils";
 import { SITE } from "@/constants/site";
 
@@ -29,7 +29,7 @@ export function Logo({ className, light }: LogoProps) {
           light ? "bg-white/15 text-white" : "bg-primary text-primary-foreground"
         )}
       >
-        <HeartHandshake className="size-4.5" aria-hidden="true" />
+        <LuHeartHandshake className="size-4.5" aria-hidden="true" />
       </span>
       <span className="flex flex-col leading-none">
         <span

@@ -23,6 +23,7 @@ import {
   type Program,
   type ProgramStatus,
 } from "@/services/programs";
+import { HiLockClosed } from "react-icons/hi2";
 
 // Title is set via the layout
 
@@ -114,6 +115,7 @@ export default function AdminProgramsPage() {
   const [programSearch, setProgramSearch] = useState("");
   const [programStatus, setProgramStatus] = useState<ProgramStatus | "all">("all");
   const [page, setPage] = useState(1);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const userIsSuperAdmin = isSuperAdmin(user);
   const canEdit = userIsSuperAdmin;
@@ -209,6 +211,7 @@ export default function AdminProgramsPage() {
   );
 
   const closeDialog = useCallback(() => {
+    setCreateDialogOpen(false);
     setState((prev) =>
       prev.status === "ready"
         ? {
@@ -368,25 +371,10 @@ export default function AdminProgramsPage() {
   const EmptyState = (
     <Card className="border-dashed">
       <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
-        <svg
+        <HiLockClosed
           className="size-10 text-muted-foreground/60"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.5}
-          viewBox="0 0 24 24"
           aria-hidden="true"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.78 1.128a6.75 6.75 0 016.75-6.75 2.25 2.25 0 001.128 2.25 4.5 4.5 0 008.4 2.245c0 .399-.078.78-.22 1.128z"
-          />
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M12 12.75h.008v.008h-.008V12.75z"
-          />
-        </svg>
+        />
         <span className="text-sm font-medium">No programs yet</span>
         <span className="text-sm text-muted-foreground">
           Create a program to start organizing projects.
@@ -433,7 +421,7 @@ export default function AdminProgramsPage() {
               <option value="ARCHIVED">Archived</option>
             </select>
             {canEdit && (
-              <Dialog>
+              <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
                 <DialogTrigger render={<Button size="sm">Create program</Button>} />
                 <DialogContent className="max-w-2xl">
                   <DialogHeader>

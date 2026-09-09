@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { LuLoaderCircle } from "react-icons/lu";
 import { useAuth } from "@/hooks/use-auth";
 import { isSafeInternalAdminPath } from "@/lib/auth";
 import { ApiError } from "@/lib/api/client";
@@ -16,6 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -169,10 +170,9 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="password">Password</Label>
-              <Input
+              <PasswordInput
                 id="password"
                 name="password"
-                type="password"
                 placeholder="••••••••"
                 autoComplete="current-password"
                 required
@@ -190,7 +190,7 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
-                  <Loader2 data-icon="inline-start" className="animate-spin" />
+                  <LuLoaderCircle data-icon="inline-start" className="animate-spin" />
                   Signing in…
                 </>
               ) : (

@@ -1,7 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { MessageCircle, Phone, Repeat, Landmark } from "lucide-react";
+import {
+  HiChatBubbleLeftRight,
+  HiPhone,
+  HiArrowPath,
+  HiBuildingLibrary,
+} from "react-icons/hi2";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -129,7 +134,7 @@ export function DonationBuilder() {
             className="size-4 rounded border-input accent-[var(--primary)]"
           />
           <span className="inline-flex items-center gap-2 text-sm font-semibold">
-            <Repeat className="size-4 text-primary" aria-hidden="true" />
+            <HiArrowPath className="size-4 text-primary" aria-hidden="true" />
             Make this a monthly commitment
           </span>
         </label>
@@ -153,14 +158,14 @@ export function DonationBuilder() {
             rel="noopener noreferrer"
             className={cn(buttonVariants({ size: "lg" }), "flex-1 bg-[#25D366] hover:bg-[#1fb457]")}
           >
-            <MessageCircle className="mr-1.5 size-4" aria-hidden="true" />
+            <HiChatBubbleLeftRight className="mr-1.5 size-4" aria-hidden="true" />
             Confirm on WhatsApp
           </a>
           <a
             href={`tel:${SITE.phone.replace(/\s/g, "")}`}
             className={cn(buttonVariants({ size: "lg", variant: "outline" }), "flex-1")}
           >
-            <Phone className="mr-1.5 size-4" aria-hidden="true" />
+            <HiPhone className="mr-1.5 size-4" aria-hidden="true" />
             Call us
           </a>
         </div>
@@ -170,7 +175,7 @@ export function DonationBuilder() {
       <div className="flex h-fit flex-col gap-6 rounded-2xl border border-border bg-section p-6 sm:p-8">
         <div className="flex items-center gap-3">
           <span className="flex size-11 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Landmark className="size-5" aria-hidden="true" />
+            <HiBuildingLibrary className="size-5" aria-hidden="true" />
           </span>
           <h2 className="font-heading text-2xl font-bold tracking-tight">
             Bank &amp; wallet details

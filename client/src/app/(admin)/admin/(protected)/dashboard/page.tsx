@@ -16,6 +16,12 @@ import {
 import {
   listAdmins,
 } from "@/services/admins";
+import {
+  HiPlus,
+  HiPhoto,
+  HiCog6Tooth,
+  HiUsers,
+} from "react-icons/hi2";
 
 // Title is set via the layout
 
@@ -215,60 +221,21 @@ export default function AdminDashboardPage() {
                   href="/admin/programs"
                   className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-muted"
                 >
-                  <svg
-                    className="size-4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 4.5v15m7.5-7.5h-15"
-                    />
-                  </svg>
+                  <HiPlus className="size-4" aria-hidden="true" />
                   View programs
                 </Link>
                 <Link
                   href="/admin/projects"
                   className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-muted"
                 >
-                  <svg
-                    className="size-4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 4.5v15m7.5-7.5h-15"
-                    />
-                  </svg>
+                  <HiPlus className="size-4" aria-hidden="true" />
                   View projects
                 </Link>
                 <Link
                   href="/admin/media"
                   className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-muted"
                 >
-                  <svg
-                    className="size-4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5"
-                    />
-                  </svg>
+                  <HiPhoto className="size-4" aria-hidden="true" />
                   Upload media
                 </Link>
                 {userIsSuperAdmin && (
@@ -276,20 +243,7 @@ export default function AdminDashboardPage() {
                     href="/admin/site-settings"
                     className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-muted"
                   >
-                    <svg
-                      className="size-4"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M11.42 15.17l-5.25 4.99a2 2 0 01-1.64 0l-1.41-1.41a2 2 0 010-2.83l2.83-2.83a2 2 0 012.83 0l3.54 3.53a2 2 0 010 2.83l-2.83 2.83a2 2 0 01-2.83 0l-1.41-1.41a2 2 0 010-2.83l5.25-4.99a2 2 0 012.83 0l3.53 3.54a2 2 0 010 2.83l-2.83 2.83a2 2 0 01-.75 0"
-                      />
-                    </svg>
+                    <HiCog6Tooth className="size-4" aria-hidden="true" />
                     Edit site settings
                   </Link>
                 )}
@@ -298,20 +252,7 @@ export default function AdminDashboardPage() {
                     href="/admin/admins"
                     className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-muted"
                   >
-                    <svg
-                      className="size-4"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.124-1.352 4.125 4.125 0 00-7.533-2.053M15 19.128v-.003c0-1.113-.285-2.16-.765-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.004-.106M15 19.128a9.38 9.38 0 002.625-.372 9.337 9.337 0 004.124 1.352 4.125 4.125 0 00-7.533 2.053M12 6.302a4.125 4.125 0 00-4.125 4.125 4.125 4.125 0 004.125 4.125M12 6.302v12.376m12.376-24.752a4.125 4.125 0 00-4.125 4.125 4.125 4.125 0 004.125 4.125M3.375 20.625a4.125 4.125 0 004.125 4.125 4.125 4.125 0 004.125-4.125V20.625z"
-                      />
-                    </svg>
+                    <HiUsers className="size-4" aria-hidden="true" />
                     Manage admins
                   </Link>
                 )}

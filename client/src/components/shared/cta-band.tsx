@@ -1,4 +1,4 @@
-import { Phone } from "lucide-react";
+import { HiPhone } from "react-icons/hi2";
 import { buttonVariants } from "@/components/ui/button";
 import { Container } from "@/components/shared/container";
 import { SITE } from "@/constants/site";
@@ -34,7 +34,7 @@ export function CtaBand() {
               href={`tel:${SITE.phone.replace(/\s/g, "")}`}
               className={cn(buttonVariants(), BTN_OUTLINE_DEFAULT)}
             >
-              <Phone className="mr-1.5 size-4" aria-hidden="true" />
+              <HiPhone className="mr-1.5 size-4" aria-hidden="true" />
               Talk to our team
             </a>
           </div>

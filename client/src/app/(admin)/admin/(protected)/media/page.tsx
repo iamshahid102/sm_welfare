@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Empty, EmptyContent, EmptyDescription } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LuLoaderCircle } from "react-icons/lu";
 
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -266,26 +267,10 @@ export default function AdminMediaPage() {
           {state.uploadingState.status === "uploading" && (
             <div className="flex flex-col items-center gap-3 py-8">
               <div className="flex items-center gap-3">
-                <svg
+                <LuLoaderCircle
                   className="size-5 animate-spin text-primary"
-                  fill="none"
-                  viewBox="0 0 24 24"
                   aria-hidden="true"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.25 0 4 1.25 4 2.5h.5z"
-                  />
-                </svg>
+                />
                 <span className="text-sm text-muted-foreground">
                   Uploading to Cloudinary…
                 </span>

@@ -1,4 +1,4 @@
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { HiArrowRight, HiCheckCircle } from "react-icons/hi2";
 import { buttonVariants } from "@/components/ui/button";
 import { Hero } from "@/components/shared/hero";
 import { Container } from "@/components/shared/container";
@@ -112,7 +112,7 @@ async function MediaSection() {
               )}
             >
               View all updates
-              <ArrowRight
+              <HiArrowRight
                 className="ml-1.5 size-4 transition-transform group-hover:translate-x-0.5"
                 aria-hidden="true"
               />
@@ -137,7 +137,7 @@ async function MediaSection() {
                 key={area.title}
                 className="flex gap-3 rounded-lg border border-border bg-white p-4"
               >
-                <CheckCircle2
+                <HiCheckCircle
                   className="mt-0.5 size-5 shrink-0 text-primary"
                   aria-hidden="true"
                 />

@@ -1,4 +1,9 @@
-import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import {
+  HiEnvelope,
+  HiMapPin,
+  HiChatBubbleLeftRight,
+  HiPhone,
+} from "react-icons/hi2";
 import { buttonVariants } from "@/components/ui/button";
 import { PageHero } from "@/components/shared/page-hero";
 import { Container } from "@/components/shared/container";
@@ -18,25 +23,25 @@ export default async function ContactPage() {
   const phoneDigits = phone.replace(/\D/g, "");
 
   const contactItems: ReadonlyArray<{
-    icon: typeof Mail;
+    icon: typeof HiEnvelope;
     label: string;
     value: string;
     href?: string;
   }> = [
     {
-      icon: Mail,
+      icon: HiEnvelope,
       label: "Email",
       value: email,
       href: `mailto:${email}`,
     },
     {
-      icon: Phone,
+      icon: HiPhone,
       label: "Phone",
       value: phone,
       href: `tel:${phone.replace(/\s/g, "")}`,
     },
     {
-      icon: MapPin,
+      icon: HiMapPin,
       label: "Location",
       value: location,
     },
@@ -103,7 +108,7 @@ export default async function ContactPage() {
                 "bg-[#25D366] hover:bg-[#1fb457]",
               )}
             >
-              <MessageCircle className="mr-1.5 size-4" aria-hidden="true" />
+              <HiChatBubbleLeftRight className="mr-1.5 size-4" aria-hidden="true" />
               Chat on WhatsApp
             </a>
           </div>

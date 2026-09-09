@@ -45,6 +45,7 @@ import {
   type ProjectStatus,
   type Program,
 } from "@/services/projects";
+import { HiLockClosed } from "react-icons/hi2";
 
 // Title is set via the layout
 
@@ -152,6 +153,7 @@ export default function AdminProjectsPage() {
   const [status, setStatus] = useState<ProjectStatus | "all">("all");
   const [programIdFilter, setProgramIdFilter] = useState<string | "all">("all");
   const [page, setPage] = useState(1);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const userIsSuperAdmin = isSuperAdmin(user);
   const canEdit = userIsSuperAdmin;
@@ -313,6 +315,7 @@ export default function AdminProjectsPage() {
       );
       try {
         await createProject(values);
+        setCreateDialogOpen(false);
         setPage(1);
         setSearch("");
         setStatus("all");
@@ -520,25 +523,10 @@ export default function AdminProjectsPage() {
   const EmptyState = (
     <Card className="border-dashed">
       <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
-        <svg
+        <HiLockClosed
           className="size-10 text-muted-foreground/60"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.5}
-          viewBox="0 0 24 24"
           aria-hidden="true"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.78 1.128a6.75 6.75 0 016.75-6.75 2.25 2.25 0 001.128 2.25 4.5 4.5 0 008.4 2.245c0 .399-.078.78-.22 1.128z"
-          />
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M12 12.75h.008v.008h-.008V12.75z"
-          />
-        </svg>
+        />
         <span className="text-sm font-medium">No projects yet</span>
         <span className="text-sm text-muted-foreground">
           Create a project to start organizing initiatives.
@@ -608,7 +596,10 @@ export default function AdminProjectsPage() {
               </SelectContent>
             </Select>
             {canEdit && (
-              <Dialog>
+              <Dialog
+                open={createDialogOpen}
+                onOpenChange={setCreateDialogOpen}
+              >
                 <DialogTrigger
                   render={<Button size="sm">Create project</Button>}
                 />
@@ -627,6 +618,7 @@ export default function AdminProjectsPage() {
                     onSubmit={handleCreate}
                     saving={saving}
                     lastError={lastError}
+                    onClose={() => setCreateDialogOpen(false)}
                   />
                 </DialogContent>
               </Dialog>
@@ -758,11 +750,13 @@ function CreateProjectForm({
   onSubmit,
   saving,
   lastError,
+  onClose,
 }: {
   programs: Program[];
   onSubmit: (values: CreateProjectInput) => void;
   saving: boolean;
   lastError: string | null;
+  onClose: () => void;
 }) {
   const [selectedProgramId, setSelectedProgramId] = useState("");
   const hasSelectedProgramRef = useRef(false);
@@ -898,14 +892,7 @@ function CreateProjectForm({
           type="button"
           variant="outline"
           disabled={saving}
-          onClick={() => {
-            setTitle("");
-            setSlug("");
-            setShortDescription("");
-            setDescription("");
-            setDisplayOrder(undefined);
-            setSelectedProgramId("");
-          }}
+          onClick={onClose}
         >
           Cancel
         </Button>

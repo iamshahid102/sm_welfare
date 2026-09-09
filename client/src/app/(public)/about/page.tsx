@@ -1,4 +1,9 @@
-import { Compass, Eye, ShieldCheck, ArrowRight } from "lucide-react";
+import {
+  HiGlobeAlt,
+  HiEye,
+  HiShieldCheck,
+  HiArrowRight,
+} from "react-icons/hi2";
 import { buttonVariants } from "@/components/ui/button";
 import { PageHero } from "@/components/shared/page-hero";
 import { Container } from "@/components/shared/container";
@@ -10,19 +15,19 @@ import { cn } from "@/lib/utils";
 
 const PILLARS = [
   {
-    icon: Compass,
+    icon: HiGlobeAlt,
     title: "Our mission",
     description:
       "To be a ray of light in education, healthcare, employment and social welfare for people who fight each day just to survive.",
   },
   {
-    icon: Eye,
+    icon: HiEye,
     title: "Our vision",
     description:
       "A society where no one is left behind — where every family can live with dignity, confidence and independence.",
   },
   {
-    icon: ShieldCheck,
+    icon: HiShieldCheck,
     title: "Our promise",
     description:
       "Transparency, integrity and consistent effort. Donations are tracked, reported and spent where they were pledged.",
@@ -97,7 +102,7 @@ export default async function AboutPage() {
                 className={cn(buttonVariants(), "group")}
               >
                 See what we run
-                <ArrowRight
+                <HiArrowRight
                   className="ml-1.5 size-4 transition-transform group-hover:translate-x-0.5"
                   aria-hidden="true"
                 />
