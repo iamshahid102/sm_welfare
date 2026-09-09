@@ -1,6 +1,5 @@
 "use client";
 
-import type { Metadata } from "next";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Card,
@@ -46,7 +45,6 @@ import {
   type ProjectStatus,
   type Program,
 } from "@/services/projects";
-import type { Program as ProgramType } from "@/types/api";
 
 // Title is set via the layout
 

@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "@/lib/api/config";
 import { api } from "@/lib/api/client";
 import type { Media } from "@/types/api";
 
@@ -11,7 +12,7 @@ export async function uploadMedia(file: File): Promise<Media> {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/media`, {
+  const response = await fetch(`${API_BASE_URL}/media`, {
     method: "POST",
     credentials: "include",
     body: formData,
@@ -20,14 +21,17 @@ export async function uploadMedia(file: File): Promise<Media> {
   if (!response.ok) {
     let message = `Upload failed with status ${response.status}`;
     try {
-      const payload = (await response.json()) as { error?: { message?: string } };
+      const payload = (await response.json()) as {
+        error?: { message?: string };
+      };
       if (payload.error?.message) {
         message = payload.error.message;
       }
     } catch {
       // Body was not JSON — keep the generic message.
-    }    throw new Error(message);
     }
+    throw new Error(message);
+  }
 
   const data = (await response.json()) as UploadMediaResult;
   return data.media;

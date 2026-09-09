@@ -4,8 +4,10 @@ import { PageHero } from "@/components/shared/page-hero";
 import { Container } from "@/components/shared/container";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { CtaBand } from "@/components/shared/cta-band";
-import { PROGRAMS } from "@/data/programs";
+import { listPublicPrograms } from "@/services/public-programs";
+import type { PublicProgram } from "@/types/public-api";
 import { cn } from "@/lib/utils";
+
 const PILLARS = [
   {
     icon: Compass,
@@ -27,7 +29,18 @@ const PILLARS = [
   },
 ] as const;
 
-export default function AboutPage() {
+async function fetchPrograms(): Promise<PublicProgram[]> {
+  try {
+    const result = await listPublicPrograms({ limit: 12 });
+    return result.items;
+  } catch {
+    return [];
+  }
+}
+
+export default async function AboutPage() {
+  const programs = await fetchPrograms();
+
   return (
     <>
       <PageHero
@@ -98,31 +111,37 @@ export default function AboutPage() {
         </Container>
       </section>
 
-      {/* What we do */}
+      {/* What we do — fetched from API */}
       <section id="what-we-do" className="border-t border-border bg-section">
         <Container className="flex flex-col gap-10 py-16 sm:py-20">
           <SectionHeading
             kicker="What we do"
             title="Six areas of focus"
           />
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {PROGRAMS.map((program) => (
-              <article
-                key={program.number}
-                className="flex flex-col gap-3 rounded-xl border border-border bg-white p-6 shadow-sm"
-              >
-                <span className="font-heading text-3xl font-bold text-primary/30">
-                  {program.number}
-                </span>
-                <h3 className="font-heading text-lg font-bold tracking-tight">
-                  {program.name}
-                </h3>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  {program.description}
-                </p>
-              </article>
-            ))}
-          </div>
+          {programs.length === 0 ? (
+            <p className="text-center text-sm text-muted-foreground">
+              Programmes will appear here once they are published.
+            </p>
+          ) : (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {programs.map((program, index) => (
+                <article
+                  key={program.id}
+                  className="flex flex-col gap-3 rounded-xl border border-border bg-white p-6 shadow-sm"
+                >
+                  <span className="font-heading text-3xl font-bold text-primary/30">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <h3 className="font-heading text-lg font-bold tracking-tight">
+                    {program.title}
+                  </h3>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    {program.shortDescription}
+                  </p>
+                </article>
+              ))}
+            </div>
+          )}
         </Container>
       </section>
 

@@ -4,36 +4,44 @@ import { PageHero } from "@/components/shared/page-hero";
 import { Container } from "@/components/shared/container";
 import { ContactForm } from "@/components/sections/contact-form";
 import { SITE } from "@/constants/site";
+import { getPublicSiteSettings } from "@/services/public-site-settings";
 import { cn } from "@/lib/utils";
 
-const PHONE_DIGITS = SITE.phone.replace(/\D/g, "");
+export default async function ContactPage() {
+  // Fetch public site-settings; fall back to static SITE constants
+  const settings = await getPublicSiteSettings();
 
-const CONTACT_ITEMS: ReadonlyArray<{
-  icon: typeof Mail;
-  label: string;
-  value: string;
-  href?: string;
-}> = [
-  {
-    icon: Mail,
-    label: "Email",
-    value: SITE.email,
-    href: `mailto:${SITE.email}`,
-  },
-  {
-    icon: Phone,
-    label: "Phone",
-    value: SITE.phone,
-    href: `tel:${SITE.phone.replace(/\s/g, "")}`,
-  },
-  {
-    icon: MapPin,
-    label: "Location",
-    value: SITE.location,
-  },
-];
+  const email = settings?.contact?.email ?? SITE.email;
+  const phone = settings?.contact?.phone ?? SITE.phone;
+  const location = settings?.contact?.address ?? SITE.location;
 
-export default function ContactPage() {
+  const phoneDigits = phone.replace(/\D/g, "");
+
+  const contactItems: ReadonlyArray<{
+    icon: typeof Mail;
+    label: string;
+    value: string;
+    href?: string;
+  }> = [
+    {
+      icon: Mail,
+      label: "Email",
+      value: email,
+      href: `mailto:${email}`,
+    },
+    {
+      icon: Phone,
+      label: "Phone",
+      value: phone,
+      href: `tel:${phone.replace(/\s/g, "")}`,
+    },
+    {
+      icon: MapPin,
+      label: "Location",
+      value: location,
+    },
+  ];
+
   return (
     <>
       <PageHero
@@ -49,7 +57,7 @@ export default function ContactPage() {
               Reach us directly
             </h2>
             <ul className="flex flex-col gap-4">
-              {CONTACT_ITEMS.map(({ icon: Icon, label, value, href }) => (
+              {contactItems.map(({ icon: Icon, label, value, href }) => (
                 <li key={label}>
                   {href ? (
                     <a
@@ -87,10 +95,13 @@ export default function ContactPage() {
               ))}
             </ul>
             <a
-              href={`https://wa.me/${PHONE_DIGITS}`}
+              href={`https://wa.me/${phoneDigits}`}
               target="_blank"
               rel="noopener noreferrer"
-              className={cn(buttonVariants({ size: "lg" }), "bg-[#25D366] hover:bg-[#1fb457]")}
+              className={cn(
+                buttonVariants({ size: "lg" }),
+                "bg-[#25D366] hover:bg-[#1fb457]",
+              )}
             >
               <MessageCircle className="mr-1.5 size-4" aria-hidden="true" />
               Chat on WhatsApp

@@ -1,8 +1,5 @@
 "use client";
 
-import type { Metadata } from "next";
-
-// Metadata is handled by the parent layout
 import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
