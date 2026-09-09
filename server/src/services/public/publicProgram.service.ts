@@ -43,68 +43,8 @@ export interface PublicProgram {
   updatedAt: string;
 }
 
-const VALID_STATUSES = new Set<string>([
-  'DRAFT',
-  'PUBLISHED',
-  'ARCHIVED',
-]);
-
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-export function validateListProgramsQuery(query: {
-  page?: unknown;
-  limit?: unknown;
-  search?: unknown;
-  status?: unknown;
-}): {
-  page: number;
-  limit: number;
-  search: string | undefined;
-  status: string | undefined;
-} {
-  let page = DEFAULT_PAGE;
-  if (query.page !== undefined) {
-    if (
-      typeof query.page !== 'string' ||
-      !/^\d+$/.test(query.page) ||
-      Number(query.page) < 1 ||
-      Number(query.page) > MAX_PAGE
-    ) {
-      throw new ApiError(400, `Page must be between 1 and ${MAX_PAGE}.`);
-    }
-    page = Number(query.page);
-  }
-
-  let limit = DEFAULT_PAGE_LIMIT;
-  if (query.limit !== undefined) {
-    if (typeof query.limit !== 'string' || !/^\d+$/.test(query.limit)) {
-      throw new ApiError(400, `Limit must be an integer between 1 and ${MAX_PAGE_LIMIT}.`);
-    }
-    limit = Number(query.limit);
-    if (limit < 1 || limit > MAX_PAGE_LIMIT) {
-      throw new ApiError(400, `Limit must be an integer between 1 and ${MAX_PAGE_LIMIT}.`);
-    }
-  }
-
-  let search: string | undefined;
-  if (query.search !== undefined) {
-    if (typeof query.search !== 'string') {
-      throw new ApiError(400, 'Search must be a string.');
-    }
-    search = query.search.trim() || undefined;
-  }
-
-  let status: string | undefined;
-  if (query.status !== undefined) {
-    if (typeof query.status !== 'string' || !VALID_STATUSES.has(query.status)) {
-      throw new ApiError(400, 'Status must be DRAFT, PUBLISHED or ARCHIVED.');
-    }
-    status = query.status;
-  }
-
-  return { page, limit, search, status };
 }
 
 export function validateListPublicProgramsQuery(query: {

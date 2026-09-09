@@ -68,6 +68,23 @@ unreachable. See `server/.env.example` for the full variable reference.
 > cd Client && npm run build   # not `cd client`
 > ```
 
+## Public API (Phase 20)
+
+Unauthenticated, read-only endpoints for the public website live under `/api/v1/public/*`. They never require auth and return only PUBLISHED, public-safe content via explicit field whitelists (never raw MongoDB documents). The existing protected admin endpoints are unchanged.
+
+| Endpoint | Method | Auth | Query parameters |
+| -------- | ------ | ---- | ---------------- |
+| `/api/v1/public/programs` | GET | none | `page` (≤10000), `limit` (≤40), `search`, `program` (slug) |
+| `/api/v1/public/projects` | GET | none | `page`, `limit`, `search`, `program` (slug) |
+| `/api/v1/public/site-settings` | GET | none | — |
+| `/api/v1/public/media` | GET | none | `page`, `limit` |
+
+Responses use the standard contract. Lists return `{ success: true, data: { items, page, limit, total, totalPages } }`; site settings return `{ success: true, data: { settings } }`. Errors return `{ success: false, error: { statusCode, message } }` with safe messages (e.g. `404 "Site settings not found."` when the singleton is uninitialized, `400` for invalid query parameters).
+
+Visibility rules: programs/projects are exposed only when `status = PUBLISHED`; projects additionally require their parent program to be published. The Media model has no visibility field, so the public endpoint exposes the same metadata the admin API already returns (Cloudinary URLs are publicly addressable CDN links) and never returns credentials or upload secrets.
+
+Not implemented (future dependencies): `POST /api/v1/public/contact` — no contact model or mail transport exists yet, so the frontend keeps its mailto behavior; donations/payment processing remains out of scope.
+
 ## Validation
 
 | Command | Purpose |

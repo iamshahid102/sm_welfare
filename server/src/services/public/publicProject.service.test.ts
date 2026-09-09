@@ -38,7 +38,7 @@ interface ProjectShape {
 interface PublicProjectShape {
   id: string;
   programId: string;
-  program: { id: string; title: string; slug: string } | null;
+  program: { id: string; title: string; slug: string };
   title: string;
   slug: string;
   shortDescription: string;
@@ -65,17 +65,8 @@ function asList(body: unknown): PublicListResult {
   return (body as { data: PublicListResult }).data;
 }
 
-
 function asError(body: unknown): { statusCode: number; message: string } {
   return (body as { error: { statusCode: number; message: string } }).error;
-}
-
-function asPublicList(body: unknown): PublicListResult {
-  const parsed = body as { success: boolean; data?: unknown; error?: unknown };
-  if (!parsed.success || !parsed.data) {
-    return { items: [], page: 0, limit: 0, total: 0, totalPages: 0 };
-  }
-  return parsed.data as PublicListResult;
 }
 
 describeDb('Public projects API (MongoDB-backed)', () => {
@@ -214,7 +205,7 @@ describeDb('Public projects API (MongoDB-backed)', () => {
   it('is reachable without authentication', async () => {
     const result = await request('/api/v1/public/projects');
     assert.equal(result.status, 200);
-    const list = asPublicList(result.body);
+    const list = asList(result.body);
     assert.ok(Array.isArray(list.items));
   });
 
@@ -226,7 +217,7 @@ describeDb('Public projects API (MongoDB-backed)', () => {
 
     const result = await request(`/api/v1/public/projects?program=${program.slug}`);
     assert.equal(result.status, 200);
-    const list = asPublicList(result.body);
+    const list = asList(result.body);
     assert.equal(list.total, 1);
     const item = list.items[0];
     assert.ok(item, 'expected exactly one public project');
@@ -235,26 +226,46 @@ describeDb('Public projects API (MongoDB-backed)', () => {
     assert.equal(item.program.id, program._id);
   });
 
-  it('returns nothing when the program filter matches only non-published projects', async () => {
+  it('returns nothing when the program filter matches a non-published program', async () => {
     const program = await createProgramFixture({ status: 'DRAFT' });
     await createProjectFixture(program._id, { status: 'PUBLISHED' });
-    await createProjectFixture(program._id, { status: 'DRAFT' });
 
     const result = await request(`/api/v1/public/projects?program=${program.slug}`);
     assert.equal(result.status, 200);
-    const list = asPublicList(result.body);
+    const list = asList(result.body);
     assert.equal(list.total, 0);
     assert.equal(list.items.length, 0);
   });
 
+  it('excludes projects under draft or archived programs even when the project itself is published', async () => {
+    const draftProgram = await createProgramFixture({ status: 'DRAFT' });
+    const archivedProgram = await createProgramFixture({ status: 'ARCHIVED' });
+    await createProjectFixture(draftProgram._id, { status: 'PUBLISHED' });
+    await createProjectFixture(archivedProgram._id, { status: 'PUBLISHED' });
+
+    const result = await request('/api/v1/public/projects');
+    const list = asList(result.body);
+    const slugs = list.items.map((item) => item.slug);
+    assert.equal(slugs.some((slug) => slug.startsWith('project-')), true);
+    // The two published projects under non-published programs must not appear.
+    const publishedUnderDraft = list.items.filter(
+      (item) => item.programId === draftProgram._id || item.programId === archivedProgram._id,
+    );
+    assert.equal(publishedUnderDraft.length, 0);
+  });
+
   it('returns an empty list when a program slug filter matches no program', async () => {
-    await ProgramModel.deleteMany({});
-    await ProjectModel.deleteMany({});
-    const result = await request('/api/v1/public/projects?program=no-such-program');
+    const result = await request('/api/v1/public/projects?program=no-such-program-xyz');
     assert.equal(result.status, 200);
-    const list = asPublicList(result.body);
+    const list = asList(result.body);
     assert.equal(list.total, 0);
     assert.equal(list.items.length, 0);
+  });
+
+  it('rejects an invalid program filter', async () => {
+    const result = await request('/api/v1/public/projects?program=NOT_A_SLUG');
+    assert.equal(result.status, 400);
+    assert.match(asError(result.body).message, /URL-safe/);
   });
 
   it('supports bounded pagination', async () => {
@@ -265,14 +276,14 @@ describeDb('Public projects API (MongoDB-backed)', () => {
 
     const page1 = await request(`/api/v1/public/projects?program=${program.slug}&limit=2`);
     assert.equal(page1.status, 200);
-    const list1 = asPublicList(page1.body);
+    const list1 = asList(page1.body);
     assert.ok(list1.items.length <= 2);
     assert.equal(list1.limit, 2);
     assert.ok(list1.total >= 3);
 
     const page2 = await request(`/api/v1/public/projects?program=${program.slug}&limit=2&page=2`);
     assert.equal(page2.status, 200);
-    const list2 = asPublicList(page2.body);
+    const list2 = asList(page2.body);
     assert.ok(list2.items.length <= 2);
     assert.equal(list2.page, 2);
   });
@@ -292,9 +303,10 @@ describeDb('Public projects API (MongoDB-backed)', () => {
     const json = JSON.stringify(result.body);
     assert.equal(json.includes('_id'), false);
     assert.equal(json.includes('__v'), false);
+    assert.equal(json.includes('status'), false);
     assert.equal(json.includes('passwordHash'), false);
 
-    const list = asPublicList(result.body);
+    const list = asList(result.body);
     const item = list.items.find((item) => item.slug === project.slug);
     assert.ok(item, 'expected matching public project in list');
     assert.equal(item.id, project._id);
@@ -305,32 +317,7 @@ describeDb('Public projects API (MongoDB-backed)', () => {
     assert.equal(typeof item.updatedAt, 'string');
   });
 
-  it('returns an empty list when no projects match', async () => {
-    const program = await createProgramFixture({ status: 'PUBLISHED' });
-    const result = await request(`/api/v1/public/projects?program=${program.slug}`);
-    assert.equal(result.status, 200);
-    const list = asPublicList(result.body);
-    assert.equal(list.total, 0);
-    assert.equal(list.items.length, 0);
-  });
-
   it('preserves the protected admin projects endpoint behavior', async () => {
-    const anon = await request('/api/v1/projects');
-    assert.equal(anon.status, 401);
-
-    const admin = await request('/api/v1/projects', {}, superCookies);
-    assert.equal(admin.status, 200);
-  });
-});
- admin projects endpoint behavior', async () => {
-    const anon = await request('/api/v1/projects');
-    assert.equal(anon.status, 401);
-
-    const admin = await request('/api/v1/projects', {}, superCookies);
-    assert.equal(admin.status, 200);
-  });
-});
- admin projects endpoint behavior', async () => {
     const anon = await request('/api/v1/projects');
     assert.equal(anon.status, 401);
 

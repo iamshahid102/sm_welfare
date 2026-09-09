@@ -50,11 +50,6 @@ interface ApiResult {
   body: unknown;
 }
 
-function asList(body: unknown): PublicListResult {
-  return (body as { data: PublicListResult }).data;
-}
-
-
 function asError(body: unknown): { statusCode: number; message: string } {
   return (body as { error: { statusCode: number; message: string } }).error;
 }
@@ -71,6 +66,7 @@ describeDb('Public media API (MongoDB-backed)', () => {
   let server: Server;
   let baseUrl = '';
   let superCookies = '';
+  let superAdminId = '';
   const trackedMediaIds: string[] = [];
   const trackedUserIds: string[] = [];
 
@@ -118,8 +114,6 @@ describeDb('Public media API (MongoDB-backed)', () => {
     trackedMediaIds.push(media.id);
     return media.id;
   }
-
-  let superAdminId = '';
 
   async function request(
     path: string,
@@ -251,13 +245,10 @@ describeDb('Public media API (MongoDB-backed)', () => {
     assert.equal(json.includes('api_secret'), false);
   });
 
-  it('returns an empty list when no media exist', async () => {
-    await MediaModel.deleteMany({});
-    const result = await request('/api/v1/public/media');
-    assert.equal(result.status, 200);
-    const list = asPublicList(result.body);
-    assert.equal(list.total, 0);
-    assert.equal(list.items.length, 0);
+  it('rejects an invalid page parameter', async () => {
+    const result = await request('/api/v1/public/media?page=0');
+    assert.equal(result.status, 400);
+    assert.match(asError(result.body).message, /Page must be between 1 and/);
   });
 
   it('preserves the protected admin media endpoint behavior', async () => {

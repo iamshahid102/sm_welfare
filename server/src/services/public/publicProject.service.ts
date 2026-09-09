@@ -7,9 +7,9 @@ import { ProjectModel } from '../../models/project.model.js';
  *
  * Public contract is narrower than the admin-facing one:
  *  - unauthenticated access
- *  - only PUBLISHED projects are exposed
- *  - program filter accepts a program slug, not a raw id
- *  - program summary is embedded and limited to public-safe fields
+ *  - only PUBLISHED projects under PUBLISHED programs are exposed
+ *  - program filter accepts a program slug, never a raw id or query selector
+ *  - program summary is embedded, resolved with a single populate query (no N+1)
  *  - response DTO is a whitelist, not a raw MongoDB document
  */
 
@@ -53,37 +53,28 @@ export interface PublicProject {
   updatedAt: string;
 }
 
-type PublicProjectDocument = {
-  id?: string;
+type LeanProjectDocument = {
   _id: import('mongoose').Types.ObjectId;
-  __v?: number;
-  programId: import('mongoose').Types.ObjectId;
+  programId:
+    | import('mongoose').Types.ObjectId
+    | { _id: import('mongoose').Types.ObjectId; title: string; slug: string };
   title: string;
   slug: string;
   shortDescription: string;
   description: string;
-  status: string;
   displayOrder: number;
   createdAt?: Date;
   updatedAt?: Date;
 };
 
-type PublicProgramDocument = {
-  id: string;
+type LeanProgramDocument = {
+  _id: import('mongoose').Types.ObjectId;
   title: string;
   slug: string;
 };
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function toProgramSummary(program: PublicProgramDocument): PublicProgramSummary {
-  return {
-    id: program.id,
-    title: program.title,
-    slug: program.slug,
-  };
 }
 
 export function validateListPublicProjectsQuery(query: {
@@ -122,6 +113,9 @@ export function validateListPublicProjectsQuery(query: {
       throw new ApiError(400, 'Search must be a string.');
     }
     search = query.search.trim() || undefined;
+    if (search !== undefined && search.length > 200) {
+      throw new ApiError(400, 'Search must not exceed 200 characters.');
+    }
   }
 
   let program: string | undefined;
@@ -140,7 +134,7 @@ export function validateListPublicProjectsQuery(query: {
       );
     }
     if (trimmed.length > 200) {
-      throw new ApiError(400, `Program must not exceed 200 characters.`);
+      throw new ApiError(400, 'Program must not exceed 200 characters.');
     }
     program = trimmed;
   }
@@ -148,42 +142,33 @@ export function validateListPublicProjectsQuery(query: {
   return { page, limit, search, program };
 }
 
-export async function listPublicProjects(query: PublicProjectListQuery): Promise<PublicProjectListResult> {
-  const programFilter =
-    query.program !== undefined
-      ? { slug: query.program }
-      : undefined;
-
-  const program = programFilter !== undefined
-    ? await ProgramModel.findOne(programFilter)
-    : undefined;
-
-  if (program === null || program === undefined) {
-    return {
-      items: [],
-      page: query.page,
-      limit: query.limit,
-      total: 0,
-      totalPages: 0,
-    };
+export async function listPublicProjects(
+  query: PublicProjectListQuery,
+): Promise<PublicProjectListResult> {
+  // Resolve the set of programs whose projects may be exposed: the filtered
+  // program (when given) or all published programs. Projects under DRAFT or
+  // ARCHIVED programs are never public, matching the program visibility rule.
+  let allowedProgramIds: import('mongoose').Types.ObjectId[];
+  if (query.program !== undefined) {
+    const program = await ProgramModel.findOne({ slug: query.program })
+      .select('_id status')
+      .lean();
+    if (!program || program.status !== PUBLIC_STATUS) {
+      return { items: [], page: query.page, limit: query.limit, total: 0, totalPages: 0 };
+    }
+    allowedProgramIds = [program._id];
+  } else {
+    allowedProgramIds = (
+      await ProgramModel.find({ status: PUBLIC_STATUS }).select('_id').lean()
+    ).map((program) => program._id);
+    if (allowedProgramIds.length === 0) {
+      return { items: [], page: query.page, limit: query.limit, total: 0, totalPages: 0 };
+    }
   }
-
-  if (program.status !== PUBLIC_STATUS) {
-    return {
-      items: [],
-      page: query.page,
-      limit: query.limit,
-      total: 0,
-      totalPages: 0,
-    };
-  }
-
-  const programSummary = toProgramSummary(program as unknown as PublicProgramDocument);
-  const programId = program.id;
 
   const match = {
     status: PUBLIC_STATUS,
-    programId,
+    programId: { $in: allowedProgramIds },
     ...(query.search
       ? {
           $or: [
@@ -196,31 +181,18 @@ export async function listPublicProjects(query: PublicProjectListQuery): Promise
 
   const [total, projects] = await Promise.all([
     ProjectModel.countDocuments(match),
-    ProjectModel.find(match, {
-      _id: 0,
-      id: 1,
-      programId: 1,
-      title: 1,
-      slug: 1,
-      shortDescription: 1,
-      description: 1,
-      status: 1,
-      displayOrder: 1,
-      createdAt: 1,
-      updatedAt: 1,
-    })
+    ProjectModel.find(match)
+      .populate('programId', 'title slug')
       .sort({ displayOrder: 1, createdAt: -1 })
       .skip((query.page - 1) * query.limit)
       .limit(query.limit)
       .lean(),
   ]);
 
-  const items = (projects as unknown as PublicProjectDocument[])
-    .map((project) => serializePublicProject(project, programSummary))
-    .sort((a, b) => a.displayOrder - b.displayOrder || b.createdAt.localeCompare(a.createdAt));
-
   return {
-    items,
+    items: (projects as unknown as LeanProjectDocument[]).map((project) =>
+      serializePublicProject(project),
+    ),
     page: query.page,
     limit: query.limit,
     total,
@@ -228,14 +200,16 @@ export async function listPublicProjects(query: PublicProjectListQuery): Promise
   };
 }
 
-export function serializePublicProject(
-  project: PublicProjectDocument,
-  program: PublicProgramSummary,
-): PublicProject {
+export function serializePublicProject(project: LeanProjectDocument): PublicProject {
+  const program = project.programId as LeanProgramDocument;
   return {
-    id: project.id ?? String(project._id),
-    programId: project.programId.toString(),
-    program,
+    id: String(project._id),
+    programId: String(program._id),
+    program: {
+      id: String(program._id),
+      title: program.title,
+      slug: program.slug,
+    },
     title: project.title,
     slug: project.slug,
     shortDescription: project.shortDescription,

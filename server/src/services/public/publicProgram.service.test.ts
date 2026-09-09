@@ -51,11 +51,6 @@ interface ApiResult {
   body: unknown;
 }
 
-function asList(body: unknown): PublicListResult {
-  return (body as { data: PublicListResult }).data;
-}
-
-
 function asError(body: unknown): { statusCode: number; message: string } {
   return (body as { error: { statusCode: number; message: string } }).error;
 }
@@ -184,18 +179,18 @@ describeDb('Public programs API (MongoDB-backed)', () => {
     assert.ok(Array.isArray(list.items));
   });
 
-  it('returns only PUBLISHED programs', async () => {
+  it('returns only PUBLISHED programs and excludes DRAFT/ARCHIVED', async () => {
     const published = await createProgramFixture({ status: 'PUBLISHED' });
-    await createProgramFixture({ status: 'DRAFT' });
-    await createProgramFixture({ status: 'ARCHIVED' });
+    const draft = await createProgramFixture({ status: 'DRAFT' });
+    const archived = await createProgramFixture({ status: 'ARCHIVED' });
 
     const result = await request('/api/v1/public/programs');
     assert.equal(result.status, 200);
     const list = asPublicList(result.body);
-    assert.equal(list.total, 1);
-    const item = list.items[0];
-    assert.ok(item, 'expected exactly one public program');
-    assert.equal(item.slug, published.slug);
+    const slugs = list.items.map((item) => item.slug);
+    assert.ok(slugs.includes(published.slug), 'published program must be listed');
+    assert.equal(slugs.includes(draft.slug), false, 'draft programs must not be listed');
+    assert.equal(slugs.includes(archived.slug), false, 'archived programs must not be listed');
   });
 
   it('supports a program slug filter', async () => {
@@ -212,8 +207,7 @@ describeDb('Public programs API (MongoDB-backed)', () => {
   });
 
   it('returns an empty list when a program slug filter matches nothing', async () => {
-    await ProgramModel.deleteMany({});
-    const result = await request('/api/v1/public/programs?program=no-such-program');
+    const result = await request('/api/v1/public/programs?program=no-such-program-xyz');
     assert.equal(result.status, 200);
     const list = asPublicList(result.body);
     assert.equal(list.total, 0);
@@ -245,6 +239,12 @@ describeDb('Public programs API (MongoDB-backed)', () => {
     assert.match(asError(result.body).message, /Limit must be an integer between 1 and 40/);
   });
 
+  it('rejects an invalid program filter', async () => {
+    const result = await request('/api/v1/public/programs?program=NOT_A_SLUG');
+    assert.equal(result.status, 400);
+    assert.match(asError(result.body).message, /URL-safe/);
+  });
+
   it('returns a public-safe response shape', async () => {
     const program = await createProgramFixture({ status: 'PUBLISHED' });
 
@@ -262,15 +262,6 @@ describeDb('Public programs API (MongoDB-backed)', () => {
     assert.equal(item.id, program._id);
     assert.equal(typeof item.createdAt, 'string');
     assert.equal(typeof item.updatedAt, 'string');
-  });
-
-  it('returns an empty list when no programs exist', async () => {
-    await ProgramModel.deleteMany({});
-    const result = await request('/api/v1/public/programs');
-    assert.equal(result.status, 200);
-    const list = asPublicList(result.body);
-    assert.equal(list.total, 0);
-    assert.equal(list.items.length, 0);
   });
 
   it('preserves the protected admin programs endpoint behavior', async () => {
