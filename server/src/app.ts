@@ -1,10 +1,10 @@
-import cookieParser from 'cookie-parser';
-import cors from 'cors';
-import express from 'express';
-import helmet from 'helmet';
-import { env } from './config/env.js';
-import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
-import { apiRouter } from './routes/index.js';
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import express from "express";
+// import helmet from "helmet";
+import { env } from "./config/env.js";
+import { errorHandler, notFoundHandler } from "./middlewares/errorHandler.js";
+import { apiRouter } from "./routes/index.js";
 
 /**
  * Express application assembly.
@@ -14,7 +14,7 @@ import { apiRouter } from './routes/index.js';
 export const app = express();
 
 // Security headers (also removes the X-Powered-By header)
-app.use(helmet());
+// app.use(helmet());
 
 // Cross-origin access for the Next.js client
 app.use(
@@ -28,8 +28,8 @@ app.use(
 app.use(cookieParser());
 
 // Body parsing
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
 // Versioned REST API routes
 app.use(apiRouter);
