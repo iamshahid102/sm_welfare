@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { HiPhone } from "react-icons/hi2";
 import { buttonVariants } from "@/components/ui/button";
 import { Container } from "@/components/shared/container";
@@ -27,9 +28,9 @@ export function CtaBand() {
             amount, or speak to our team directly.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <a href={DONATE_HREF} className={cn(buttonVariants(), BTN_PRIMARY_BLUE)}>
+            <Link href={DONATE_HREF} className={cn(buttonVariants(), BTN_PRIMARY_BLUE)}>
               Donate now
-            </a>
+            </Link>
             <a
               href={`tel:${SITE.phone.replace(/\s/g, "")}`}
               className={cn(buttonVariants(), BTN_OUTLINE_DEFAULT)}

@@ -12,7 +12,6 @@ import { Empty, EmptyContent, EmptyDescription } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LuLoaderCircle } from "react-icons/lu";
 
-import { useAuth } from "@/hooks/use-auth";
 import {
   uploadMedia,
   deleteMedia,
@@ -70,7 +69,6 @@ function MediaPreview({ media }: { media: Media }) {
 }
 
 export default function AdminMediaPage() {
-  const { user } = useAuth();
   const [state, setState] = useState<PageState>({ status: "loading" });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);

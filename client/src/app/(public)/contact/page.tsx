@@ -4,6 +4,7 @@ import {
   HiChatBubbleLeftRight,
   HiPhone,
 } from "react-icons/hi2";
+import type { Metadata } from "next";
 import { buttonVariants } from "@/components/ui/button";
 import { PageHero } from "@/components/shared/page-hero";
 import { Container } from "@/components/shared/container";
@@ -11,6 +12,22 @@ import { ContactForm } from "@/components/sections/contact-form";
 import { SITE } from "@/constants/site";
 import { getPublicSiteSettings } from "@/services/public-site-settings";
 import { cn } from "@/lib/utils";
+
+export const metadata: Metadata = {
+  title: "Contact Us",
+  description:
+    "Get in touch with SM Welfare Trust — donate, volunteer, or request assistance for a family in Karachi. We answer every message.",
+  openGraph: {
+    title: "Contact Us | SM Welfare Trust",
+    description:
+      "Get in touch with SM Welfare Trust — donate, volunteer, or request assistance for a family in Karachi.",
+  },
+  twitter: {
+    title: "Contact Us | SM Welfare Trust",
+    description:
+      "Get in touch with SM Welfare Trust — donate, volunteer, or request assistance for a family in Karachi.",
+  },
+};
 
 export default async function ContactPage() {
   // Fetch public site-settings; fall back to static SITE constants

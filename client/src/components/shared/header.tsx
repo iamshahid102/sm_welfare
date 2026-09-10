@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
@@ -45,7 +46,7 @@ export function Header() {
         <Logo light={!solid} />
         <Navigation light={!solid} className="hidden lg:block" />
         <div className="flex items-center gap-2">
-          <a
+          <Link
             href={DONATE_HREF}
             className={cn(
               buttonVariants(),
@@ -54,7 +55,7 @@ export function Header() {
             )}
           >
             Donate now
-          </a>
+          </Link>
           <div className="lg:hidden">
             <MobileNavigation light={!solid} />
           </div>

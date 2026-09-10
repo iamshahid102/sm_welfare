@@ -1,9 +1,11 @@
+import Link from "next/link";
 import {
   HiGlobeAlt,
   HiEye,
   HiShieldCheck,
   HiArrowRight,
 } from "react-icons/hi2";
+import type { Metadata } from "next";
 import { buttonVariants } from "@/components/ui/button";
 import { PageHero } from "@/components/shared/page-hero";
 import { Container } from "@/components/shared/container";
@@ -34,11 +36,28 @@ const PILLARS = [
   },
 ] as const;
 
+export const metadata: Metadata = {
+  title: "About Us",
+  description:
+    "Learn about SM Welfare Trust — our mission, vision and promise to serve food, education and healthcare to families in need across Karachi since 2017.",
+  openGraph: {
+    title: "About Us | SM Welfare Trust",
+    description:
+      "Learn about SM Welfare Trust — our mission, vision and promise to serve families in need across Karachi since 2017.",
+  },
+  twitter: {
+    title: "About Us | SM Welfare Trust",
+    description:
+      "Learn about SM Welfare Trust — our mission, vision and promise to serve families in need across Karachi since 2017.",
+  },
+};
+
 async function fetchPrograms(): Promise<PublicProgram[]> {
   try {
     const result = await listPublicPrograms({ limit: 12 });
     return result.items;
-  } catch {
+  } catch (err) {
+    console.error("[About] Failed to fetch programs:", err);
     return [];
   }
 }
@@ -97,7 +116,7 @@ export default async function AboutPage() {
               relief for low-income groups since 2017.
             </p>
             <div>
-              <a
+              <Link
                 href="/projects"
                 className={cn(buttonVariants(), "group")}
               >
@@ -106,7 +125,7 @@ export default async function AboutPage() {
                   className="ml-1.5 size-4 transition-transform group-hover:translate-x-0.5"
                   aria-hidden="true"
                 />
-              </a>
+              </Link>
             </div>
           </div>
           <div

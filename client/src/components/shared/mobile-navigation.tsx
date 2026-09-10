@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { HiBars3 } from "react-icons/hi2";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -53,13 +54,13 @@ export function MobileNavigation({ light }: MobileNavigationProps) {
             className="[&_ul]:flex-col [&_ul]:items-stretch"
             onNavigate={() => setOpen(false)}
           />
-          <a
+          <Link
             href={DONATE_HREF}
             onClick={() => setOpen(false)}
             className={cn(buttonVariants(), "mt-2")}
           >
             Donate now
-          </a>
+          </Link>
         </div>
       </SheetContent>
     </Sheet>

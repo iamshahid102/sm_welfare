@@ -1,6 +1,23 @@
+import type { Metadata } from "next";
 import { PageHero } from "@/components/shared/page-hero";
 import { Container } from "@/components/shared/container";
 import { DonationBuilder } from "@/components/sections/donation-builder";
+
+export const metadata: Metadata = {
+  title: "Donate",
+  description:
+    "Support SM Welfare Trust — donate to food, education, healthcare and social welfare projects serving families in need across Karachi.",
+  openGraph: {
+    title: "Donate | SM Welfare Trust",
+    description:
+      "Support SM Welfare Trust — donate to food, education, healthcare and social welfare projects serving families in need across Karachi.",
+  },
+  twitter: {
+    title: "Donate | SM Welfare Trust",
+    description:
+      "Support SM Welfare Trust — donate to food, education, healthcare and social welfare projects serving families in need across Karachi.",
+  },
+};
 
 export default function DonatePage() {
   return (

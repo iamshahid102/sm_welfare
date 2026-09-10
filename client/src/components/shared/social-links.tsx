@@ -4,7 +4,6 @@ import {
   FaFacebookF,
   FaInstagram,
   FaLinkedin,
-  FaTiktok,
   FaYoutube,
 } from "react-icons/fa6";
 
@@ -17,7 +16,6 @@ const ICONS: Record<SocialPlatform, React.ComponentType<{ size?: number }>> = {
   facebook: FaFacebookF,
   instagram: FaInstagram,
   linkedin: FaLinkedin,
-  tiktok: FaTiktok,
   youtube: FaYoutube,
 };
 
@@ -31,6 +29,8 @@ interface SocialLinksProps {
 
 /** Row of social profile links with accessible labels. */
 export function SocialLinks({ className, size = 16, light }: SocialLinksProps) {
+  if (SOCIAL_LINKS.length === 0) return null;
+
   return (
     <ul className={cn("flex items-center gap-2", className)}>
       {SOCIAL_LINKS.map(({ platform, label, href }) => {
@@ -39,6 +39,8 @@ export function SocialLinks({ className, size = 16, light }: SocialLinksProps) {
           <li key={platform}>
             <a
               href={href}
+              target="_blank"
+              rel="noopener noreferrer"
               aria-label={`${SITE.name} on ${label}`}
               className={cn(
                 "flex size-8 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",

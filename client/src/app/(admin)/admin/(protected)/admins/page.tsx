@@ -272,17 +272,6 @@ export default function AdminAdminsPage() {
     );
   }, []);
 
-  const updateFormField = useCallback(
-    (field: keyof UpdateAdminInput, value: string) => {
-      setState((prev) =>
-        prev.status === "ready"
-          ? { ...prev, editingForm: { ...prev.editingForm, [field]: value } }
-          : prev,
-      );
-    },
-    [],
-  );
-
   const handleCreate = useCallback(
     async (values: CreateAdminInput) => {
       setState((prev) =>
@@ -622,7 +611,7 @@ export default function AdminAdminsPage() {
       </Card>
 
       {editingAdmin && canManage && (
-        <Dialog open>
+        <Dialog open onOpenChange={(open) => { if (!open) closeDialog(); }}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle className="font-heading">Edit admin</DialogTitle>

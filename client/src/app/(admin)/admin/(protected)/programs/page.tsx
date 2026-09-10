@@ -488,7 +488,7 @@ export default function AdminProgramsPage() {
       </Card>
 
       {editingProgram && canEdit && (
-        <Dialog open>
+        <Dialog open onOpenChange={(open) => { if (!open) closeDialog(); }}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle className="font-heading">Edit program</DialogTitle>

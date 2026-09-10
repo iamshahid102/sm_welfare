@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { HiArrowRight, HiHeart } from "react-icons/hi2";
 import { buttonVariants } from "@/components/ui/button";
 import { Container } from "@/components/shared/container";
@@ -42,20 +43,20 @@ export function Hero() {
             — so they can live with dignity, confidence and independence.
           </p>
           <div className="flex flex-wrap items-center gap-3">
-            <a
+            <Link
               href={DONATE_HREF}
               className={cn(buttonVariants(), BTN_PRIMARY_AMBER, "p-6")}
             >
               <HiHeart className="ml-1.5 size-4" aria-hidden="true" />
               Donate now
               <HiArrowRight className="ml-1.5 size-4" aria-hidden="true" />
-            </a>
-            <a
+            </Link>
+            <Link
               href="/projects"
               className={cn(buttonVariants(), BTN_OUTLINE_WHITE, "p-6")}
             >
               Explore our projects
-            </a>
+            </Link>
           </div>
         </div>
 
@@ -68,7 +69,7 @@ export function Hero() {
             />
             <div className="flex items-center justify-between gap-4 p-6">
               <Stat value="12,000+" label="Lives touched" />
-              <a
+              <Link
                 href="/about"
                 className={cn(
                   buttonVariants({ variant: "outline" }),
@@ -76,7 +77,7 @@ export function Hero() {
                 )}
               >
                 About us
-              </a>
+              </Link>
             </div>
           </div>
         </div>

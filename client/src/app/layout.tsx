@@ -20,12 +20,27 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://smwelfare.org"),
   title: {
     default: "SM Welfare Trust — Food, Education & Healthcare in Karachi",
     template: "%s | SM Welfare Trust",
   },
   description:
     "Sirat-e-Mustaqeem Welfare Trust (SM Welfare) is a registered welfare organisation in Karachi, Pakistan, serving food, education and healthcare to families in need since 2017.",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    siteName: "SM Welfare Trust",
+    title: "SM Welfare Trust — Food, Education & Healthcare in Karachi",
+    description:
+      "Sirat-e-Mustaqeem Welfare Trust (SM Welfare) is a registered welfare organisation in Karachi, Pakistan, serving food, education and healthcare to families in need since 2017.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SM Welfare Trust — Food, Education & Healthcare in Karachi",
+    description:
+      "Sirat-e-Mustaqeem Welfare Trust (SM Welfare) is a registered welfare organisation in Karachi, Pakistan, serving food, education and healthcare to families in need since 2017.",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

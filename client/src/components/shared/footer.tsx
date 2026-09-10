@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { HiEnvelope, HiMapPin, HiPhone } from "react-icons/hi2";
 import { SITE } from "@/constants/site";
 import { NAV_ITEMS, DONATE_HREF } from "@/constants/navigation";
@@ -34,21 +35,21 @@ export function Footer() {
           <ul className="flex flex-col gap-2.5 text-sm">
             {NAV_ITEMS.map((item) => (
               <li key={item.href}>
-                <a
+                <Link
                   href={item.href}
                   className="transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
                 >
                   {item.label}
-                </a>
+                </Link>
               </li>
             ))}
             <li>
-              <a
+              <Link
                 href={DONATE_HREF}
                 className="font-semibold text-accent transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               >
                 Donate
-              </a>
+              </Link>
             </li>
           </ul>
         </div>

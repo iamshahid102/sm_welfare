@@ -1,3 +1,7 @@
+"use client";
+
+import { useState, useCallback } from "react";
+import Link from "next/link";
 import { HiArrowRight } from "react-icons/hi2";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,50 +42,7 @@ function isWideMedia(media: PublicMedia): boolean {
 export function MediaCard(props: MediaCardProps) {
   if ("apiMedia" in props) {
     const { apiMedia } = props;
-    const aspect = isWideMedia(apiMedia) ? "aspect-[16/9]" : "aspect-square";
-    return (
-      <Card className="group flex h-full flex-col overflow-hidden border-border bg-white transition-shadow hover:shadow-lg">
-        <div
-          className={cn("relative overflow-hidden", aspect)}
-        >
-          <img
-            src={apiMedia.secureUrl}
-            alt={apiMedia.originalFilename ?? "Media update"}
-            className="h-full w-full object-cover"
-            loading="lazy"
-            onError={(e) => {
-              // Fallback to placeholder on image load failure
-              const target = e.currentTarget;
-              target.style.display = "none";
-              const parent = target.parentElement;
-              if (parent) {
-                parent.classList.add("photo-placeholder");
-              }
-            }}
-          />
-          {apiMedia.folder ? (
-            <Badge className="absolute left-4 top-4 bg-secondary text-secondary-foreground hover:bg-secondary">
-              {apiMedia.folder}
-            </Badge>
-          ) : null}
-        </div>
-        <CardContent className="flex flex-1 flex-col gap-3 p-6">
-          <h3 className="font-heading text-lg font-bold tracking-tight">
-            {apiMedia.originalFilename ?? "Media update"}
-          </h3>
-          <a
-            href="/media"
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors hover:text-primary-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            View
-            <HiArrowRight
-              className="size-4 transition-transform group-hover:translate-x-0.5"
-              aria-hidden="true"
-            />
-          </a>
-        </CardContent>
-      </Card>
-    );
+    return <ApiMediaCard apiMedia={apiMedia} />;
   }
 
   const { update } = props;
@@ -104,8 +65,9 @@ export function MediaCard(props: MediaCardProps) {
         <p className="flex-1 text-sm leading-relaxed text-muted-foreground">
           {update.summary}
         </p>
-        <a
+        <Link
           href="/media"
+          aria-label={`Read more about ${update.title}`}
           className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors hover:text-primary-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           Read more
@@ -113,7 +75,50 @@ export function MediaCard(props: MediaCardProps) {
             className="size-4 transition-transform group-hover:translate-x-0.5"
             aria-hidden="true"
           />
-        </a>
+        </Link>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ApiMediaCard({ apiMedia }: { apiMedia: MediaCardApiData }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const aspect = isWideMedia(apiMedia) ? "aspect-[16/9]" : "aspect-square";
+  const handleImageError = useCallback(() => setImgFailed(true), []);
+
+  return (
+    <Card className="group flex h-full flex-col overflow-hidden border-border bg-white transition-shadow hover:shadow-lg">
+      <div className={cn("relative overflow-hidden", imgFailed ? "photo-placeholder" : "", aspect)}>
+        {!imgFailed && (
+          <img
+            src={apiMedia.secureUrl}
+            alt={apiMedia.originalFilename ?? "Media update"}
+            className="h-full w-full object-cover"
+            loading="lazy"
+            onError={handleImageError}
+          />
+        )}
+        {apiMedia.folder ? (
+          <Badge className="absolute left-4 top-4 bg-secondary text-secondary-foreground hover:bg-secondary">
+            {apiMedia.folder}
+          </Badge>
+        ) : null}
+      </div>
+      <CardContent className="flex flex-1 flex-col gap-3 p-6">
+        <h3 className="font-heading text-lg font-bold tracking-tight">
+          {apiMedia.originalFilename ?? "Media update"}
+        </h3>
+        <Link
+          href="/media"
+          aria-label={`View ${apiMedia.originalFilename ?? "media update"}`}
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors hover:text-primary-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          View
+          <HiArrowRight
+            className="size-4 transition-transform group-hover:translate-x-0.5"
+            aria-hidden="true"
+          />
+        </Link>
       </CardContent>
     </Card>
   );

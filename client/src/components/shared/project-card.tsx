@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { HiArrowRight } from "react-icons/hi2";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -47,7 +48,7 @@ export function ProjectCard(props: ProjectCardProps) {
           <p className="flex-1 text-sm leading-relaxed text-muted-foreground">
             {apiProject.shortDescription}
           </p>
-          <a
+          <Link
             href={`/projects#${apiProject.slug}`}
             className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors hover:text-primary-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
@@ -56,7 +57,7 @@ export function ProjectCard(props: ProjectCardProps) {
               className="size-4 transition-transform group-hover:translate-x-0.5"
               aria-hidden="true"
             />
-          </a>
+          </Link>
         </CardContent>
       </Card>
     );
@@ -77,7 +78,7 @@ export function ProjectCard(props: ProjectCardProps) {
         <p className="flex-1 text-sm leading-relaxed text-muted-foreground">
           {project.summary}
         </p>
-        <a
+        <Link
           href={`/projects#${project.slug}`}
           className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors hover:text-primary-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
@@ -86,7 +87,7 @@ export function ProjectCard(props: ProjectCardProps) {
             className="size-4 transition-transform group-hover:translate-x-0.5"
             aria-hidden="true"
           />
-        </a>
+        </Link>
       </CardContent>
     </Card>
   );

@@ -17,9 +17,9 @@ export function Quote({ text, attribution }: QuoteProps) {
         <blockquote className="max-w-2xl font-heading text-2xl font-bold leading-snug tracking-tight text-balance text-foreground sm:text-3xl">
           “{text}”
         </blockquote>
-        <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+        <cite className="text-sm font-semibold uppercase tracking-wider text-primary not-italic">
           {attribution}
-        </p>
+        </cite>
       </Container>
     </section>
   );

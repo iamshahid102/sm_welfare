@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { HiArrowRight, HiCheckCircle } from "react-icons/hi2";
+import type { Metadata } from "next";
 import { buttonVariants } from "@/components/ui/button";
 import { Hero } from "@/components/shared/hero";
 import { Container } from "@/components/shared/container";
@@ -25,8 +27,8 @@ async function ProgramChips() {
   try {
     const result = await listPublicPrograms({ limit: 12 });
     programs = result.items;
-  } catch {
-    // Fallback: show nothing rather than crash
+  } catch (err) {
+    console.error("[Home] Failed to fetch programs:", err);
   }
 
   if (programs.length === 0) return null;
@@ -35,13 +37,13 @@ async function ProgramChips() {
     <section className="bg-white">
       <Container className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 py-6">
         {programs.map((program) => (
-          <a
+          <Link
             key={program.slug}
             href={`/projects#${program.slug}`}
             className="inline-flex items-center gap-2 rounded-full border border-border bg-white px-4 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {program.title}
-          </a>
+          </Link>
         ))}
       </Container>
     </section>
@@ -54,8 +56,8 @@ async function ProjectsSection() {
   try {
     const result = await listPublicProjects({ limit: 6 });
     projects = result.items;
-  } catch {
-    // Fallback: show empty state
+  } catch (err) {
+    console.error("[Home] Failed to fetch projects:", err);
   }
 
   return (
@@ -89,8 +91,8 @@ async function MediaSection() {
   try {
     const result = await listPublicMedia({ limit: 3 });
     mediaItems = result.items;
-  } catch {
-    // Fallback: show empty state
+  } catch (err) {
+    console.error("[Home] Failed to fetch media:", err);
   }
 
   return (
@@ -103,7 +105,7 @@ async function MediaSection() {
             title="Stories from the field"
           />
           <div>
-            <a
+            <Link
               href="/media"
               className={cn(
                 buttonVariants(),
@@ -116,7 +118,7 @@ async function MediaSection() {
                 className="ml-1.5 size-4 transition-transform group-hover:translate-x-0.5"
                 aria-hidden="true"
               />
-            </a>
+            </Link>
           </div>
         </div>
 
@@ -153,12 +155,12 @@ async function MediaSection() {
             ))}
           </ul>
           <div>
-            <a
+            <Link
               href="/about"
               className={cn(buttonVariants(), BTN_PRIMARY_BLUE)}
             >
               More about us
-            </a>
+            </Link>
           </div>
         </div>
       </div>
@@ -174,6 +176,22 @@ async function MediaSection() {
     </>
   );
 }
+
+export const metadata: Metadata = {
+  title: "SM Welfare Trust — Food, Education & Healthcare in Karachi",
+  description:
+    "SM Welfare Trust serves food, education and healthcare to families in need across Karachi, Pakistan. Join us in making a difference since 2017.",
+  openGraph: {
+    title: "SM Welfare Trust — Food, Education & Healthcare in Karachi",
+    description:
+      "SM Welfare Trust serves food, education and healthcare to families in need across Karachi, Pakistan.",
+  },
+  twitter: {
+    title: "SM Welfare Trust — Food, Education & Healthcare in Karachi",
+    description:
+      "SM Welfare Trust serves food, education and healthcare to families in need across Karachi, Pakistan.",
+  },
+};
 
 export default function HomePage() {
   return (

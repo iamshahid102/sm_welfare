@@ -26,17 +26,15 @@ export const SITE = {
   copyrightHolder: "Sirat-e-Mustaqeem Welfare Trust",
 } as const;
 
-export type SocialPlatform = "facebook" | "instagram" | "linkedin" | "tiktok" | "youtube";
+export type SocialPlatform = "facebook" | "instagram" | "linkedin" | "youtube";
 
 export const SOCIAL_LINKS: ReadonlyArray<{
   platform: SocialPlatform;
   label: string;
-  /** Placeholder until real profiles are confirmed. */
   href: string;
 }> = [
-  { platform: "facebook", label: "Facebook", href: "#" },
-  { platform: "instagram", label: "Instagram", href: "#" },
-  { platform: "linkedin", label: "LinkedIn", href: "#" },
-  { platform: "tiktok", label: "TikTok", href: "#" },
-  { platform: "youtube", label: "YouTube", href: "#" },
+  { platform: "facebook", label: "Facebook", href: "https://www.facebook.com/smwelfare.charity" },
+  { platform: "youtube", label: "YouTube", href: "https://www.youtube.com/@SMWelfareTrust" },
+  { platform: "instagram", label: "Instagram", href: "https://www.instagram.com/smwelfaretrust" },
+  { platform: "linkedin", label: "LinkedIn", href: "https://pk.linkedin.com/in/sm-welfare-trust-854392282" },
 ];
