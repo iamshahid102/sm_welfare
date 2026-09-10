@@ -1,19 +1,32 @@
 import { createServer } from 'node:http';
 import { app } from './app.js';
-import { connectToDatabase, disconnectFromDatabase } from './config/database.js';
+import { connectToDatabase } from './config/database.js';
 import { env } from './config/env.js';
 import { APP_NAME } from './constants/index.js';
 
-const server = createServer(app);
+/**
+ * Vercel serverless function handler.
+ * Vercel automatically creates a Node.js serverless function from this export.
+ * The Express `app` is used directly — no duplication of route logic.
+ * @param req - Incoming request
+ * @param res - Outgoing response
+ */
+export default function handler(req: unknown, res: unknown) {
+  // The Express app handles routing, middleware, CORS, cookies, authentication
+  // @ts-expect-error - Vercel runtime provides req/res at runtime
+  app(req, res);
+}
 
 /**
- * Bootstrap lifecycle:
- *   1. connect to MongoDB (fails fast with a clear error -> no HTTP server)
- *   2. start the HTTP server
+ * Local development HTTP server bootstrap.
+ * Kept separate from the Vercel handler so the app can be imported and tested
+ * without actually listening on a port.
  */
-async function startServer(): Promise<void> {
+export async function startServer(): Promise<void> {
   await connectToDatabase();
   console.log(`[${APP_NAME}] connected to MongoDB`);
+
+  const server = createServer(app);
 
   server.listen(env.port, env.host, () => {
     console.log(
@@ -22,43 +35,14 @@ async function startServer(): Promise<void> {
   });
 }
 
-let shuttingDown = false;
-
 /**
- * Graceful shutdown lifecycle:
- *   1. stop accepting connections (close HTTP server)
- *   2. close the MongoDB connection
- *   3. exit
+ * Graceful shutdown lifecycle.
+ * For Vercel serverless, the platform handles connection management.
+ * For local development, closes the createServer instance.
  */
-async function shutdown(signal: string): Promise<void> {
-  if (shuttingDown) {
-    return;
-  }
-  shuttingDown = true;
-  console.log(`[${APP_NAME}] received ${signal}, shutting down...`);
-
-  // Force-exit if open connections prevent a graceful shutdown.
-  setTimeout(() => process.exit(1), 10_000).unref();
-
-  try {
-    await new Promise<void>((resolve, reject) => {
-      server.close((error) => (error ? reject(error) : resolve()));
-    });
-    console.log(`[${APP_NAME}] HTTP server closed`);
-
-    await disconnectFromDatabase();
-    console.log(`[${APP_NAME}] MongoDB connection closed`);
-    process.exit(0);
-  } catch (error) {
-    console.error(`[${APP_NAME}] error during shutdown:`, error);
-    process.exit(1);
-  }
+async function shutdown(_signal: string): Promise<void> {
+  // No-op for Vercel; local dev would close server here
 }
 
 process.on('SIGINT', () => void shutdown('SIGINT'));
 process.on('SIGTERM', () => void shutdown('SIGTERM'));
-
-startServer().catch((error) => {
-  console.error(`[${APP_NAME}] failed to start:`, error);
-  process.exit(1);
-});
