@@ -1,7 +1,7 @@
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
-// import helmet from "helmet";
+import helmet from "helmet";
 import { env } from "./config/env.js";
 import { errorHandler, notFoundHandler } from "./middlewares/errorHandler.js";
 import { apiRouter } from "./routes/index.js";
@@ -14,7 +14,7 @@ import { apiRouter } from "./routes/index.js";
 export const app = express();
 
 // Security headers (also removes the X-Powered-By header)
-// app.use(helmet());
+app.use(helmet());
 
 // Cross-origin access for the Next.js client
 app.use(
