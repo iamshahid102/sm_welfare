@@ -27,6 +27,8 @@ export const metadata: Metadata = {
   },
   description:
     "Sirat-e-Mustaqeem Welfare Trust (SM Welfare) is a registered welfare organisation in Karachi, Pakistan, serving food, education and healthcare to families in need since 2017.",
+  // Browser/title branding: the favicon icon.png is served from app/icon.png
+  // (the SM Welfare logo mark) alongside the legacy favicon.ico fallback.
   openGraph: {
     type: "website",
     locale: "en_US",
@@ -34,12 +36,14 @@ export const metadata: Metadata = {
     title: "SM Welfare Trust — Food, Education & Healthcare in Karachi",
     description:
       "Sirat-e-Mustaqeem Welfare Trust (SM Welfare) is a registered welfare organisation in Karachi, Pakistan, serving food, education and healthcare to families in need since 2017.",
+    images: [{ url: "/icon.png" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "SM Welfare Trust — Food, Education & Healthcare in Karachi",
     description:
       "Sirat-e-Mustaqeem Welfare Trust (SM Welfare) is a registered welfare organisation in Karachi, Pakistan, serving food, education and healthcare to families in need since 2017.",
+    images: [{ url: "/icon.png" }],
   },
 };
 

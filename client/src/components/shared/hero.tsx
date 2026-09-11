@@ -18,12 +18,11 @@ import {
 export function Hero() {
   return (
     /*
-     * -mt-16 pulls the hero up under the transparent sticky header so the
-     * blue gradient sits behind the white nav/logo text (template look).
-     * The header height is h-16 in header.tsx — keep in sync if it changes.
+     * The header is primary-blue on every page (template identity), so the
+     * hero sits directly below it as one continuous blue gradient.
      */
-    <section className="bg-hero-gradient -mt-16 text-white">
-      <Container className="grid items-center gap-12 py-14 pt-30 sm:py-20 sm:pt-36 lg:grid-cols-[1.15fr_0.85fr] lg:py-24 lg:pt-40">
+    <section className="bg-hero-gradient text-white">
+      <Container className="grid items-center gap-12 py-14 pt-16 sm:py-20 sm:pt-24 lg:grid-cols-[1.15fr_0.85fr] lg:py-24 lg:pt-28">
         <div className="flex max-w-xl flex-col items-start gap-5">
           <Kicker pill className="border border-white bg-transparent text-white">Serving since 2017</Kicker>
           <h1 className="font-heading text-4xl font-bold leading-tight tracking-tight text-balance sm:text-5xl lg:text-6xl">

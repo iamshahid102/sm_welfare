@@ -1,13 +1,19 @@
 import { api } from "@/lib/api/client";
-import type { Project, ProjectListResponse, ProjectStatus, Program, ProgramListResponse } from "@/types/api";
+import type {
+  Project,
+  ProjectListResponse,
+  ProjectStatus,
+  ProgramListResponse,
+} from "@/types/api";
 
 export type {
   Project,
   ProjectStatus,
   ProjectListResponse,
-  Program,
   ProgramListResponse,
 } from "@/types/api";
+
+export type { Program } from "@/types/api";
 
 export interface ListProjectsQuery {
   page?: number;

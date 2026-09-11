@@ -33,9 +33,13 @@ export function MobileNavigation({ light }: MobileNavigationProps) {
       <SheetTrigger
         render={
           <Button
-            variant={light ? "outline" : "outline"}
+            variant="outline"
             size="icon"
-            className={light ? "border-white/40 text-white hover:bg-white/10 hover:text-white" : undefined}
+            className={
+              light
+                ? "border-white/40 text-white hover:bg-white/10 hover:text-white"
+                : undefined
+            }
           />
         }
         aria-label="Open menu"

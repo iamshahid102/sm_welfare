@@ -7,15 +7,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { isSuperAdmin } from "@/types/auth";
 import Link from "next/link";
-import {
-  listPrograms,
-} from "@/services/programs";
-import {
-  listProjects,
-} from "@/services/projects";
-import {
-  listAdmins,
-} from "@/services/admins";
+import { listPrograms } from "@/services/programs";
+import { listProjects } from "@/services/projects";
+import { listAdmins } from "@/services/admins";
 import {
   HiPlus,
   HiPhoto,

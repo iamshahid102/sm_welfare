@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { HiArrowRight } from "react-icons/hi2";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,9 +14,7 @@ import {
 import { FilterChips } from "@/components/shared/filter-chips";
 import { Container } from "@/components/shared/container";
 import { DONATE_HREF } from "@/constants/navigation";
-import {
-  listPublicPrograms,
-} from "@/services/public-programs";
+import { listPublicPrograms } from "@/services/public-programs";
 import {
   listPublicProjects,
   type PublicProjectsQuery,
@@ -60,7 +59,7 @@ function ProjectDetail({
           {project.description}
         </p>
         <div className="mt-auto">
-          <a
+          <Link
             href={DONATE_HREF}
             className={cn(buttonVariants(), "group")}
           >
@@ -69,7 +68,7 @@ function ProjectDetail({
               className="ml-1.5 size-4 transition-transform group-hover:translate-x-0.5"
               aria-hidden="true"
             />
-          </a>
+          </Link>
         </div>
       </div>
     </article>

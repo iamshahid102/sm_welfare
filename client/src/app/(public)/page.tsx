@@ -178,7 +178,11 @@ async function MediaSection() {
 }
 
 export const metadata: Metadata = {
-  title: "SM Welfare Trust — Food, Education & Healthcare in Karachi",
+  // absolute avoids appending the "| SM Welfare Trust" template suffix to the
+  // already-complete home title.
+  title: {
+    absolute: "SM Welfare Trust — Food, Education & Healthcare in Karachi",
+  },
   description:
     "SM Welfare Trust serves food, education and healthcare to families in need across Karachi, Pakistan. Join us in making a difference since 2017.",
   openGraph: {

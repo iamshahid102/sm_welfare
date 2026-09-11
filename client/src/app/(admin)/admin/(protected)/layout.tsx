@@ -56,6 +56,34 @@ export default function AdminProtectedLayout({ children }: LayoutProps<"/admin">
     }
   }, [isLoading, user, router, pathname]);
 
+  // Close the mobile menu on Escape or when clicking outside it.
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMobileMenuOpen(false);
+      }
+    };
+    const onPointerDown = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (
+        target?.closest("[data-admin-mobile-menu]") ||
+        target?.closest("[data-admin-menu-toggle]")
+      ) {
+        return;
+      }
+      setMobileMenuOpen(false);
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [mobileMenuOpen]);
+
   // Loading skeleton while auth hydration is in progress.
   if (isLoading) {
     return (
@@ -140,6 +168,7 @@ export default function AdminProtectedLayout({ children }: LayoutProps<"/admin">
           <Button
             variant="ghost"
             size="icon-sm"
+            data-admin-menu-toggle
             className="shrink-0 -mr-2 lg:hidden"
             onClick={() => setMobileMenuOpen((prev) => !prev)}
             aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
@@ -153,7 +182,11 @@ export default function AdminProtectedLayout({ children }: LayoutProps<"/admin">
 
           {/* Mobile Nav Dropdown */}
           {mobileMenuOpen && (
-            <nav aria-label="Admin mobile" className="absolute top-full left-0 right-0 z-50 flex max-h-[60vh] flex-col overflow-y-auto border-b border-border bg-background py-2 shadow-lg lg:hidden">
+            <nav
+              data-admin-mobile-menu
+              aria-label="Admin mobile"
+              className="absolute top-full left-0 right-0 z-50 flex max-h-[60vh] flex-col overflow-y-auto border-b border-border bg-background py-2 shadow-lg lg:hidden"
+            >
               <ul className="flex flex-col gap-0.5 px-3">
                 {visibleNavItems.map((item) => {
                   const isActive = pathname === item.href;

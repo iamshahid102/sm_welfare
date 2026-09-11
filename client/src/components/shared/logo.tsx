@@ -1,54 +1,38 @@
 import Link from "next/link";
-import { LuHeartHandshake } from "react-icons/lu";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { SITE } from "@/constants/site";
 
 interface LogoProps {
   className?: string;
-  /** White text variant for use on the blue overlay header/hero. */
-  light?: boolean;
 }
 
 /**
- * Text-based wordmark. A real logo image can be added later via the
- * Cloudinary media foundation without changing callers.
+ * Brand lockup — the SM Welfare logo (icon + wordmark) from the template.
+ *
+ * The lockup's wordmark is white and is designed for the blue header, so the
+ * header keeps a primary-blue background on every page. No text is rendered
+ * beside the image because the asset already contains the wordmark.
  */
-export function Logo({ className, light }: LogoProps) {
+export function Logo({ className }: LogoProps) {
   return (
     <Link
       href="/"
       aria-label={`${SITE.name} — home`}
       className={cn(
-        "inline-flex items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        className
+        "inline-flex shrink-0 items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60",
+        className,
       )}
     >
-      <span
-        className={cn(
-          "flex size-9 items-center justify-center rounded-md",
-          light ? "bg-white/15 text-white" : "bg-primary text-primary-foreground"
-        )}
-      >
-        <LuHeartHandshake className="size-4.5" aria-hidden="true" />
-      </span>
-      <span className="flex flex-col leading-none">
-        <span
-          className={cn(
-            "font-heading text-lg font-bold tracking-tight",
-            light ? "text-white" : "text-foreground"
-          )}
-        >
-          {SITE.name}
-        </span>
-        <span
-          className={cn(
-            "mt-1 text-[0.65rem] font-medium uppercase tracking-[0.14em]",
-            light ? "text-blue-200" : "text-muted-foreground"
-          )}
-        >
-          {SITE.legalShortName}
-        </span>
-      </span>
+      {/* Intrinsic size keeps the aspect ratio; height is scaled responsively. */}
+      <Image
+        src="/smwelfare.png"
+        alt={`${SITE.name} logo`}
+        width={512}
+        height={134}
+        priority
+        className="h-8 w-auto sm:h-9"
+      />
     </Link>
   );
 }

@@ -6,7 +6,7 @@
   "type": "module",
   "main": "dist/server.js",
   "engines": {
-    "node": ">=20.9.0"
+    "node": "24.x"
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
@@ -30,7 +30,7 @@
     "mongoose": "^9.9.2",
     "multer": "^2.2.0"
   },
-"devDependencies": {
+  "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
