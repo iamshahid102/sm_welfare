@@ -118,8 +118,9 @@ export default async function AboutPage() {
             <div>
               <Link
                 href="/projects"
-                className={cn(buttonVariants(), "group")}
+                className={cn(buttonVariants(), "rounded-full bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 group")}
               >
+                <HiEye className="mr-1.5 size-4" aria-hidden="true" />
                 See what we run
                 <HiArrowRight
                   className="ml-1.5 size-4 transition-transform group-hover:translate-x-0.5"

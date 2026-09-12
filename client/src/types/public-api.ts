@@ -100,6 +100,8 @@ export interface PublicMedia {
   bytes: number;
   folder: string;
   originalFilename: string | null;
+  title: string | null;
+  description: string | null;
   createdAt: string;
   updatedAt: string;
 }

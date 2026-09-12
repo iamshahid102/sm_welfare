@@ -86,7 +86,7 @@ export function ContactForm() {
         />
       </div>
 
-      <Button type="submit" size="lg" className="w-full sm:w-auto">
+      <Button type="submit" className="rounded-full bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 w-full sm:w-auto">
         <HiPaperAirplane className="mr-1.5 size-4" aria-hidden="true" />
         Send message
       </Button>

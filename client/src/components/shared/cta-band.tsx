@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { HiPhone } from "react-icons/hi2";
+import { HiHeart, HiPhone } from "react-icons/hi2";
 import { buttonVariants } from "@/components/ui/button";
 import { Container } from "@/components/shared/container";
 import { SITE } from "@/constants/site";
@@ -29,6 +29,7 @@ export function CtaBand() {
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Link href={DONATE_HREF} className={cn(buttonVariants(), BTN_PRIMARY_BLUE)}>
+              <HiHeart className="mr-1.5 size-4" aria-hidden="true" />
               Donate now
             </Link>
             <a

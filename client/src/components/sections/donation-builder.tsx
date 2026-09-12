@@ -156,14 +156,14 @@ export function DonationBuilder() {
             href={whatsappHref}
             target="_blank"
             rel="noopener noreferrer"
-            className={cn(buttonVariants({ size: "lg" }), "flex-1 bg-[#25D366] hover:bg-[#1fb457]")}
+            className={cn(buttonVariants(), "flex-1 rounded-full bg-[#25D366] px-7 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#1fb457]")}
           >
             <HiChatBubbleLeftRight className="mr-1.5 size-4" aria-hidden="true" />
             Confirm on WhatsApp
           </a>
           <a
             href={`tel:${SITE.phone.replace(/\s/g, "")}`}
-            className={cn(buttonVariants({ size: "lg", variant: "outline" }), "flex-1")}
+            className={cn(buttonVariants(), "flex-1 rounded-full border border-border bg-background px-7 py-3 text-sm font-semibold text-foreground hover:bg-muted hover:text-foreground")}
           >
             <HiPhone className="mr-1.5 size-4" aria-hidden="true" />
             Call us

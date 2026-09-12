@@ -163,6 +163,8 @@ export interface Media {
   bytes: number;
   folder: string;
   originalFilename: string | null;
+  title: string | null;
+  description: string | null;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -170,6 +172,14 @@ export interface Media {
 
 export interface MediaResponse {
   media: Media;
+}
+
+export interface MediaListResponse {
+  items: Media[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
 }
 
 export interface MediaDeleteResponse {

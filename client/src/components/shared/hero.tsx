@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { HiArrowRight, HiHeart } from "react-icons/hi2";
+import { HiArrowRight, HiEye, HiHeart } from "react-icons/hi2";
 import { buttonVariants } from "@/components/ui/button";
 import { Container } from "@/components/shared/container";
 import { Kicker } from "@/components/shared/kicker";
@@ -54,7 +54,9 @@ export function Hero() {
               href="/projects"
               className={cn(buttonVariants(), BTN_OUTLINE_WHITE, "p-6")}
             >
+              <HiEye className="mr-1.5 size-4" aria-hidden="true" />
               Explore our projects
+              <HiArrowRight className="ml-1.5 size-4" aria-hidden="true" />
             </Link>
           </div>
         </div>

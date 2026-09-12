@@ -45,6 +45,8 @@ export interface PublicMedia {
   bytes: number;
   folder: string;
   originalFilename: string | null;
+  title: string | null;
+  description: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -121,6 +123,8 @@ export function serializePublicMedia(
     bytes: number;
     folder: string;
     originalFilename: string | null;
+    title?: string | null;
+    description?: string | null;
     createdAt?: Date;
     updatedAt?: Date;
   },
@@ -136,6 +140,8 @@ export function serializePublicMedia(
     bytes: media.bytes,
     folder: media.folder,
     originalFilename: media.originalFilename ?? null,
+    title: media.title ?? null,
+    description: media.description ?? null,
     createdAt: media.createdAt?.toISOString() ?? '',
     updatedAt: media.updatedAt?.toISOString() ?? '',
   };

@@ -16,16 +16,11 @@ import { Navigation } from "@/components/shared/navigation";
 import { DONATE_HREF } from "@/constants/navigation";
 import { cn } from "@/lib/utils";
 
-interface MobileNavigationProps {
-  /** Style the trigger for the blue overlay header. */
-  light?: boolean;
-}
-
 /**
  * Mobile navigation in a shadcn Sheet. The trigger is the only visible
  * affordance below lg; desktop uses Navigation directly.
  */
-export function MobileNavigation({ light }: MobileNavigationProps) {
+export function MobileNavigation() {
   const [open, setOpen] = useState(false);
 
   return (
@@ -33,13 +28,9 @@ export function MobileNavigation({ light }: MobileNavigationProps) {
       <SheetTrigger
         render={
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
-            className={
-              light
-                ? "border-white/40 text-white hover:bg-white/10 hover:text-white"
-                : undefined
-            }
+            className="text-white hover:bg-white/10 hover:text-white"
           />
         }
         aria-label="Open menu"
@@ -61,7 +52,10 @@ export function MobileNavigation({ light }: MobileNavigationProps) {
           <Link
             href={DONATE_HREF}
             onClick={() => setOpen(false)}
-            className={cn(buttonVariants(), "mt-2")}
+            className={cn(
+              buttonVariants(),
+              "mt-2 rounded-full bg-accent px-7 py-3 text-sm font-semibold text-accent-foreground shadow-sm hover:bg-accent/90",
+            )}
           >
             Donate now
           </Link>

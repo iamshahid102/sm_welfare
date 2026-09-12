@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { HiArrowRight, HiCheckCircle } from "react-icons/hi2";
+import { HiArrowRight, HiCheckCircle, HiEye } from "react-icons/hi2";
 import type { Metadata } from "next";
 import { buttonVariants } from "@/components/ui/button";
 import { Hero } from "@/components/shared/hero";
@@ -113,6 +113,7 @@ async function MediaSection() {
                 "group",
               )}
             >
+              <HiEye className="mr-1.5 size-4" aria-hidden="true" />
               View all updates
               <HiArrowRight
                 className="ml-1.5 size-4 transition-transform group-hover:translate-x-0.5"
@@ -157,8 +158,9 @@ async function MediaSection() {
           <div>
             <Link
               href="/about"
-              className={cn(buttonVariants(), BTN_PRIMARY_BLUE)}
+              className={cn(buttonVariants(), BTN_PRIMARY_BLUE, "group")}
             >
+              <HiArrowRight className="mr-1.5 size-4" aria-hidden="true" />
               More about us
             </Link>
           </div>

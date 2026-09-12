@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { HiArrowRight } from "react-icons/hi2";
+import { HiArrowRight, HiHeart } from "react-icons/hi2";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -61,8 +61,9 @@ function ProjectDetail({
         <div className="mt-auto">
           <Link
             href={DONATE_HREF}
-            className={cn(buttonVariants(), "group")}
+            className={cn(buttonVariants(), "rounded-full bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 group")}
           >
+            <HiHeart className="mr-1.5 size-4" aria-hidden="true" />
             Support this project
             <HiArrowRight
               className="ml-1.5 size-4 transition-transform group-hover:translate-x-0.5"

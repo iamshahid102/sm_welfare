@@ -20,7 +20,7 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://smwelfare.org"),
+  metadataBase: new URL("https://smwelfare.charity"),
   title: {
     default: "SM Welfare Trust — Food, Education & Healthcare in Karachi",
     template: "%s | SM Welfare Trust",

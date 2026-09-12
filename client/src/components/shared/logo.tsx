@@ -8,11 +8,10 @@ interface LogoProps {
 }
 
 /**
- * Brand lockup — the SM Welfare logo (icon + wordmark) from the template.
+ * Brand lockup — the SM Welfare logo (icon + wordmark).
  *
- * The lockup's wordmark is white and is designed for the blue header, so the
- * header keeps a primary-blue background on every page. No text is rendered
- * beside the image because the asset already contains the wordmark.
+ * Uses the white smwelfare.png wordmark which is clearly visible on the
+ * dark navbar background.
  */
 export function Logo({ className }: LogoProps) {
   return (
@@ -31,7 +30,7 @@ export function Logo({ className }: LogoProps) {
         width={512}
         height={134}
         priority
-        className="h-8 w-auto sm:h-9"
+        className="h-7 w-auto sm:h-8"
       />
     </Link>
   );

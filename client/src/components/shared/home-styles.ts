@@ -1,8 +1,8 @@
 /**
- * Shared Home-page button / CTA styling derived from the template PDF.
+ * Shared button / CTA styling derived from the hero design.
  *
- * The template uses pill-shaped (heavily rounded) buttons throughout.
- * These class strings override the shadcn defaults to match that look
+ * The hero uses pill-shaped buttons with generous padding and icons.
+ * These class strings standardize that look across every CTA on the site
  * while keeping shadcn Button as the underlying component.
  */
 

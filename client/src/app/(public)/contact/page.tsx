@@ -121,8 +121,8 @@ export default async function ContactPage() {
               target="_blank"
               rel="noopener noreferrer"
               className={cn(
-                buttonVariants({ size: "lg" }),
-                "bg-[#25D366] hover:bg-[#1fb457]",
+                buttonVariants(),
+                "rounded-full bg-[#25D366] px-7 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#1fb457]",
               )}
             >
               <HiChatBubbleLeftRight className="mr-1.5 size-4" aria-hidden="true" />

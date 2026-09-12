@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { HiHeart } from "react-icons/hi2";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { Container } from "@/components/shared/container";
@@ -10,16 +11,12 @@ import { MobileNavigation } from "@/components/shared/mobile-navigation";
 import { DONATE_HREF } from "@/constants/navigation";
 
 /**
- * Public site header: logo, navigation, primary CTA.
- *
- * The header is primary-blue on every page (matching the template, whose logo
- * wordmark is white and only reads on a dark header) and flows seamlessly into
- * the blue hero / page heroes below it. The nav and logo use the white "light"
- * treatment at all times.
+ * Public site header — dark navy gradient matching the hero.
+ * White logo wordmark and white navigation links for clear contrast.
  */
 export function Header() {
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-hero-gradient">
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#1a1a1a]">
       <Container className="flex h-16 items-center justify-between gap-4">
         <Logo />
         <Navigation light className="hidden lg:block" />
@@ -28,13 +25,14 @@ export function Header() {
             href={DONATE_HREF}
             className={cn(
               buttonVariants(),
-              "bg-accent text-accent-foreground hover:bg-accent/90",
+              "rounded-full bg-accent px-7 py-3 text-sm font-semibold text-accent-foreground shadow-sm hover:bg-accent/90",
             )}
           >
+            <HiHeart className="mr-1.5 size-4" aria-hidden="true" />
             Donate now
           </Link>
           <div className="lg:hidden">
-            <MobileNavigation light />
+            <MobileNavigation />
           </div>
         </div>
       </Container>

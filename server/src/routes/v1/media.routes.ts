@@ -7,9 +7,15 @@ import { uploadSingleFile } from '../../middlewares/upload.middleware.js';
 const mediaRouter = Router();
 
 // Every media endpoint requires authentication. SUPER_ADMIN and ADMIN are both
-// allowed to upload, read and delete media; unauthenticated requests get 401.
-// There is no endpoint for arbitrary Cloudinary administration, and Cloudinary
-// credentials never leave the server.
+// allowed to upload, read, update and delete media; unauthenticated requests
+// get 401. There is no endpoint for arbitrary Cloudinary administration, and
+// Cloudinary credentials never leave the server.
+mediaRouter.get(
+  '/',
+  requireAuth,
+  requireRole('SUPER_ADMIN', 'ADMIN'),
+  mediaController.listMedia,
+);
 mediaRouter.post(
   '/',
   requireAuth,
@@ -22,6 +28,12 @@ mediaRouter.get(
   requireAuth,
   requireRole('SUPER_ADMIN', 'ADMIN'),
   mediaController.getMedia,
+);
+mediaRouter.patch(
+  '/:id',
+  requireAuth,
+  requireRole('SUPER_ADMIN', 'ADMIN'),
+  mediaController.updateMedia,
 );
 mediaRouter.delete(
   '/:id',

@@ -28,6 +28,10 @@ export interface Media {
   folder: string;
   /** Original client filename, kept for reference only - never trusted. */
   originalFilename?: string;
+  /** Admin-assigned display title for the media asset. */
+  title?: string;
+  /** Admin-provided description / alt-text for the media asset. */
+  description?: string;
   /** Id of the User document that uploaded the asset. */
   createdBy: Types.ObjectId;
   createdAt?: Date;
@@ -84,6 +88,16 @@ const mediaSchema = new Schema<Media>(
       type: String,
       trim: true,
       maxlength: 255,
+    },
+    title: {
+      type: String,
+      trim: true,
+      maxlength: 200,
+    },
+    description: {
+      type: String,
+      trim: true,
+      maxlength: 500,
     },
     createdBy: {
       type: Schema.Types.ObjectId,

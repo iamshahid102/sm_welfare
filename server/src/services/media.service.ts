@@ -35,6 +35,8 @@ export interface SafeMedia {
   bytes: number;
   folder: string;
   originalFilename: string | null;
+  title: string | null;
+  description: string | null;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -43,6 +45,8 @@ export interface SafeMedia {
 export interface UploadMediaInput {
   buffer: Buffer;
   originalFilename?: string;
+  title?: string;
+  description?: string;
   uploadedBy: string;
 }
 
@@ -180,6 +184,8 @@ export async function uploadMedia(input: UploadMediaInput): Promise<SafeMedia> {
       bytes: upload.bytes,
       folder: upload.folder,
       originalFilename: input.originalFilename?.trim() || undefined,
+      title: input.title?.trim() || undefined,
+      description: input.description?.trim() || undefined,
       createdBy: input.uploadedBy,
     });
     return serializeSafeMedia(media);
@@ -198,6 +204,61 @@ export async function getMediaById(id: unknown): Promise<SafeMedia> {
   if (!media) {
     throw ApiError.notFound('Media not found.');
   }
+  return serializeSafeMedia(media);
+}
+
+/** Paginated list of all media (admin). */
+export interface ListMediaQuery {
+  page: number;
+  limit: number;
+}
+
+export interface ListMediaResult {
+  items: SafeMedia[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export async function listMedia(query: ListMediaQuery): Promise<ListMediaResult> {
+  const [total, media] = await Promise.all([
+    MediaModel.countDocuments(),
+    MediaModel.find()
+      .sort({ createdAt: -1 })
+      .skip((query.page - 1) * query.limit)
+      .limit(query.limit)
+      .lean(),
+  ]);
+
+  return {
+    items: media.map((raw) => serializeSafeMedia(raw as unknown as Parameters<typeof serializeSafeMedia>[0])),
+    page: query.page,
+    limit: query.limit,
+    total,
+    totalPages: Math.ceil(total / query.limit),
+  };
+}
+
+/** Update mutable fields (title, description) of a media record. */
+export async function updateMedia(
+  id: unknown,
+  updates: { title?: string; description?: string },
+): Promise<SafeMedia> {
+  const mediaId = validateMediaId(id);
+  const media = await MediaModel.findById(mediaId);
+  if (!media) {
+    throw ApiError.notFound('Media not found.');
+  }
+
+  if (updates.title !== undefined) {
+    media.title = updates.title.trim() || undefined;
+  }
+  if (updates.description !== undefined) {
+    media.description = updates.description.trim() || undefined;
+  }
+
+  await media.save();
   return serializeSafeMedia(media);
 }
 
@@ -253,7 +314,7 @@ export async function deleteMedia(id: unknown): Promise<string> {
 /** Picks only client-safe fields from a loaded media document. */
 export function serializeSafeMedia(media: Media & { id: string }): SafeMedia {
   return {
-    id: media.id,
+    id: String((media as unknown as { _id?: import('mongoose').Types.ObjectId })._id ?? media.id),
     publicId: media.publicId,
     secureUrl: media.secureUrl,
     resourceType: media.resourceType,
@@ -263,6 +324,8 @@ export function serializeSafeMedia(media: Media & { id: string }): SafeMedia {
     bytes: media.bytes,
     folder: media.folder,
     originalFilename: media.originalFilename ?? null,
+    title: media.title ?? null,
+    description: media.description ?? null,
     createdBy: media.createdBy.toString(),
     createdAt: media.createdAt?.toISOString() ?? '',
     updatedAt: media.updatedAt?.toISOString() ?? '',
