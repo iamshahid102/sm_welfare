@@ -13,6 +13,11 @@ import { apiRouter } from './routes/index.js';
  */
 export const app = express();
 
+// Trust a single reverse-proxy hop (e.g. Nginx, Vercel) so that req.ip
+// returns the real client address instead of the proxy's — required for
+// per-IP rate limiting to work correctly.
+app.set('trust proxy', 1);
+
 // Security headers (also removes the X-Powered-By header)
 app.use(helmet());
 

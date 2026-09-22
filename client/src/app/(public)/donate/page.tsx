@@ -10,12 +10,12 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Donate | SM Welfare Trust",
     description:
-      "Support SM Welfare Trust — donate to food, education, healthcare and social welfare projects serving families in need across Karachi.",
+      "Donate to SM Welfare Trust — Faysal Bank, IBAN PK48FAYS355430100008288, EasyPaisa 03152616482.",
   },
   twitter: {
     title: "Donate | SM Welfare Trust",
     description:
-      "Support SM Welfare Trust — donate to food, education, healthcare and social welfare projects serving families in need across Karachi.",
+      "Donate to SM Welfare Trust — food, education, healthcare and social welfare projects serving families in need.",
   },
 };
 
@@ -24,8 +24,8 @@ export default function DonatePage() {
     <>
       <PageHero
         kicker="Donate"
-        title="Choose what your giving builds"
-        description="Pick an amount and a project, then confirm with our team on WhatsApp or by phone. Every contribution is receipted and reported."
+        title="Donate Now"
+        description="Choose what your giving builds — then pay directly into our Faysal Bank account or EasyPaisa wallet, or confirm with our team on WhatsApp. Every contribution is receipted and reported."
       />
       <section className="bg-white">
         <Container className="py-14 sm:py-16">

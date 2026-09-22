@@ -28,6 +28,13 @@ export function TopBar() {
             <HiPhone className="size-3.5 shrink-0" aria-hidden="true" />
             <span>{SITE.phone}</span>
           </a>
+          <a
+            href={`tel:${SITE.phone2.replace(/\s/g, "")}`}
+            className="hidden items-center gap-1.5 transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 md:inline-flex"
+          >
+            <HiPhone className="size-3.5 shrink-0" aria-hidden="true" />
+            <span>{SITE.phone2}</span>
+          </a>
           <span className="hidden items-center gap-1.5 lg:inline-flex">
             <HiMapPin className="size-3.5 shrink-0" aria-hidden="true" />
             <span>{SITE.location}</span>

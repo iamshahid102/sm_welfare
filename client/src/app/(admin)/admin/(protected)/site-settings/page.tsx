@@ -11,6 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Empty, EmptyContent, EmptyDescription } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
+import { ApiError } from "@/lib/api/client";
 import { isSuperAdmin } from "@/types/auth";
 import {
   getSiteSettings,
@@ -114,7 +115,7 @@ function SiteSettingsForm({
             </Label>
             <Input
               id="organizationName"
-              value={unsavedChanges?.organizationName ?? organizationName}
+              value={organizationName}
               onChange={(e) => {
                 setOrganizationName(e.target.value);
               }}
@@ -127,7 +128,7 @@ function SiteSettingsForm({
             <Label htmlFor="tagline">Tagline</Label>
             <Input
               id="tagline"
-              value={unsavedChanges?.tagline ?? tagline}
+              value={tagline}
               onChange={(e) => {
                 setTagline(e.target.value);
               }}
@@ -138,7 +139,7 @@ function SiteSettingsForm({
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
-              value={unsavedChanges?.description ?? description}
+              value={description}
               onChange={(e) => {
                 setDescription(e.target.value);
               }}
@@ -159,7 +160,7 @@ function SiteSettingsForm({
             <Input
               id="contactEmail"
               type="email"
-              value={unsavedChanges?.contact?.email ?? contactEmail}
+              value={contactEmail}
               onChange={(e) => {
                 setContactEmail(e.target.value);
               }}
@@ -171,7 +172,7 @@ function SiteSettingsForm({
             <Input
               id="contactPhone"
               type="tel"
-              value={unsavedChanges?.contact?.phone ?? contactPhone}
+              value={contactPhone}
               onChange={(e) => {
                 setContactPhone(e.target.value);
               }}
@@ -182,7 +183,7 @@ function SiteSettingsForm({
             <Label htmlFor="contactAddress">Address</Label>
             <Input
               id="contactAddress"
-              value={unsavedChanges?.contact?.address ?? contactAddress}
+              value={contactAddress}
               onChange={(e) => {
                 setContactAddress(e.target.value);
               }}
@@ -202,7 +203,7 @@ function SiteSettingsForm({
             <Input
               id="socialFacebook"
               type="url"
-              value={unsavedChanges?.socialLinks?.facebook ?? socialFacebook}
+              value={socialFacebook}
               onChange={(e) => {
                 setSocialFacebook(e.target.value);
               }}
@@ -215,7 +216,7 @@ function SiteSettingsForm({
             <Input
               id="socialInstagram"
               type="url"
-              value={unsavedChanges?.socialLinks?.instagram ?? socialInstagram}
+              value={socialInstagram}
               onChange={(e) => {
                 setSocialInstagram(e.target.value);
               }}
@@ -228,7 +229,7 @@ function SiteSettingsForm({
             <Input
               id="socialLinkedin"
               type="url"
-              value={unsavedChanges?.socialLinks?.linkedin ?? socialLinkedin}
+              value={socialLinkedin}
               onChange={(e) => {
                 setSocialLinkedin(e.target.value);
               }}
@@ -241,7 +242,7 @@ function SiteSettingsForm({
             <Input
               id="socialYoutube"
               type="url"
-              value={unsavedChanges?.socialLinks?.youtube ?? socialYoutube}
+              value={socialYoutube}
               onChange={(e) => {
                 setSocialYoutube(e.target.value);
               }}
@@ -254,7 +255,7 @@ function SiteSettingsForm({
             <Input
               id="socialTwitter"
               type="url"
-              value={unsavedChanges?.socialLinks?.twitter ?? socialTwitter}
+              value={socialTwitter}
               onChange={(e) => {
                 setSocialTwitter(e.target.value);
               }}
@@ -267,7 +268,7 @@ function SiteSettingsForm({
             <Input
               id="socialWebsite"
               type="url"
-              value={unsavedChanges?.socialLinks?.website ?? socialWebsite}
+              value={socialWebsite}
               onChange={(e) => {
                 setSocialWebsite(e.target.value);
               }}
@@ -289,7 +290,7 @@ function SiteSettingsForm({
             </Label>
             <Textarea
               id="footerShortDescription"
-              value={unsavedChanges?.footer?.shortDescription ?? footerShortDescription}
+              value={footerShortDescription}
               onChange={(e) => {
                 setFooterShortDescription(e.target.value);
               }}
@@ -303,7 +304,7 @@ function SiteSettingsForm({
             </Label>
             <Input
               id="footerCopyrightText"
-              value={unsavedChanges?.footer?.copyrightText ?? footerCopyrightText}
+              value={footerCopyrightText}
               onChange={(e) => {
                 setFooterCopyrightText(e.target.value);
               }}
@@ -349,6 +350,9 @@ function SiteSettingsForm({
 export default function AdminSiteSettingsPage() {
   const { user } = useAuth();
   const [state, setState] = useState<PageState>({ status: "loading" });
+  // Remounting the form (via `key`) is how "Discard changes" restores every
+  // field to the persisted settings - the form seeds its fields on mount.
+  const [formKey, setFormKey] = useState(0);
 
   const userIsSuperAdmin = isSuperAdmin(user);
   const canEdit = userIsSuperAdmin;
@@ -365,7 +369,9 @@ export default function AdminSiteSettingsPage() {
         lastError: null,
       });
     } catch (error) {
-      if (error instanceof Error && error.message.includes("not found")) {
+      // 404 means "not initialized yet" - a normal pre-production state that
+      // renders the initialization form instead of an error screen.
+      if (error instanceof ApiError && error.statusCode === 404) {
         setState({ status: "not-found" });
       } else {
         setState({
@@ -424,6 +430,8 @@ export default function AdminSiteSettingsPage() {
         ? { ...prev, unsavedChanges: null, lastError: null, submitting: false }
         : prev,
     );
+    // Remount the form so its fields fall back to the saved values.
+    setFormKey((key) => key + 1);
   }, []);
 
   if (!user) {
@@ -560,6 +568,7 @@ export default function AdminSiteSettingsPage() {
           </CardHeader>
           <CardContent className="max-w-2xl">
             <SiteSettingsForm
+              key={formKey}
               settings={state.settings}
               unsavedChanges={state.unsavedChanges}
               submitting={state.submitting}

@@ -30,30 +30,12 @@ export async function getSiteSettings(): Promise<SiteSettings> {
 
 // ─── Initialize settings (SUPER_ADMIN only) ─────────────────────────────
 
-export interface CreateSiteSettingsInput {
-  organizationName: string;
-  tagline?: string;
-  description?: string;
-  contact?: SiteSettingsContact;
-  socialLinks?: SiteSettingsSocialLinks;
-  footer?: SiteSettingsFooter;
-}
-
 export async function initializeSiteSettings(input: CreateSiteSettingsInput): Promise<SiteSettings> {
   const data = await api.post<{ settings: SiteSettings }>("/site-settings", input);
   return data.settings;
 }
 
 // ─── Update settings (SUPER_ADMIN only) ─────────────────────────────────
-
-export interface UpdateSiteSettingsInput {
-  organizationName?: string;
-  tagline?: string;
-  description?: string;
-  contact?: SiteSettingsContact;
-  socialLinks?: SiteSettingsSocialLinks;
-  footer?: SiteSettingsFooter;
-}
 
 export async function updateSiteSettings(input: UpdateSiteSettingsInput): Promise<SiteSettings> {
   const data = await api.patch<{ settings: SiteSettings }>("/site-settings", input);

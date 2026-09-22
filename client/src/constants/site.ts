@@ -16,12 +16,17 @@ export const SITE = {
   tagline: "Charity efforts that are for happiness",
   establishedYear: 2017,
   location: "Orangi Town, Karachi, Pakistan",
+  /** Full postal address as printed in the live site footer (Contact Info). */
+  address:
+    "Orangi Town Liaquat chowk, Gulshan e Zia, House 2772 Street 1 SECT -:11 1/2, 1st St E, Karachi, Pakistan",
   email: "smwelfaretrust@gmail.com",
   phone: "+92 315 2616482",
+  /** Second contact number from the live footer (Contact Info). */
+  phone2: "+92 300 2743222",
   /** Shown in the footer: status line under the org description. */
   registrationNote: "Registered welfare trust — Karachi, Pakistan",
-  /** Number of active projects shown in the footer. */
-  activeProjects: 6,
+  /** Number of active projects (13 main projects on the live site). */
+  activeProjects: 13,
   /** Footer copyright year is resolved at render time from this value. */
   copyrightHolder: "Sirat-e-Mustaqeem Welfare Trust",
 } as const;

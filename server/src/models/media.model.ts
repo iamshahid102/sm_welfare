@@ -112,4 +112,7 @@ const mediaSchema = new Schema<Media>(
   },
 );
 
+// Both the admin and public media lists sort by createdAt (newest first).
+mediaSchema.index({ createdAt: -1 });
+
 export const MediaModel = model<Media>('Media', mediaSchema);

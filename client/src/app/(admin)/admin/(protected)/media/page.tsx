@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -87,12 +88,16 @@ function MediaCardItem({
   return (
     <Card className="group overflow-hidden">
       <div className="relative aspect-video overflow-hidden bg-muted">
-        <img
+        <Image
           src={media.secureUrl}
           alt={media.title ?? media.originalFilename ?? "Uploaded image"}
-          className="h-full w-full object-contain"
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          className="object-contain"
         />
-        <div className="absolute top-2 right-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+        {/* Touch devices have no hover state: the actions are always visible
+            on small screens and only revealed on hover from sm upwards. */}
+        <div className="absolute top-2 right-2 flex gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
           <Button
             variant="secondary"
             size="icon-sm"
@@ -167,11 +172,13 @@ function DeleteConfirmDialog({
 
         {media && (
           <div className="flex flex-col gap-3">
-            <div className="overflow-hidden rounded-md bg-muted">
-              <img
+            <div className="overflow-hidden rounded-md bg-muted relative h-32">
+              <Image
                 src={media.secureUrl}
                 alt={media.title ?? "Media preview"}
-                className="h-32 w-full object-contain"
+                fill
+                sizes="(max-width: 640px) 100vw, 384px"
+                className="object-contain"
               />
             </div>
             <p className="text-sm font-medium truncate">
@@ -265,11 +272,13 @@ function EditMediaDialog({
 
         {media && (
           <div className="flex flex-col gap-4">
-            <div className="overflow-hidden rounded-md bg-muted">
-              <img
+            <div className="overflow-hidden rounded-md bg-muted relative h-40">
+              <Image
                 src={media.secureUrl}
                 alt={media.title ?? "Media preview"}
-                className="h-40 w-full object-contain"
+                fill
+                sizes="(max-width: 640px) 100vw, 512px"
+                className="object-contain"
               />
             </div>
 
@@ -366,6 +375,8 @@ function FullscreenImageViewerDialog({
           close button to exit.
         </DialogDescription>
         {imageUrl && (
+          // Blob URLs from URL.createObjectURL() are local ephemeral data, not optimizable remote images.
+          // eslint-disable-next-line @next/next/no-img-element -- blob URLs are not supported by next/image
           <img
             src={imageUrl}
             alt={altText}
@@ -617,6 +628,8 @@ export default function AdminMediaPage() {
                     aria-label="Open fullscreen image preview"
                     title="Click to view fullscreen"
                   >
+                    {/* Blob URLs from URL.createObjectURL() are local ephemeral data, not optimizable remote images. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element -- blob URLs are not supported by next/image */}
                     <img
                       src={previewUrl}
                       alt="Selected image preview"

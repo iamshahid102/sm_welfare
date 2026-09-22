@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Card,
   CardContent,
@@ -50,6 +50,8 @@ type ReadyState = {
   totalPages: number;
   search: string;
   filterStatus: AdminStatus | "all";
+  /** True while a refetch is in flight - the rendered list stays mounted. */
+  refreshing: boolean;
   creating: boolean;
   createError: string | null;
   selectingAdmin: SafeUser | null;
@@ -120,6 +122,20 @@ function AdminRow({
 export default function AdminAdminsPage() {
   const { user } = useAuth();
   const [state, setState] = useState<PageState>({ status: "loading" });
+  // Bumped after a mutation so the effect refetches even when the query
+  // parameters themselves are unchanged (e.g. create while on page 1).
+  const [refreshToken, setRefreshToken] = useState(0);
+
+  // Keep a ref in sync with state so loadAdmins can read current values
+  // without being recreated (avoids stale closure on every state change).
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  // Only the newest request may write state - a slow response for an older
+  // search term can never overwrite a newer one.
+  const requestIdRef = useRef(0);
 
   // Access current state values safely
   const currentState = state.status === "ready" ? state : null;
@@ -150,76 +166,105 @@ export default function AdminAdminsPage() {
     );
   }, []);
 
-  const loadAdmins = useCallback(async () => {
-    setState({ status: "loading" });
-    try {
-      const currentSearch = state.status === "ready" ? state.search : "";
-      const currentFilterStatus =
-        state.status === "ready"
-          ? state.filterStatus
-          : ("all" as AdminStatus | "all");
-      const data = await listAdmins({
-        page: 1,
-        limit: PAGE_SIZE,
-        search: currentSearch || undefined,
-        status: currentFilterStatus !== "all" ? currentFilterStatus : undefined,
-      });
-      setState({
-        status: "ready",
-        admins: data.admins,
-        page: data.page,
-        limit: data.limit,
-        total: data.total,
-        totalPages: data.totalPages,
-        search: currentSearch,
-        filterStatus: currentFilterStatus,
-        creating: false,
-        createError: null,
-        selectingAdmin: null,
-        editingAdmin: null,
-        editingForm: {},
-        saving: false,
-        lastError: null,
-      });
-    } catch (error) {
-      setState({
-        status: "error",
-        message:
-          error instanceof Error ? error.message : "Failed to load admins.",
-      });
-    }
-  }, []);
+  /**
+   * Fetch the admin list. Accepts optional overrides that take precedence
+   * over the values captured in stateRef (enabling callers to pass the
+   * specific page/search/filter they just set).
+   */
+  const loadAdmins = useCallback(
+    async (overrides?: {
+      page?: number;
+      search?: string;
+      filterStatus?: AdminStatus | "all";
+    }) => {
+      const requestId = ++requestIdRef.current;
+
+      // Refetching must NOT unmount the ready UI: replacing it with a skeleton
+      // would unmount the search input mid-typing and drop keyboard focus.
+      setState((prev) =>
+        prev.status === "ready"
+          ? { ...prev, refreshing: true }
+          : { status: "loading" },
+      );
+
+      try {
+        const current = stateRef.current;
+        const search =
+          overrides?.search ??
+          (current.status === "ready" ? current.search : "");
+        const filterStatus =
+          overrides?.filterStatus ??
+          (current.status === "ready"
+            ? current.filterStatus
+            : ("all" as AdminStatus | "all"));
+        const page = overrides?.page ?? 1;
+        const data = await listAdmins({
+          page,
+          limit: PAGE_SIZE,
+          search: search || undefined,
+          status: filterStatus !== "all" ? filterStatus : undefined,
+        });
+        if (requestId !== requestIdRef.current) return;
+        setState({
+          status: "ready",
+          admins: data.admins,
+          page: data.page,
+          limit: data.limit,
+          total: data.total,
+          totalPages: data.totalPages,
+          search,
+          filterStatus,
+          refreshing: false,
+          creating: false,
+          createError: null,
+          selectingAdmin: null,
+          editingAdmin: null,
+          editingForm: {},
+          saving: false,
+          lastError: null,
+        });
+      } catch (error) {
+        if (requestId !== requestIdRef.current) return;
+        setState({
+          status: "error",
+          message:
+            error instanceof Error ? error.message : "Failed to load admins.",
+        });
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     if (user && canManage) {
       loadAdmins();
     }
-  }, [user, canManage, loadAdmins]);
+  }, [user, canManage, loadAdmins, refreshToken]);
 
   const handleSearch = useCallback(
     (value: string) => {
       setSearchState(value);
       setPageState(1);
-      loadAdmins();
+      loadAdmins({ search: value, page: 1 });
     },
-    [loadAdmins],
+    [loadAdmins, setSearchState, setPageState],
   );
 
   const handleStatusFilter = useCallback(
     (status: AdminStatus | "all") => {
       setFilterStatusState(status);
       setPageState(1);
-      loadAdmins();
+      loadAdmins({ filterStatus: status, page: 1 });
     },
-    [loadAdmins],
+    [loadAdmins, setFilterStatusState, setPageState],
   );
 
   const handlePageChange = useCallback(
     (newPage: number) => {
       setPageState(newPage);
-      loadAdmins();
+      loadAdmins({ page: newPage });
     },
-    [loadAdmins],
+    [loadAdmins, setPageState],
   );
 
   const openCreateDialog = useCallback(() => {
@@ -285,6 +330,8 @@ export default function AdminAdminsPage() {
         setSearchState("");
         setFilterStatusState("all");
         closeDialog();
+        // Refetch even when page/search/filter were already at their defaults.
+        setRefreshToken((token) => token + 1);
       } catch (error) {
         setState((prev) =>
           prev.status === "ready"
@@ -300,44 +347,39 @@ export default function AdminAdminsPage() {
         );
       }
     },
-    [closeDialog],
+    [closeDialog, setPageState, setSearchState, setFilterStatusState],
   );
 
   const handleUpdate = useCallback(
     async (values: UpdateAdminInput) => {
+      // Read the admin being edited from the ref: stateRef always holds the
+      // current state, so this callback needs no state dependency and can
+      // never act on a stale `editingAdmin` (no non-null assertion needed).
+      const current = stateRef.current;
+      if (current.status !== "ready" || !current.editingAdmin) return;
+      const editingId = current.editingAdmin.id;
+
       setState((prev) =>
         prev.status === "ready"
           ? { ...prev, saving: true, lastError: null }
           : prev,
       );
       try {
-        const readyState = state as ReadyState;
-        const updated = await updateAdmin(readyState.editingAdmin!.id, values);
-        setState((prev) => {
-          if (!isReadyState(prev)) return prev;
-          return {
-            ...prev,
-            admins: prev.admins.map((a) => (a.id === updated.id ? updated : a)),
-            editingAdmin: updated,
-            editingForm: values,
-            saving: false,
-            lastError: null,
-          };
-        });
-        setState((prev) => {
-          if (!isReadyState(prev)) return prev;
-          const admins = prev.admins.map((a) =>
-            a.id === updated.id ? updated : a,
-          );
-          return {
-            ...prev,
-            admins,
-            editingAdmin: updated,
-            editingForm: values,
-            saving: false,
-            lastError: null,
-          };
-        });
+        const updated = await updateAdmin(editingId, values);
+        setState((prev) =>
+          isReadyState(prev)
+            ? {
+                ...prev,
+                admins: prev.admins.map((a) =>
+                  a.id === updated.id ? updated : a,
+                ),
+                editingAdmin: updated,
+                editingForm: values,
+                saving: false,
+                lastError: null,
+              }
+            : prev,
+        );
       } catch (error) {
         setState((prev) =>
           prev.status === "ready"
@@ -353,7 +395,7 @@ export default function AdminAdminsPage() {
         );
       }
     },
-    [state],
+    [],
   );
 
   const handleStatusChange = useCallback(
@@ -384,7 +426,7 @@ export default function AdminAdminsPage() {
         );
       }
     },
-    [state],
+    [],
   );
 
   if (!user) {
@@ -481,6 +523,7 @@ export default function AdminAdminsPage() {
     editingForm,
     saving,
     lastError,
+    refreshing,
   } = state;
 
   const EmptyState = (
@@ -513,6 +556,7 @@ export default function AdminAdminsPage() {
             <CardTitle className="font-heading">All admins</CardTitle>
             <CardDescription>
               {total} admin{total === 1 ? "" : "s"} total
+              {refreshing ? " · Refreshing…" : ""}
             </CardDescription>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -646,7 +690,9 @@ function PaginationControls({
 }) {
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
   return (
-    <div className="flex items-center gap-1">
+    // flex-wrap keeps a long page list from forcing horizontal page overflow
+    // on narrow screens.
+    <div className="flex max-w-full flex-wrap items-center gap-1">
       <Button
         variant="outline"
         size="sm"

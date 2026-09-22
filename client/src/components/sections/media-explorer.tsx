@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { FilterChips } from "@/components/shared/filter-chips";
 import { MediaCard } from "@/components/shared/media-card";
 import { Container } from "@/components/shared/container";
@@ -15,6 +16,7 @@ import {
   type PublicMediaQuery,
 } from "@/services/public-media";
 import type { PublicMedia } from "@/types/public-api";
+import { BLOG_POSTS, STORY_HIGHLIGHTS } from "@/data/site-images";
 
 /** Media page body — fetches real public media from the API. */
 export function MediaExplorer() {
@@ -78,6 +80,9 @@ export function MediaExplorer() {
               <EmptyTitle>Unable to load media</EmptyTitle>
               <EmptyDescription>{error}</EmptyDescription>
             </Empty>
+            <Button variant="outline" size="sm" onClick={() => void fetchMedia()}>
+              Try again
+            </Button>
           </div>
         ) : loading ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -89,13 +94,36 @@ export function MediaExplorer() {
             <Skeleton className="aspect-square rounded-xl" />
           </div>
         ) : visible.length === 0 ? (
-          <Empty className="py-16">
-            <EmptyTitle>No media available</EmptyTitle>
-            <EmptyDescription>
-              Photos and updates will appear here once they are uploaded by the
-              team.
-            </EmptyDescription>
-          </Empty>
+          /* Curated content mirrors the live site: the six homepage Media
+             Updates (byte-verified photos + live excerpts) followed by the
+             six live /blog/ archive posts, so the page is never empty. */
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {STORY_HIGHLIGHTS.map((story) => (
+              <MediaCard
+                key={story.slug}
+                update={{
+                  slug: story.slug,
+                  category: story.category,
+                  title: story.title,
+                  summary: story.summary,
+                  image: story.image,
+                  source: "static",
+                }}
+              />
+            ))}
+            {BLOG_POSTS.map((post) => (
+              <MediaCard
+                key={post.slug}
+                update={{
+                  slug: post.slug,
+                  category: post.category,
+                  title: post.title,
+                  summary: post.summary,
+                  source: "static",
+                }}
+              />
+            ))}
+          </div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {visible.map((item) => (

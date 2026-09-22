@@ -1,5 +1,12 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import { APP_NAME } from '../constants/index.js';
+
+// Load environment variables: use .env.test during test runs, .env otherwise.
+if (process.env.NODE_ENV === 'test') {
+  dotenv.config({ path: '.env.test' });
+} else {
+  dotenv.config();
+}
 
 /**
  * Centralized environment configuration.

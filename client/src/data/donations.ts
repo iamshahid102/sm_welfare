@@ -26,11 +26,14 @@ export interface BankDetail {
   value: string;
 }
 
+/* Bank & wallet details copied verbatim from the live /donate/ page. */
 export const BANK_DETAILS: readonly BankDetail[] = [
-  { label: "Account title", value: "Sirat-e-Mustaqeem Welfare Trust" },
-  { label: "Bank", value: "Meezan Bank Limited" },
-  { label: "Account / IBAN", value: "Shared on request — call or WhatsApp us" },
-  { label: "Easypaisa / JazzCash", value: "+92 315 2616482" },
+  { label: "Account title", value: "Sirat e mustaqeem welfare trust" },
+  { label: "Bank", value: "Faysal Bank" },
+  { label: "Account number", value: "355430100008288" },
+  { label: "IBAN", value: "PK48FAYS355430100008288" },
+  { label: "SWIFT code", value: "FAYSPKKA" },
+  { label: "EasyPaisa account", value: "03152616482" },
 ] as const;
 
 export const ZAKAT_NOTE =

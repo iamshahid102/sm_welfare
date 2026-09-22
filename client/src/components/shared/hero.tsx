@@ -1,88 +1,68 @@
+import Image from "next/image";
 import Link from "next/link";
-import { HiArrowRight, HiEye, HiHeart } from "react-icons/hi2";
-import { buttonVariants } from "@/components/ui/button";
-import { Container } from "@/components/shared/container";
-import { Kicker } from "@/components/shared/kicker";
-import { Stat } from "@/components/shared/stat";
 import { DONATE_HREF } from "@/constants/navigation";
-import { cn } from "@/lib/utils";
-import {
-  BTN_PRIMARY_AMBER,
-  BTN_OUTLINE_WHITE,
-} from "@/components/shared/home-styles";
+import { SITE } from "@/constants/site";
+import { HERO_IMAGE } from "@/data/site-images";
 
 /**
- * Home hero — blue gradient per the template: amber "Serving since 2017"
- * badge, bold white headline, dual CTAs and a light stat card.
+ * Home hero — full-bleed banner treatment copied from the live site.
+ *
+ * On smwelfare.charity the homepage's very first element is a container
+ * whose background is the designed `web-homepageiamge-1.jpg` artwork
+ * (natural 1920×1080, `background-position: center; background-repeat:
+ * no-repeat;`) linked to `/donate/`, with empty inner markup — the artwork
+ * itself carries the headline, stats and donate button, so nothing may be
+ * overlaid on its top/bottom edges.
+ *
+ * CROP-FREE RENDERING (why not `fill` + `object-cover` + min-heights):
+ * `object-cover` scales the image until BOTH box dimensions are covered,
+ * which shears the artwork's top and bottom whenever the container is wider
+ * than 16:9 (e.g. 1920×950) — cutting the logo and the donate button baked
+ * into the banner. Instead the image renders at its intrinsic ratio:
+ *   - `w-full h-auto` — the box always follows 16:9, so NOTHING is cropped
+ *     at any viewport; the hero height naturally matches the live site's
+ *     ~1050px desktop presence (1920w → 1080px tall).
+ *   - `max-h-[1080px] object-contain` — above 1920px viewports the box stops
+ *     growing and the artwork centers with theme-blue sides, which is exactly
+ *     what the live site shows (its background never scales past the natural
+ *     1920px size; the container's blue bleeds around it).
+ * The section's `bg-primary-deep` paints those letterbox sides (the live
+ * site uses its own blue #04469e in the same slot).
+ *
+ * The live markup ships an empty anchor, which is bad for SEO and screen
+ * readers, so an sr-only `h1` preserves the document outline while the link
+ * carries an explicit `aria-label`. The image is decorative (`alt=""`) because
+ * the heading and label already carry the semantics. Rendered through
+ * `next/image` (priority) so the 676 KB source goes through the optimizer.
  */
 export function Hero() {
   return (
-    /*
-     * The header is primary-blue on every page (template identity), so the
-     * hero sits directly below it as one continuous blue gradient.
-     */
-    <section className="bg-hero-gradient text-white">
-      <Container className="grid items-center gap-12 py-14 pt-16 sm:py-20 sm:pt-24 lg:grid-cols-[1.15fr_0.85fr] lg:py-24 lg:pt-28">
-        <div className="flex max-w-xl flex-col items-start gap-5">
-          <Kicker pill className="border border-white bg-transparent text-white">Serving since 2017</Kicker>
-          <h1 className="font-heading text-4xl font-bold leading-tight tracking-tight text-balance sm:text-5xl lg:text-6xl">
-            From a thought to
-            <br className="hidden sm:block" /> a built future
-          </h1>
-          <p
-            lang="ur"
-            dir="ltr"
-            className="font-heading text-lg font-semibold tracking-wide text-accent/90"
-          >
-            سوچ سے تعمیر تک
-          </p>
-          <p className="text-base leading-relaxed text-blue-100 sm:text-lg">
-            Sirat-e-Mustaqeem Welfare Trust brings food, education, healthcare
-            and skills to families in Karachi who fight each day just to survive
-            — so they can live with dignity, confidence and independence.
-          </p>
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              href={DONATE_HREF}
-              className={cn(buttonVariants(), BTN_PRIMARY_AMBER, "p-6")}
-            >
-              <HiHeart className="ml-1.5 size-4" aria-hidden="true" />
-              Donate now
-              <HiArrowRight className="ml-1.5 size-4" aria-hidden="true" />
-            </Link>
-            <Link
-              href="/projects"
-              className={cn(buttonVariants(), BTN_OUTLINE_WHITE, "p-6")}
-            >
-              <HiEye className="mr-1.5 size-4" aria-hidden="true" />
-              Explore our projects
-              <HiArrowRight className="ml-1.5 size-4" aria-hidden="true" />
-            </Link>
-          </div>
-        </div>
+    <section className="relative isolate bg-primary-deep">
+      <h1 className="sr-only">
+        Welcome to {SITE.name} — food, education and healthcare in Karachi
+      </h1>
 
-        {/* Light stat card — hero photo arrives later via Cloudinary. */}
-        <div className="mx-auto w-full max-w-sm lg:max-w-none">
-          <div className="overflow-hidden rounded-2xl bg-white text-foreground shadow-2xl shadow-black/25">
-            <div
-              className="photo-placeholder aspect-[4/3]"
-              aria-hidden="true"
-            />
-            <div className="flex items-center justify-between gap-4 p-6">
-              <Stat value="12,000+" label="Lives touched" />
-              <Link
-                href="/about"
-                className={cn(
-                  buttonVariants({ variant: "outline" }),
-                  "shrink-0 rounded-full px-5 py-2 text-xs font-semibold",
-                )}
-              >
-                About us
-              </Link>
-            </div>
-          </div>
-        </div>
-      </Container>
+      <Link
+        href={DONATE_HREF}
+        aria-label="Donate now — support SM Welfare Trust programmes"
+        className="group relative block overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-4 focus-visible:ring-offset-primary-deep"
+      >
+        <Image
+          src={HERO_IMAGE.src}
+          alt={HERO_IMAGE.alt}
+          width={HERO_IMAGE.width}
+          height={HERO_IMAGE.height}
+          priority
+          fetchPriority="high"
+          sizes="100vw"
+          className="block h-auto w-full max-h-[1080px] object-contain transition-transform duration-700 ease-out group-hover:scale-[1.015]"
+        />
+        {/* Subtle edge scrim so the banner blends into the page below. */}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-primary-deep/25 to-transparent"
+        />
+      </Link>
     </section>
   );
 }

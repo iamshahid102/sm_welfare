@@ -1,60 +1,53 @@
+import Image from "next/image";
 import Link from "next/link";
-import {
-  HiGlobeAlt,
-  HiEye,
-  HiShieldCheck,
-  HiArrowRight,
-} from "react-icons/hi2";
+import { HiArrowRight, HiEye } from "react-icons/hi2";
 import type { Metadata } from "next";
 import { buttonVariants } from "@/components/ui/button";
 import { PageHero } from "@/components/shared/page-hero";
 import { Container } from "@/components/shared/container";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { CtaBand } from "@/components/shared/cta-band";
+import { BTN_PRIMARY_BLUE } from "@/components/shared/home-styles";
+import { PROGRAMS, MISSION_PARAGRAPHS } from "@/data/programs";
+import { ABOUT_IMAGE } from "@/data/site-images";
 import { listPublicPrograms } from "@/services/public-programs";
 import type { PublicProgram } from "@/types/public-api";
 import { cn } from "@/lib/utils";
 
-const PILLARS = [
-  {
-    icon: HiGlobeAlt,
-    title: "Our mission",
-    description:
-      "To be a ray of light in education, healthcare, employment and social welfare for people who fight each day just to survive.",
-  },
-  {
-    icon: HiEye,
-    title: "Our vision",
-    description:
-      "A society where no one is left behind — where every family can live with dignity, confidence and independence.",
-  },
-  {
-    icon: HiShieldCheck,
-    title: "Our promise",
-    description:
-      "Transparency, integrity and consistent effort. Donations are tracked, reported and spent where they were pledged.",
-  },
-] as const;
+/**
+ * About page body mirrors the live /about-us/ page: the "Charity Efforts
+ * Are For Happiness" heading, the live intro copy (Orangi Town, the project
+ * list, the 2022 flood response), the six service cards, and the live
+ * /our-mission/ paragraphs under "Our Mission".
+ *
+ * Headings are split Saylani-style: small kicker line + big display line.
+ */
+const ABOUT_PARAGRAPHS: readonly string[] = [
+  "Sirat e Mustaqeem Welfare Trust is one of the well-known non-profit welfare organizations in Pakistan, working since 2017 to support poor and low-income families. Our main goal is to make life better for people by providing help in health, education, clean water, and other social welfare services. The trust is run by a caring team of doctors, business professionals, and social workers who truly want to make a difference. Together, we are working in Orangi Town, Karachi, one of the largest and most crowded low-income areas in Asia, where nearly 4.2 million people live.",
+  "Every day, Sirat e Mustaqeem Welfare Trust helps thousands of people through a wide range of impactful projects, including: Sasta Khana Project, Free Schooling System, Health Care Services, Hunarmaand Beti Project, Marriage Support Program, Rozgaar Project, Ambulance Services, Qurbani Barae Waqf, Monthly Raashan Support Program, Sirat ul Quran Academy, Winter Relief Campaign, Tree for Tomorrow Initiative, Flood Relief Mission, Iftaar Dastarkhawan, Free Eid Shopping, Heat Stroke Camp, Home and Masjid Renovation, Rehmat e Ramdan Rashaan Project, Zahaanat outreach Scholars programe and many more ongoing social services.",
+  "In times of trouble, we are always ready to help. During the 2022 floods in Pakistan, our team stood strong and supported many families by providing tents, food, cooking items, temporary schools, medical camps, and medicines. We even built shelter homes for families who lost their houses. Our medical camps helped stop the spread of many diseases caused by contaminated floodwater. With the support of our hardworking volunteers and kind donors, Sirat e Mustaqeem Welfare Trust continues to help poor and needy people every day and during times of emergency.",
+];
 
 export const metadata: Metadata = {
   title: "About Us",
   description:
-    "Learn about SM Welfare Trust — our mission, vision and promise to serve food, education and healthcare to families in need across Karachi since 2017.",
+    "Sirat e Mustaqeem Welfare Trust is one of the well-known non-profit welfare organizations in Pakistan, working since 2017 to support poor and low-income families — health, education, clean water and social welfare.",
   openGraph: {
     title: "About Us | SM Welfare Trust",
     description:
-      "Learn about SM Welfare Trust — our mission, vision and promise to serve families in need across Karachi since 2017.",
+      "Sirat e Mustaqeem Welfare Trust — working since 2017 to support poor and low-income families in Orangi Town, Karachi.",
   },
   twitter: {
     title: "About Us | SM Welfare Trust",
     description:
-      "Learn about SM Welfare Trust — our mission, vision and promise to serve families in need across Karachi since 2017.",
+      "Sirat e Mustaqeem Welfare Trust — working since 2017 to support poor and low-income families in Orangi Town, Karachi.",
   },
 };
 
 async function fetchPrograms(): Promise<PublicProgram[]> {
   try {
-    const result = await listPublicPrograms({ limit: 12 });
+    // 20 > the 13 seeded programs so none is silently dropped by the page limit.
+    const result = await listPublicPrograms({ limit: 20 });
     return result.items;
   } catch (err) {
     console.error("[About] Failed to fetch programs:", err);
@@ -65,60 +58,51 @@ async function fetchPrograms(): Promise<PublicProgram[]> {
 export default async function AboutPage() {
   const programs = await fetchPrograms();
 
+  // API programmes win; the curated six keep the section populated (and
+  // number-labelled) when the public API is unavailable.
+  const areas =
+    programs.length > 0
+      ? programs.map((program, index) => ({
+          key: program.id,
+          number: String(index + 1).padStart(2, "0"),
+          title: program.title,
+          description: program.shortDescription,
+        }))
+      : PROGRAMS.map((program) => ({
+          key: program.number,
+          number: program.number,
+          title: program.name,
+          description: program.description,
+        }));
+
   return (
     <>
       <PageHero
-        kicker="Serving Karachi since 2017"
-        title="Charity efforts that are for happiness"
-        description="At SM Welfare Charity we believe true happiness lies in giving, especially to those who need it most. Our mission is rooted in compassion and our vision is a society where no one is left behind."
+        kicker="About us"
+        title="Charity Efforts Are For Happiness"
+        description="Sirat e Mustaqeem Welfare Trust is one of the well-known non-profit welfare organizations in Pakistan, working since 2017 to support poor and low-income families."
       />
 
-      {/* Mission / Vision / Promise */}
+      {/* Live /about-us/ intro copy */}
       <section className="bg-white">
-        <Container className="grid gap-6 py-16 sm:py-20 md:grid-cols-3">
-          {PILLARS.map(({ icon: Icon, title, description }) => (
-            <div
-              key={title}
-              className="flex flex-col gap-4 rounded-xl border border-border bg-white p-6 shadow-sm"
-            >
-              <span className="flex size-11 items-center justify-center rounded-lg bg-secondary text-primary">
-                <Icon className="size-5" aria-hidden="true" />
-              </span>
-              <h2 className="font-heading text-xl font-bold tracking-tight">
-                {title}
-              </h2>
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                {description}
-              </p>
-            </div>
-          ))}
-        </Container>
-      </section>
-
-      {/* Our story */}
-      <section className="border-t border-border bg-white">
-        <Container className="grid items-center gap-12 py-16 sm:py-20 lg:grid-cols-2">
+        <Container className="grid items-start gap-12 py-16 sm:py-20 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="flex flex-col gap-5">
             <SectionHeading
-              kicker="Our story"
-              title="Grassroots work, measured in real families"
+              kicker="Who we are"
+              title="Serving Orangi Town, Karachi since 2017"
             />
-            <p className="text-base leading-relaxed text-muted-foreground">
-              With your support we provide food to the hungry, sponsor education
-              for orphaned children, offer free medical aid and install clean
-              water systems in remote communities across Pakistan. We work at
-              the grassroots level in Orangi Town, creating sustainable change
-              that lets families become self-reliant rather than dependent.
-            </p>
-            <p className="text-base leading-relaxed text-muted-foreground">
-              SM Welfare Trust is one of the most reputable non-profit welfare
-              organisations in Pakistan, dedicated to social development and
-              relief for low-income groups since 2017.
-            </p>
+            {ABOUT_PARAGRAPHS.map((paragraph) => (
+              <p
+                key={paragraph.slice(0, 32)}
+                className="text-base leading-relaxed text-muted-foreground"
+              >
+                {paragraph}
+              </p>
+            ))}
             <div>
               <Link
                 href="/projects"
-                className={cn(buttonVariants(), "rounded-full bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 group")}
+                className={cn(buttonVariants(), BTN_PRIMARY_BLUE, "group")}
               >
                 <HiEye className="mr-1.5 size-4" aria-hidden="true" />
                 See what we run
@@ -129,44 +113,67 @@ export default async function AboutPage() {
               </Link>
             </div>
           </div>
-          <div
-            className="photo-placeholder aspect-[4/3] rounded-2xl shadow-lg"
-            aria-hidden="true"
-          />
+          <div className="relative aspect-[4/3] overflow-hidden rounded-2xl shadow-lg lg:sticky lg:top-24">
+            <Image
+              src={ABOUT_IMAGE.src}
+              alt={ABOUT_IMAGE.alt}
+              fill
+              sizes="(max-width: 1024px) 100vw, 45vw"
+              className="object-cover"
+            />
+          </div>
         </Container>
       </section>
 
-      {/* What we do — fetched from API */}
+      {/* What we do — six service cards from the live homepage */}
       <section id="what-we-do" className="border-t border-border bg-section">
         <Container className="flex flex-col gap-10 py-16 sm:py-20">
           <SectionHeading
-            kicker="What we do"
-            title="Six areas of focus"
+            center
+            kicker="Our initiatives"
+            title="What We Do"
+            description="Areas of focus on the ground — thousands of families reached every month."
           />
-          {programs.length === 0 ? (
-            <p className="text-center text-sm text-muted-foreground">
-              Programmes will appear here once they are published.
-            </p>
-          ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {programs.map((program, index) => (
-                <article
-                  key={program.id}
-                  className="flex flex-col gap-3 rounded-xl border border-border bg-white p-6 shadow-sm"
-                >
-                  <span className="font-heading text-3xl font-bold text-primary/30">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <h3 className="font-heading text-lg font-bold tracking-tight">
-                    {program.title}
-                  </h3>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    {program.shortDescription}
-                  </p>
-                </article>
-              ))}
-            </div>
-          )}
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {areas.map((area) => (
+              <article
+                key={area.key}
+                className="flex flex-col gap-3 rounded-xl border border-border bg-white p-6 shadow-sm"
+              >
+                <span className="font-heading text-3xl font-bold text-primary/30">
+                  {area.number}
+                </span>
+                <h3 className="font-heading text-lg font-bold tracking-tight">
+                  {area.title}
+                </h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {area.description}
+                </p>
+              </article>
+            ))}
+          </div>
+        </Container>
+      </section>
+
+      {/* Our Mission — live /our-mission/ copy */}
+      <section className="border-t border-border bg-white">
+        <Container className="flex flex-col gap-8 py-16 sm:py-20">
+          <SectionHeading
+            center
+            kicker="Our vision"
+            title="Our Mission"
+            description="Beyond the boundaries of caste, sect, or religion."
+          />
+          <div className="mx-auto flex max-w-3xl flex-col gap-4">
+            {MISSION_PARAGRAPHS.map((paragraph) => (
+              <p
+                key={paragraph.slice(0, 32)}
+                className="text-base leading-relaxed text-muted-foreground"
+              >
+                {paragraph}
+              </p>
+            ))}
+          </div>
         </Container>
       </section>
 

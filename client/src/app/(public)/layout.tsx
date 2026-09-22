@@ -3,7 +3,11 @@ import { Header } from "@/components/shared/header";
 import { Footer } from "@/components/shared/footer";
 
 /** Public marketing-site shell shared by all public pages. */
-export default function PublicLayout({ children }: LayoutProps<"/">) {
+export default function PublicLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <>
       <TopBar />

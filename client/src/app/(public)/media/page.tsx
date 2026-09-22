@@ -5,16 +5,16 @@ import { MediaExplorer } from "@/components/sections/media-explorer";
 export const metadata: Metadata = {
   title: "Media Updates",
   description:
-    "Reports, field notes and photographs from the communities SM Welfare Trust serves across Karachi.",
+    "SM Welfare Trust is one of the most reputable non-profit welfare organisations in Pakistan, dedicated to social development and providing relief to individuals from low-income groups since 2017.",
   openGraph: {
     title: "Media Updates | SM Welfare Trust",
     description:
-      "Reports, field notes and photographs from the communities SM Welfare Trust serves across Karachi.",
+      "Field reports, blog posts and photographs from the communities SM Welfare Trust serves across Karachi.",
   },
   twitter: {
     title: "Media Updates | SM Welfare Trust",
     description:
-      "Reports, field notes and photographs from the communities SM Welfare Trust serves across Karachi.",
+      "Field reports, blog posts and photographs from the communities SM Welfare Trust serves across Karachi.",
   },
 };
 
@@ -23,8 +23,8 @@ export default function MediaPage() {
     <>
       <PageHero
         kicker="Media updates"
-        title="What changed this month, in their words"
-        description="Reports, field notes and photographs from the communities we serve across Karachi."
+        title="Media Updates"
+        description="Field reports, blog posts and photographs from the communities we serve across Karachi."
       />
       <MediaExplorer />
     </>

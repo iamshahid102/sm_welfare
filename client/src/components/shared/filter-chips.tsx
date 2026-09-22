@@ -7,6 +7,12 @@ interface FilterChipsProps<T extends string> {
   /** All options, first is typically "All". */
   options: readonly T[];
   initial?: T;
+  /**
+   * Maps an option value to its display label. Lets callers filter by a stable
+   * value (e.g. a program slug) while showing something human readable.
+   * Defaults to rendering the value itself.
+   */
+  getLabel?: (value: T) => string;
   onSelect: (value: T) => void;
   className?: string;
 }
@@ -18,6 +24,7 @@ interface FilterChipsProps<T extends string> {
 export function FilterChips<T extends string>({
   options,
   initial,
+  getLabel,
   onSelect,
   className,
 }: FilterChipsProps<T>) {
@@ -47,7 +54,7 @@ export function FilterChips<T extends string>({
                 : "border-border bg-white text-muted-foreground hover:border-primary/40 hover:text-foreground"
             )}
           >
-            {option}
+            {getLabel ? getLabel(option) : option}
           </button>
         );
       })}

@@ -8,34 +8,45 @@ import { Container } from "@/components/shared/container";
 import { Logo } from "@/components/shared/logo";
 import { Navigation } from "@/components/shared/navigation";
 import { MobileNavigation } from "@/components/shared/mobile-navigation";
+import { BTN_PRIMARY_AMBER } from "@/components/shared/home-styles";
 import { DONATE_HREF } from "@/constants/navigation";
 
 /**
- * Public site header — dark navy gradient matching the hero.
- * White logo wordmark and white navigation links for clear contrast.
+ * Public site header — brand navy, continuous with the hero gradient below it.
+ * Uses the same deep navy as the utility bar and the top of the hero so the
+ * whole top of the page reads as one block instead of a black strip.
+ *
+ * LAYOUT NOTE
+ * The menu switches to the horizontal nav at 980px rather than Tailwind's
+ * default `lg` (1024px). Windows display scaling (125%) and browser zoom turn a
+ * 1366px laptop into ~1090px of CSS width; at 1024 the nav used to disappear and
+ * the site fell back to the hamburger on what users still call "desktop". The
+ * nav is ~500px wide and the header still has ~35px of slack at 980px, so this
+ * is the narrowest width where all six links fit without touching the CTA.
  */
 export function Header() {
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#1a1a1a]">
-      <Container className="flex h-16 items-center justify-between gap-4">
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-primary-deep shadow-sm shadow-black/10">
+      <Container className="flex h-16 items-center justify-between gap-3">
         <Logo />
-        <Navigation light className="hidden lg:block" />
-        <div className="flex items-center gap-2">
+        <Navigation light className="hidden min-[980px]:block" />
+        <div className="flex items-center gap-1.5">
           <Link
             href={DONATE_HREF}
             className={cn(
               buttonVariants(),
-              "rounded-full bg-accent px-7 py-3 text-sm font-semibold text-accent-foreground shadow-sm hover:bg-accent/90",
+              BTN_PRIMARY_AMBER,
+              "hidden h-10 px-5 sm:inline-flex"
             )}
           >
-            <HiHeart className="mr-1.5 size-4" aria-hidden="true" />
+            <HiHeart className="mr-2 size-4" aria-hidden="true" />
             Donate now
           </Link>
-          <div className="lg:hidden">
+          <div className="min-[980px]:hidden">
             <MobileNavigation />
           </div>
         </div>
       </Container>
     </header>
   );
-}
+}

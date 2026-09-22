@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 export const metadata: Metadata = {
   title: "Contact Us",
   description:
-    "Get in touch with SM Welfare Trust — donate, volunteer, or request assistance for a family in Karachi. We answer every message.",
+    "SM Welfare Trust is one of the most reputable non-profit welfare organisations in Pakistan — get in touch to donate, volunteer, or request assistance for a family in Karachi.",
   openGraph: {
     title: "Contact Us | SM Welfare Trust",
     description:
@@ -35,7 +35,7 @@ export default async function ContactPage() {
 
   const email = settings?.contact?.email ?? SITE.email;
   const phone = settings?.contact?.phone ?? SITE.phone;
-  const location = settings?.contact?.address ?? SITE.location;
+  const location = settings?.contact?.address ?? SITE.address;
 
   const phoneDigits = phone.replace(/\D/g, "");
 
@@ -58,6 +58,12 @@ export default async function ContactPage() {
       href: `tel:${phone.replace(/\s/g, "")}`,
     },
     {
+      icon: HiPhone,
+      label: "Phone 2",
+      value: SITE.phone2,
+      href: `tel:${SITE.phone2.replace(/\s/g, "")}`,
+    },
+    {
       icon: HiMapPin,
       label: "Location",
       value: location,
@@ -68,7 +74,7 @@ export default async function ContactPage() {
     <>
       <PageHero
         kicker="Contact"
-        title="We answer every message"
+        title="Contact Us"
         description="Whether you want to donate, volunteer, or request assistance for a family — our team in Karachi is one message away."
       />
       <section className="bg-white">

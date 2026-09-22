@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +47,8 @@ interface ReadyState {
   totalPages: number;
   search: string;
   filterStatus: ProgramStatus | "all";
+  /** True while a refetch is in flight - the rendered list stays mounted. */
+  refreshing: boolean;
   selectingProgram: Program | null;
   editingProgram: Program | null;
   editingForm: UpdateProgramInput;
@@ -116,53 +118,62 @@ export default function AdminProgramsPage() {
   const [programStatus, setProgramStatus] = useState<ProgramStatus | "all">("all");
   const [page, setPage] = useState(1);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  // Bumped after a mutation so the effect refetches even when the query
+  // parameters themselves are unchanged (e.g. create while on page 1).
+  const [refreshToken, setRefreshToken] = useState(0);
+
+  // Only the newest request may write state - a slow response for an older
+  // search term can never overwrite a newer one.
+  const requestIdRef = useRef(0);
 
   const userIsSuperAdmin = isSuperAdmin(user);
   const canEdit = userIsSuperAdmin;
 
-  const loadPrograms = useCallback(
-    async (
-      query: ListProgramsQuery = {},
-      keepData: boolean = false,
-    ) => {
-      setState((prev) =>
-        keepData && prev.status === "ready"
-          ? { ...prev, status: "loading" }
-          : { status: "loading" },
-      );
-      try {
-        const data = await listPrograms(query);
-        setState({
-          status: "ready",
-          programs: data.items,
-          page: data.page,
-          limit: data.limit,
-          total: data.total,
-          totalPages: data.totalPages,
-          search: query.search ?? "",
-          filterStatus: query.status ?? "all",
-          selectingProgram: null,
-          editingProgram: null,
-          editingForm: {},
-          saving: false,
-          lastError: null,
-        });
-      } catch (error) {
-        setState({
-          status: "error",
-          message:
-            error instanceof Error ? error.message : "Failed to load programs.",
-        });
-      }
-    },
-    [],
-  );
+  const loadPrograms = useCallback(async (query: ListProgramsQuery = {}) => {
+    const requestId = ++requestIdRef.current;
+
+    // Refetching must NOT unmount the ready UI: replacing it with a skeleton
+    // would unmount the search input mid-typing and drop keyboard focus.
+    setState((prev) =>
+      prev.status === "ready"
+        ? { ...prev, refreshing: true }
+        : { status: "loading" },
+    );
+
+    try {
+      const data = await listPrograms(query);
+      if (requestId !== requestIdRef.current) return;
+      setState({
+        status: "ready",
+        programs: data.items,
+        page: data.page,
+        limit: data.limit,
+        total: data.total,
+        totalPages: data.totalPages,
+        search: query.search ?? "",
+        filterStatus: query.status ?? "all",
+        refreshing: false,
+        selectingProgram: null,
+        editingProgram: null,
+        editingForm: {},
+        saving: false,
+        lastError: null,
+      });
+    } catch (error) {
+      if (requestId !== requestIdRef.current) return;
+      setState({
+        status: "error",
+        message:
+          error instanceof Error ? error.message : "Failed to load programs.",
+      });
+    }
+  }, []);
 
   useEffect(() => {
     if (user) {
       loadPrograms({ page, limit: PAGE_SIZE, search: programSearch || undefined, status: programStatus !== "all" ? programStatus : undefined });
     }
-  }, [user, loadPrograms, page, programSearch, programStatus]);
+  }, [user, loadPrograms, page, programSearch, programStatus, refreshToken]);
 
   const handleSearch = useCallback(
     (value: string) => {
@@ -235,13 +246,10 @@ export default function AdminProgramsPage() {
       );
       try {
         await createProgram(values);
-        loadPrograms({
-          page: 1,
-          limit: PAGE_SIZE,
-          search: programSearch || undefined,
-          status: programStatus !== "all" ? programStatus : undefined,
-        });
+        setPage(1);
         closeDialog();
+        // Refetch even when page/search/filter were already at their defaults.
+        setRefreshToken((token) => token + 1);
       } catch (error) {
         setState((prev) =>
           prev.status === "ready"
@@ -250,7 +258,7 @@ export default function AdminProgramsPage() {
         );
       }
     },
-    [loadPrograms, programSearch, programStatus, closeDialog],
+    [closeDialog],
   );
 
   const handleUpdate = useCallback(
@@ -366,7 +374,7 @@ export default function AdminProgramsPage() {
     return null;
   }
 
-  const { programs, total, totalPages, editingProgram, editingForm, saving, lastError } = state;
+  const { programs, total, totalPages, editingProgram, editingForm, saving, lastError, refreshing } = state;
 
   const EmptyState = (
     <Card className="border-dashed">
@@ -398,6 +406,7 @@ export default function AdminProgramsPage() {
             <CardTitle className="font-heading">All programs</CardTitle>
             <CardDescription>
               {total} program{total === 1 ? "" : "s"} total
+              {refreshing ? " · Refreshing…" : ""}
             </CardDescription>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -523,7 +532,9 @@ function PaginationControls({
 }) {
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
   return (
-    <div className="flex items-center gap-1">
+    // flex-wrap keeps a long page list from forcing horizontal page overflow
+    // on narrow screens.
+    <div className="flex max-w-full flex-wrap items-center gap-1">
       <Button
         variant="outline"
         size="sm"

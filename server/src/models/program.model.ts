@@ -90,4 +90,8 @@ const programSchema = new Schema<Program>(
   },
 );
 
+// Supports the admin and public list endpoints (status filter, sorted by
+// displayOrder then newest first). The unique slug index covers slug lookups.
+programSchema.index({ status: 1, displayOrder: 1, createdAt: -1 });
+
 export const ProgramModel = model<Program>('Program', programSchema);

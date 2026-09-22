@@ -1,23 +1,16 @@
 import type { Metadata } from "next";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { AuthProvider } from "@/providers/auth-provider";
+import "@fontsource-variable/inter/wght.css";
+import "@fontsource-variable/plus-jakarta-sans/wght.css";
 import "./globals.css";
 
 /**
  * Typography follows the template's modern sans-serif look:
  * - Inter for body/UI text
  * - Plus Jakarta Sans for headings (bold, geometric, NGO-style)
- * Both are loaded once here and exposed as CSS variables.
+ * Both are loaded locally via fontsource (no network calls at build time)
+ * and exposed as CSS variables.
  */
-const inter = Inter({
-  variable: "--font-sans",
-  subsets: ["latin"],
-});
-
-const jakarta = Plus_Jakarta_Sans({
-  variable: "--font-heading",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://smwelfare.charity"),
@@ -47,11 +40,19 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${jakarta.variable} h-full antialiased`}
+      className="h-full antialiased"
+      style={{
+        "--font-sans": "'Inter Variable', sans-serif",
+        "--font-heading": "'Plus Jakarta Sans Variable', sans-serif",
+      } as React.CSSProperties}
     >
       <body className="flex min-h-full flex-col">
         <a

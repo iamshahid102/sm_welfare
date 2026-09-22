@@ -29,14 +29,7 @@ export interface UpdateAdminInput {
 
 export type AdminStatus = "ACTIVE" | "INACTIVE";
 
-
 // ─── Create admin ────────────────────────────────────────────────────────
-
-export interface CreateAdminInput {
-  name: string;
-  email: string;
-  password: string;
-}
 
 export async function createAdmin(input: CreateAdminInput): Promise<SafeUser> {
   const data = await api.post<{ user: SafeUser }>("/admins", input);
@@ -44,13 +37,6 @@ export async function createAdmin(input: CreateAdminInput): Promise<SafeUser> {
 }
 
 // ─── List admins ─────────────────────────────────────────────────────────
-
-export interface ListAdminsQuery {
-  page?: number;
-  limit?: number;
-  search?: string;
-  status?: "ACTIVE" | "INACTIVE";
-}
 
 export async function listAdmins(query: ListAdminsQuery = {}): Promise<AdminListResponse> {
   const params = new URLSearchParams();
@@ -71,11 +57,6 @@ export async function getAdmin(id: string): Promise<SafeUser> {
 }
 
 // ─── Update admin ────────────────────────────────────────────────────────
-
-export interface UpdateAdminInput {
-  name?: string;
-  email?: string;
-}
 
 export async function updateAdmin(id: string, input: UpdateAdminInput): Promise<SafeUser> {
   const data = await api.patch<{ user: SafeUser }>(`/admins/${id}`, input);

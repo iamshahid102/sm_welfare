@@ -6,11 +6,23 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { canAccessAdmin, isSuperAdmin, getUserInitials } from "@/types/auth";
 import { Container } from "@/components/shared/container";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { HiBars3, HiXMark } from "react-icons/hi2";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import {
+  HiBars3,
+  HiXMark,
+  HiArrowTopRightOnSquare,
+  HiArrowLeftOnRectangle,
+} from "react-icons/hi2";
 
 /**
  * Admin navigation items.
@@ -18,18 +30,20 @@ import { HiBars3, HiXMark } from "react-icons/hi2";
  */
 const ADMIN_NAV_ITEMS = [
   { label: "Dashboard", href: "/admin/dashboard", superAdminOnly: false },
-  { label: "Site settings", href: "/admin/site-settings", superAdminOnly: true },
+  {
+    label: "Site settings",
+    href: "/admin/site-settings",
+    superAdminOnly: true,
+  },
   { label: "Programs", href: "/admin/programs", superAdminOnly: false },
   { label: "Projects", href: "/admin/projects", superAdminOnly: false },
   { label: "Media", href: "/admin/media", superAdminOnly: false },
+  { label: "Submissions", href: "/admin/submissions", superAdminOnly: false },
   { label: "Admins", href: "/admin/admins", superAdminOnly: true },
 ] as const;
 
 /** Paths only SUPER_ADMIN may open directly. */
-const SUPER_ADMIN_ONLY_PREFIXES = [
-  "/admin/site-settings",
-  "/admin/admins",
-];
+const SUPER_ADMIN_ONLY_PREFIXES = ["/admin/site-settings", "/admin/admins"];
 
 /**
  * Admin shell — with authentication guard.
@@ -42,7 +56,11 @@ const SUPER_ADMIN_ONLY_PREFIXES = [
  * - Shows an unauthorized state when an ADMIN opens a SUPER_ADMIN-only route
  * - Backend remains the actual security authority
  */
-export default function AdminProtectedLayout({ children }: LayoutProps<"/admin">) {
+export default function AdminProtectedLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const { user, isLoading, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -51,7 +69,10 @@ export default function AdminProtectedLayout({ children }: LayoutProps<"/admin">
   // Redirect to login (with the intended destination) when unauthenticated.
   useEffect(() => {
     if (!isLoading && !user) {
-      const from = pathname && pathname !== "/admin/login" ? `?from=${encodeURIComponent(pathname)}` : "";
+      const from =
+        pathname && pathname !== "/admin/login"
+          ? `?from=${encodeURIComponent(pathname)}`
+          : "";
       router.replace(`/admin/login${from}`);
     }
   }, [isLoading, user, router, pathname]);
@@ -88,10 +109,15 @@ export default function AdminProtectedLayout({ children }: LayoutProps<"/admin">
   if (isLoading) {
     return (
       <div className="flex min-h-screen flex-col bg-muted/30">
-        <header className="border-b bg-background">
-          <Container className="flex min-h-14 items-center justify-between py-3">
-            <Skeleton className="h-4 w-32" />
-            <Skeleton className="h-4 w-48" />
+        <header className="border-b border-border bg-background/80 backdrop-blur-md">
+          <Container className="flex h-16 items-center justify-between">
+            <Skeleton className="h-5 w-36" />
+            <div className="hidden items-center gap-3 lg:flex">
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-4 w-12" />
+            </div>
+            <Skeleton className="h-8 w-20 lg:hidden" />
           </Container>
         </header>
         <main id="main-content" className="flex-1">
@@ -132,18 +158,26 @@ export default function AdminProtectedLayout({ children }: LayoutProps<"/admin">
 
   return (
     <div className="flex min-h-screen flex-col bg-muted/30">
-      <header className="border-b border-border bg-background">
-        <Container className="flex min-h-[56px] items-center justify-between py-2.5">
-          {/* Logo */}
-          <Link href="/admin/dashboard" className="flex items-center gap-2 font-heading text-base font-semibold tracking-tight text-foreground">
-            <span className="size-7 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+      <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
+        <Container className="flex h-16 items-center justify-between gap-4">
+          {/* ── Logo ── */}
+          <Link
+            href="/admin/dashboard"
+            className="group flex items-center gap-2.5 rounded-lg px-1 py-1 transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground shadow-sm ring-1 ring-primary/20 transition-shadow group-hover:shadow-md">
               SW
             </span>
-            <span>SM Welfare Admin</span>
+            <span className="hidden text-sm font-semibold tracking-tight text-foreground sm:inline">
+              SM Welfare
+            </span>
           </Link>
 
-          {/* Desktop Nav */}
-          <nav aria-label="Admin" className="hidden items-center gap-0.5 lg:flex">
+          {/* ── Desktop Nav ── */}
+          <nav
+            aria-label="Admin"
+            className="hidden items-center gap-1 lg:flex"
+          >
             <ul className="flex items-center gap-0.5">
               {visibleNavItems.map((item) => {
                 const isActive = pathname === item.href;
@@ -151,11 +185,20 @@ export default function AdminProtectedLayout({ children }: LayoutProps<"/admin">
                   <li key={item.href}>
                     <Link
                       href={item.href}
-                      className={`relative rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                      className={cn(
+                        "relative rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        isActive
+                          ? "bg-primary/8 text-primary"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                      )}
                     >
                       {item.label}
                       {isActive && (
-                        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-0.5 bg-primary rounded-full shadow-[0_0_6px_0_currentColor]" aria-hidden="true" />
+                        <span
+                          className="absolute inset-x-3 -bottom-2.5 h-0.5 rounded-full bg-primary"
+                          aria-hidden="true"
+                        />
                       )}
                     </Link>
                   </li>
@@ -164,66 +207,124 @@ export default function AdminProtectedLayout({ children }: LayoutProps<"/admin">
             </ul>
           </nav>
 
-          {/* Mobile Hamburger */}
+          {/* ── Mobile Hamburger ── */}
           <Button
             variant="ghost"
             size="icon-sm"
             data-admin-menu-toggle
-            className="shrink-0 -mr-2 lg:hidden"
+            className="shrink-0 lg:hidden"
             onClick={() => setMobileMenuOpen((prev) => !prev)}
             aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
           >
             {mobileMenuOpen ? (
-              <HiXMark className="size-4" aria-hidden="true" />
+              <HiXMark className="size-5" aria-hidden="true" />
             ) : (
-              <HiBars3 className="size-4" aria-hidden="true" />
+              <HiBars3 className="size-5" aria-hidden="true" />
             )}
           </Button>
 
-          {/* Mobile Nav Dropdown */}
+          {/* ── Mobile Nav Dropdown ── */}
           {mobileMenuOpen && (
             <nav
               data-admin-mobile-menu
               aria-label="Admin mobile"
-              className="absolute top-full left-0 right-0 z-50 flex max-h-[60vh] flex-col overflow-y-auto border-b border-border bg-background py-2 shadow-lg lg:hidden"
+              className="absolute top-full left-0 right-0 z-50 border-b border-border bg-background/95 shadow-xl backdrop-blur-md supports-[backdrop-filter]:bg-background/80 lg:hidden"
             >
-              <ul className="flex flex-col gap-0.5 px-3">
+              <div className="flex flex-col gap-1 p-3">
                 {visibleNavItems.map((item) => {
                   const isActive = pathname === item.href;
                   return (
-                    <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={`block rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isActive ? "bg-primary/5 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"}`}
-                      >
-                        {item.label}
-                        {isActive && <span className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />}
-                      </Link>
-                    </li>
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        isActive
+                          ? "bg-primary/8 text-primary"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                      )}
+                    >
+                      {item.label}
+                      {isActive && (
+                        <span className="ml-auto size-1.5 rounded-full bg-primary" />
+                      )}
+                    </Link>
                   );
                 })}
-              </ul>
+                <Separator className="my-1.5" />
+                <div className="flex items-center gap-3 px-3 py-2">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                    {initials}
+                  </span>
+                  <div className="flex flex-col leading-none">
+                    <span className="text-sm font-medium text-foreground truncate max-w-[160px]">
+                      {user.name}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {userIsSuperAdmin ? "Super Admin" : "Admin"}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex gap-2 px-3 pb-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      void logout();
+                    }}
+                  >
+                    <HiArrowLeftOnRectangle className="size-3.5" />
+                    Sign out
+                  </Button>
+                  <Link
+                    href="/"
+                    className="inline-flex h-7 flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <HiArrowTopRightOnSquare className="size-3" />
+                    View site
+                  </Link>
+                </div>
+              </div>
             </nav>
           )}
 
-          {/* Right side - User */}
-          <div className="flex items-center gap-2">
-            <div className="hidden items-center gap-2 rounded-full bg-muted/50 px-2.5 py-1.5 text-xs text-muted-foreground sm:flex">
-              <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-[10px] font-medium text-primary">
-                {initials}
-              </span>
-              <span className="truncate max-w-[100px]">{user.name}</span>
-              <Badge variant="secondary" className="text-[10px]">
-                {userIsSuperAdmin ? "Super admin" : "Admin"}
-              </Badge>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => void logout()}>
-              Sign out
-            </Button>
-            <Link href="/" className="hidden rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground lg:inline-block">
+          {/* ── Right side - User ── */}
+          <div className="hidden items-center gap-3 sm:flex">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <HiArrowTopRightOnSquare className="size-3.5" />
               View site
             </Link>
+            <Separator orientation="vertical" className="h-5" />
+            <div className="flex items-center gap-2.5">
+              <span className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary ring-2 ring-background">
+                {initials}
+              </span>
+              <div className="hidden flex-col leading-none md:flex">
+                <span className="text-sm font-medium text-foreground truncate max-w-[120px]">
+                  {user.name}
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  {userIsSuperAdmin ? "Super Admin" : "Admin"}
+                </span>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void logout()}
+              className="gap-1.5"
+            >
+              <HiArrowLeftOnRectangle className="size-3.5" />
+              Sign out
+            </Button>
           </div>
         </Container>
       </header>

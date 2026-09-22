@@ -22,9 +22,10 @@ export function Footer() {
         <div className="flex flex-col gap-4">
           <p className="font-heading text-lg font-bold text-white">{SITE.name}</p>
           <p className="text-sm leading-relaxed">
-            One of the most reputable non-profit welfare organisations in
-            Pakistan, dedicated to social development and relief for low-income
-            families since {SITE.establishedYear}.
+            SM Welfare Trust is one of the most reputable non-profit welfare
+            organisations in Pakistan, dedicated to social development and
+            providing relief to individuals from low-income groups since{" "}
+            {SITE.establishedYear}.
           </p>
           <p className="text-xs text-blue-200">{SITE.registrationNote}</p>
           <SocialLinks light className="mt-1" />
@@ -55,7 +56,7 @@ export function Footer() {
         </div>
 
         <div className="flex flex-col gap-4">
-          <FooterHeading>Get in touch</FooterHeading>
+          <FooterHeading>Contact Info</FooterHeading>
           <ul className="flex flex-col gap-2.5 text-sm">
             <li>
               <a
@@ -75,18 +76,27 @@ export function Footer() {
                 {SITE.phone}
               </a>
             </li>
-            <li className="inline-flex items-center gap-2.5">
-              <HiMapPin className="size-4 shrink-0 text-accent" aria-hidden="true" />
-              {SITE.location}
+            <li>
+              <a
+                href={`tel:${SITE.phone2.replace(/\s/g, "")}`}
+                className="inline-flex items-center gap-2.5 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              >
+                <HiPhone className="size-4 shrink-0 text-accent" aria-hidden="true" />
+                {SITE.phone2}
+              </a>
             </li>
           </ul>
         </div>
 
         <div className="flex flex-col gap-4">
-          <p className="text-sm leading-relaxed">
+          <FooterHeading>Location</FooterHeading>
+          <p className="inline-flex items-start gap-2.5 text-sm leading-relaxed">
+            <HiMapPin className="mt-0.5 size-4 shrink-0 text-accent" aria-hidden="true" />
+            {SITE.address}
+          </p>
+          <p className="text-xs text-blue-200">
             {SITE.activeProjects} active projects
           </p>
-          <p className="text-xs text-blue-200">{SITE.registrationNote}</p>
         </div>
       </Container>
 

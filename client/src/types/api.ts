@@ -4,6 +4,8 @@
  *   failure → { success: false, error: { statusCode, message } }
  */
 
+import type { PublicFormType } from "@/types/forms";
+
 export interface ApiSuccessResponse<T> {
   success: true;
   data: T;
@@ -184,4 +186,43 @@ export interface MediaListResponse {
 
 export interface MediaDeleteResponse {
   id: string;
+}
+
+// ─── Admin inbox types (list endpoints) ─────────────────────────────────
+
+/** One stored submission from the five public forms (admin inbox). */
+export interface FormSubmission {
+  id: string;
+  formType: PublicFormType;
+  name: string;
+  email: string;
+  phone: string;
+  message: string;
+  createdAt: string;
+}
+
+export interface FormSubmissionListResponse {
+  items: FormSubmission[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+/** One stored message from the public contact form (admin inbox). */
+export interface ContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  topic: string;
+  message: string;
+  createdAt: string;
+}
+
+export interface ContactMessageListResponse {
+  items: ContactMessage[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
 }

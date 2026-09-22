@@ -56,17 +56,35 @@ The command fails safely (exit code 1, nothing created) if a SUPER_ADMIN already
 exists, credentials are missing/invalid, the email is taken, or MongoDB is
 unreachable. See `server/.env.example` for the full variable reference.
 
-> **Windows note:** on this machine the top-level folders are currently on disk
-> as `Client`/`Server` (a file lock prevented the lowercase rename during setup).
-> `npm run dev` works from any casing, but the **production build** of Next.js 16
-> (Turbopack) fails with `Invariant: Expected workStore to be initialized` when
-> the shell path casing does not match the on-disk casing. Until the folders are
-> renamed to `client`/`server` (safe to do once the lock clears, e.g. after
-> closing the project in the IDE), run builds from the exact-cased directory:
->
-> ```bash
-> cd Client && npm run build   # not `cd client`
-> ```
+### Seeding CMS content (one-time)
+
+The public API serves programs, projects and site settings from MongoDB. To
+load the same content the live smwelfare.charity site publishes (13 main
+projects, 17 project pages, contact/footer copy):
+
+```bash
+cd server
+npm run seed:cms                 # requires MONGODB_URI in server/.env
+```
+
+The script is idempotent — upserts keyed by slug — so re-running it re-syncs
+seeded content after edits without duplicating documents, and it never
+deletes admin-created data. Everything is written as `PUBLISHED` because the
+public endpoints only expose published documents. Media is **not** seeded
+(Media documents reference Cloudinary assets), so upload images through the
+admin panel; until then the client renders its byte-verified local photo
+fallbacks.
+
+Notes:
+
+- The top-level directories are `client/` and `server/` (lowercase) — always
+  run builds from the exact-cased directory so Next.js can resolve the project
+  correctly on case-insensitive filesystems.
+- Do **not** run `next build` while `next dev` is running in the same project:
+  both write to `client/.next/`, and the build clobbers the dev server's chunk
+  files (the dev server then 500s with `Cannot find module './NNN.js'`).
+  Stop dev, remove `client/.next/`, then run the build — or restart dev after a
+  build.
 
 ## Public API (Phase 20)
 
@@ -83,7 +101,31 @@ Responses use the standard contract. Lists return `{ success: true, data: { item
 
 Visibility rules: programs/projects are exposed only when `status = PUBLISHED`; projects additionally require their parent program to be published. The Media model has no visibility field, so the public endpoint exposes the same metadata the admin API already returns (Cloudinary URLs are publicly addressable CDN links) and never returns credentials or upload secrets.
 
-Not implemented (future dependencies): `POST /api/v1/public/contact` — no contact model or mail transport exists yet, so the frontend keeps its mailto behavior; donations/payment processing remains out of scope.
+### Public write endpoints (forms + contact)
+
+The public website's forms are unauthenticated writes under the same versioned
+prefix. Both are validated server-side, rate limited to **10 submissions per 15
+minutes per IP**, and never expose credentials.
+
+| Endpoint | Method | Auth | Body |
+| -------- | ------ | ---- | ---- |
+| `/api/v1/forms/submit` | POST | none | `formType` (one of the five documented forms), `name`, `email`, `phone`, `message` |
+| `/api/v1/forms/submissions` | GET | ADMIN / SUPER_ADMIN | `page` (≤10000), `limit` (≤100), `formType` (one of the five — optional filter) |
+| `/api/v1/forms/submission/:id` | GET | ADMIN / SUPER_ADMIN | — |
+| `/api/v1/contact` | POST | none | `name`, `email`, `topic` (optional), `message` |
+| `/api/v1/contact` | GET | ADMIN / SUPER_ADMIN | `page`, `limit` |
+| `/api/v1/contact/:id` | GET | ADMIN / SUPER_ADMIN | — |
+
+Successful writes return `201` with `{ success: true, message, data }`. All read
+endpoints are administrator-only because submissions contain personal data: the
+two list endpoints (`GET /forms/submissions`, `GET /contact`) back the admin
+dashboard's Submissions inbox at `/admin/submissions` (newest-first, paginated,
+`{ success, data: { items, page, limit, total, totalPages } }`), while the
+by-id reads stay available for direct lookups.
+
+Not implemented (future dependencies): transactional email delivery for form and
+contact submissions (no SMTP transport is configured, so messages are stored in
+MongoDB only); donations/payment processing remains out of scope.
 
 ## Validation
 
@@ -99,25 +141,28 @@ Not implemented (future dependencies): `POST /api/v1/public/contact` — no cont
 ```
 ├── client/                     # Next.js frontend
 │   └── src/
-│       ├── app/                # App Router pages
-│       ├── components/         # ui/ shared/ public/ admin/
-│       ├── features/           # feature-specific modules
+│       ├── app/                # App Router pages — (public) and (admin) route groups
+│       ├── components/         # ui/ shared/ sections/ admin/
+│       ├── data/               # curated fallback content (verbatim live-site copy)
 │       ├── services/           # API client services (consumes /api/v1)
 │       ├── hooks/              # shared React hooks
 │       ├── lib/                # client utilities
+│       ├── providers/          # React providers
 │       ├── types/              # shared TypeScript types
-│       ├── constants/          # client constants
-│       └── utils/              # pure helper functions
+│       ├── constants/          # client constants (nav, forms)
+│       └── proxy.ts            # middleware — guards /admin/* via the auth cookie
 └── server/                     # Express REST API
     └── src/
-        ├── config/             # centralized env handling
-        ├── modules/            # feature modules (future)
-        ├── models/             # Mongoose models (future)
-        ├── middlewares/        # 404 + centralized error handling
+        ├── config/             # centralized env + MongoDB connection
+        ├── constants/          # server constants (form types, limits)
+        ├── controllers/        # request handlers (incl. public/ read handlers)
+        ├── middlewares/        # auth, role, rate-limit, upload, 404 + error handling
+        ├── models/             # Mongoose models (users, programs, projects, media, …)
         ├── routes/             # versioned route assemblies (/api/v1)
-        ├── utils/              # ApiError and helpers
+        ├── scripts/            # CLIs: provision super-admin, seed CMS content
+        ├── services/           # business logic (incl. public/ read services)
         ├── types/              # shared API types
-        ├── constants/          # server constants
+        ├── utils/              # ApiError and helpers
         ├── app.ts              # express app assembly
         └── server.ts           # bootstrap + graceful shutdown
 ```

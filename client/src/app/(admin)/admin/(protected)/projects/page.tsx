@@ -38,7 +38,6 @@ import {
   updateProject,
   updateProjectStatus,
   listProgramsForSelector,
-  type ListProjectsQuery,
   type CreateProjectInput,
   type UpdateProjectInput,
   type Project,
@@ -65,6 +64,8 @@ type PageState =
       filterProgramId: string | "all";
       filterStatus: ProjectStatus | "all";
       programs: Program[];
+      /** True while a refetch is in flight - the rendered list stays mounted. */
+      refreshing: boolean;
       editingProject: Project | null;
       editingForm: UpdateProjectInput;
       saving: boolean;
@@ -154,103 +155,94 @@ export default function AdminProjectsPage() {
   const [programIdFilter, setProgramIdFilter] = useState<string | "all">("all");
   const [page, setPage] = useState(1);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  // Bumped after a mutation so the effect refetches even when the query
+  // parameters themselves are unchanged (e.g. create while on page 1).
+  const [refreshToken, setRefreshToken] = useState(0);
+
+  // Only the newest request may write state - a slow response for an older
+  // search term can never overwrite a newer one.
+  const requestIdRef = useRef(0);
 
   const userIsSuperAdmin = isSuperAdmin(user);
   const canEdit = userIsSuperAdmin;
 
-  const loadPrograms = useCallback(async () => {
-    try {
-      const data = await listProgramsForSelector({ limit: 100 });
-      setState((prev) =>
-        prev.status === "ready" ? { ...prev, programs: data.items } : prev,
-      );
-    } catch {
-      // Silently fail - programs will be empty
-    }
-  }, []);
-
+  /**
+   * Loads the project page together with the program selector options - both
+   * are needed to render every state of this screen.
+   */
   const loadProjects = useCallback(
-    async (query: ListProjectsQuery = {}, keepData: boolean = false) => {
+    async (query: {
+      page: number;
+      search: string;
+      status: ProjectStatus | "all";
+      programId: string | "all";
+    }) => {
+      const requestId = ++requestIdRef.current;
+
+      // Refetching must NOT unmount the ready UI: replacing it with a skeleton
+      // would unmount the search input mid-typing and drop keyboard focus.
       setState((prev) =>
-        keepData && prev.status === "ready"
-          ? { ...prev, status: "loading" }
+        prev.status === "ready"
+          ? { ...prev, refreshing: true }
           : { status: "loading" },
       );
+
       try {
-        const data = await listProjects(query);
+        const [projectsData, programsData] = await Promise.all([
+          listProjects({
+            page: query.page,
+            limit: PAGE_SIZE,
+            search: query.search || undefined,
+            status: query.status !== "all" ? query.status : undefined,
+            programId: query.programId !== "all" ? query.programId : undefined,
+          }),
+          listProgramsForSelector({ limit: 100 }),
+        ]);
+        if (requestId !== requestIdRef.current) return;
         setState({
           status: "ready",
-          projects: data.items,
-          page: data.page,
-          limit: data.limit,
-          total: data.total,
-          totalPages: data.totalPages,
-          search: query.search ?? "",
-          filterStatus: query.status ?? "all",
-          filterProgramId: query.programId ?? "all",
-          programs: [],
+          projects: projectsData.items,
+          page: projectsData.page,
+          limit: projectsData.limit,
+          total: projectsData.total,
+          totalPages: projectsData.totalPages,
+          search: query.search,
+          filterStatus: query.status,
+          filterProgramId: query.programId,
+          programs: programsData.items,
+          refreshing: false,
           editingProject: null,
           editingForm: {},
           saving: false,
           lastError: null,
         });
-        void loadPrograms();
       } catch (error) {
+        if (requestId !== requestIdRef.current) return;
         setState({
           status: "error",
           message:
-            error instanceof Error ? error.message : "Failed to load projects.",
+            error instanceof Error
+              ? error.message
+              : "Failed to load projects.",
         });
       }
     },
-    [loadPrograms],
+    [],
   );
 
   useEffect(() => {
     if (user) {
-      const bigLoad = async () => {
-        setState({ status: "loading" });
-        try {
-          const [projectsData, programsData] = await Promise.all([
-            listProjects({
-              page,
-              limit: PAGE_SIZE,
-              search: search || undefined,
-              status: status !== "all" ? status : undefined,
-              programId:
-                programIdFilter !== "all" ? programIdFilter : undefined,
-            }),
-            listProgramsForSelector({ limit: 100 }),
-          ]);
-          setState({
-            status: "ready",
-            projects: projectsData.items,
-            page: projectsData.page,
-            limit: projectsData.limit,
-            total: projectsData.total,
-            totalPages: projectsData.totalPages,
-            search,
-            filterStatus: status,
-            filterProgramId: programIdFilter,
-            programs: programsData.items,
-            editingProject: null,
-            editingForm: {},
-            saving: false,
-            lastError: null,
-          });
-        } catch (error) {
-          setState({
-            status: "error",
-            message:
-              error instanceof Error
-                ? error.message
-                : "Failed to load projects.",
-          });
-        }
-      };
-      bigLoad();
+      loadProjects({ page, search, status, programId: programIdFilter });
     }
-  }, [user, page, search, status, programIdFilter]);
+  }, [
+    user,
+    loadProjects,
+    page,
+    search,
+    status,
+    programIdFilter,
+    refreshToken,
+  ]);
 
   const handleSearch = useCallback((value: string) => {
     setSearch(value);
@@ -331,13 +323,8 @@ export default function AdminProjectsPage() {
               }
             : prev,
         );
-        loadProjects({
-          page: 1,
-          limit: PAGE_SIZE,
-          search: undefined,
-          status: undefined,
-          programId: undefined,
-        });
+        // Refetch even when the filters were already at their defaults.
+        setRefreshToken((token) => token + 1);
       } catch (error) {
         setState((prev) =>
           prev.status === "ready"
@@ -353,7 +340,7 @@ export default function AdminProjectsPage() {
         );
       }
     },
-    [loadProjects],
+    [],
   );
 
   const handleUpdate = useCallback(
@@ -489,11 +476,9 @@ export default function AdminProjectsPage() {
               onClick={() =>
                 loadProjects({
                   page: 1,
-                  limit: PAGE_SIZE,
-                  search: search || undefined,
-                  status: status !== "all" ? status : undefined,
-                  programId:
-                    programIdFilter !== "all" ? programIdFilter : undefined,
+                  search,
+                  status,
+                  programId: programIdFilter,
                 })
               }
             >
@@ -518,6 +503,7 @@ export default function AdminProjectsPage() {
     saving,
     lastError,
     programs,
+    refreshing,
   } = state;
 
   const EmptyState = (
@@ -550,6 +536,7 @@ export default function AdminProjectsPage() {
             <CardTitle className="font-heading">All projects</CardTitle>
             <CardDescription>
               {total} project{total === 1 ? "" : "s"} total
+              {refreshing ? " · Refreshing…" : ""}
             </CardDescription>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -714,7 +701,9 @@ function PaginationControls({
 }) {
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
   return (
-    <div className="flex items-center gap-1">
+    // flex-wrap keeps a long page list from forcing horizontal page overflow
+    // on narrow screens.
+    <div className="flex max-w-full flex-wrap items-center gap-1">
       <Button
         variant="outline"
         size="sm"
@@ -819,6 +808,12 @@ function CreateProjectForm({
             ))}
           </SelectContent>
         </Select>
+        {programs.length === 0 && (
+          <p className="text-xs text-muted-foreground">
+            No programs available yet - create a program first, because every
+            project belongs to one.
+          </p>
+        )}
       </div>
       <div className="grid gap-2">
         <Label htmlFor="createTitle">Title *</Label>
@@ -896,7 +891,7 @@ function CreateProjectForm({
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={saving}>
+        <Button type="submit" disabled={saving || !selectedProgramId}>
           {saving ? "Creating…" : "Create project"}
         </Button>
       </div>

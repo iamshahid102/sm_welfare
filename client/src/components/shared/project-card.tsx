@@ -1,16 +1,22 @@
+import Image from "next/image";
 import Link from "next/link";
 import { HiArrowRight } from "react-icons/hi2";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { resolveProjectImage } from "@/data/site-images";
+import { cn } from "@/lib/utils";
+
+/** Shared card image sizing hint (3-up grid on desktop, full width on mobile). */
+const IMAGE_SIZES = "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw";
 
 /**
- * Data shape from the template/static data.
+ * Data shape from the curated/static data.
  */
 export interface ProjectCardStaticData {
   slug: string;
   name: string;
-  stat: string;
-  statLabel: string;
+  /** Category badge shown on the photo (live site shows the project name). */
+  category: string;
   summary: string;
   source: "static";
 }
@@ -32,15 +38,41 @@ export type ProjectCardProps =
   | { apiProject: ProjectCardApiData };
 
 /**
- * Project card per the template: stat badge, title, summary, read-more link.
- * Supports both static template data and API data.
+ * Project card per the template: photo, stat badge, title, summary, read-more.
+ * Supports both curated data and API data.
+ *
+ * The photo is resolved from the curated image set by slug/title and falls
+ * back to the placeholder frame, so a project the CMS adds later still renders
+ * correctly without a picture.
  */
 export function ProjectCard(props: ProjectCardProps) {
   if ("apiProject" in props) {
     const { apiProject } = props;
+    const image = resolveProjectImage(apiProject);
     return (
       <Card className="group flex h-full flex-col overflow-hidden border-border bg-white transition-shadow hover:shadow-lg">
-        <div className="photo-placeholder relative aspect-[16/10]" aria-hidden="true" />
+        <div
+          className={cn(
+            "relative aspect-[16/10] overflow-hidden",
+            !image && "photo-placeholder"
+          )}
+          aria-hidden={image ? undefined : "true"}
+        >
+          {image ? (
+            <Image
+              src={image.src}
+              alt={image.alt}
+              fill
+              sizes={IMAGE_SIZES}
+              className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+            />
+          ) : null}
+          {/* Same badge treatment as the static card, so the grid looks
+              identical whether the card came from the API or the fallback. */}
+          <Badge className="absolute left-4 top-4 bg-accent text-accent-foreground hover:bg-accent">
+            {apiProject.program.title}
+          </Badge>
+        </div>
         <CardContent className="flex flex-1 flex-col gap-3 p-6">
           <h3 className="font-heading text-xl font-bold tracking-tight">
             {apiProject.title}
@@ -64,11 +96,27 @@ export function ProjectCard(props: ProjectCardProps) {
   }
 
   const { project } = props;
+  const image = resolveProjectImage({ slug: project.slug, name: project.name });
+
   return (
     <Card className="group flex h-full flex-col overflow-hidden border-border bg-white transition-shadow hover:shadow-lg">
-      <div className="photo-placeholder relative aspect-[16/10]">
+      <div
+        className={cn(
+          "relative aspect-[16/10] overflow-hidden",
+          !image && "photo-placeholder"
+        )}
+      >
+        {image ? (
+          <Image
+            src={image.src}
+            alt={image.alt}
+            fill
+            sizes={IMAGE_SIZES}
+            className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+          />
+        ) : null}
         <Badge className="absolute left-4 top-4 bg-accent text-accent-foreground hover:bg-accent">
-          {project.stat} {project.statLabel}
+          {project.category}
         </Badge>
       </div>
       <CardContent className="flex flex-1 flex-col gap-3 p-6">

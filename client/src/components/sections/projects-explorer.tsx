@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { HiArrowRight, HiHeart } from "react-icons/hi2";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -13,6 +15,9 @@ import {
 } from "@/components/ui/empty";
 import { FilterChips } from "@/components/shared/filter-chips";
 import { Container } from "@/components/shared/container";
+import { BTN_PRIMARY_BLUE } from "@/components/shared/home-styles";
+import { PROJECTS } from "@/data/projects";
+import { resolveProjectImage } from "@/data/site-images";
 import { DONATE_HREF } from "@/constants/navigation";
 import { listPublicPrograms } from "@/services/public-programs";
 import {
@@ -25,14 +30,31 @@ import type {
 } from "@/types/public-api";
 import { cn } from "@/lib/utils";
 
+/** Chip value meaning "no program filter". */
+const ALL_PROGRAMS = "All";
+
+/**
+ * Normalised project shape for rendering. Both the API projects and the
+ * curated fallback map onto this, so the layout has a single input.
+ */
+interface ProjectDetailData {
+  slug: string;
+  title: string;
+  /** Badge text — the programme title from the API, or the curated category. */
+  badge: string;
+  shortDescription: string;
+  description: string;
+}
+
 function ProjectDetail({
   project,
   index,
 }: {
-  project: PublicProject;
+  project: ProjectDetailData;
   index: number;
 }) {
   const imageRight = index % 2 === 1;
+  const image = resolveProjectImage({ slug: project.slug, title: project.title });
 
   return (
     <article
@@ -41,11 +63,24 @@ function ProjectDetail({
     >
       <div className={cn("relative", imageRight && "lg:order-2")}>
         <div
-          className="photo-placeholder aspect-[16/11] rounded-xl"
-          aria-hidden="true"
-        />
+          className={cn(
+            "relative aspect-[16/11] overflow-hidden rounded-xl",
+            !image && "photo-placeholder"
+          )}
+          aria-hidden={image ? undefined : "true"}
+        >
+          {image ? (
+            <Image
+              src={image.src}
+              alt={image.alt}
+              fill
+              sizes="(max-width: 1024px) 100vw, 45vw"
+              className="object-cover"
+            />
+          ) : null}
+        </div>
         <Badge className="absolute left-4 top-4 bg-accent text-accent-foreground hover:bg-accent">
-          {project.program.title}
+          {project.badge}
         </Badge>
       </div>
       <div className={cn("flex flex-col gap-4", imageRight && "lg:order-1")}>
@@ -61,7 +96,7 @@ function ProjectDetail({
         <div className="mt-auto">
           <Link
             href={DONATE_HREF}
-            className={cn(buttonVariants(), "rounded-full bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 group")}
+            className={cn(buttonVariants(), BTN_PRIMARY_BLUE, "group")}
           >
             <HiHeart className="mr-1.5 size-4" aria-hidden="true" />
             Support this project
@@ -91,65 +126,114 @@ function ProjectSkeleton() {
   );
 }
 
-/** Projects page body — fetches real published programs and projects from the API. */
+/**
+ * Projects page body — fetches real published programs and projects from the API.
+ *
+ * Deep links are supported: /projects?program=<slug> pre-selects that program's
+ * chip (used by the home page program chips).
+ */
 export function ProjectsExplorer() {
+  const searchParams = useSearchParams();
+  const initialProgram = searchParams.get("program")?.trim() || undefined;
+
   const [programs, setPrograms] = useState<PublicProgram[]>([]);
   const [projects, setProjects] = useState<PublicProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeProgram, setActiveProgram] = useState<string>(
+    initialProgram ?? ALL_PROGRAMS,
+  );
 
+  // Only the newest request may write state - clicking chips quickly can never
+  // let an older response overwrite a newer one.
+  const requestIdRef = useRef(0);
+
+  /** The API filters by program slug, never by title. */
   const fetchProjects = useCallback(async (programSlug?: string) => {
+    const requestId = ++requestIdRef.current;
+    setLoading(true);
+    setError(null);
     try {
       const query: PublicProjectsQuery = { limit: 40 };
-      if (programSlug && programSlug !== "All") {
+      if (programSlug && programSlug !== ALL_PROGRAMS) {
         query.program = programSlug;
       }
       const result = await listPublicProjects(query);
+      if (requestId !== requestIdRef.current) return;
       setProjects(result.items);
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
       setError(
         err instanceof Error ? err.message : "Failed to load projects",
       );
+    } finally {
+      if (requestId === requestIdRef.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    async function load() {
-      setLoading(true);
-      setError(null);
+    let cancelled = false;
+    // Claims the newest request slot, so a chip click that happens while this
+    // initial request is still in flight wins (a ref write, not state).
+    const requestId = ++requestIdRef.current;
+    const isStale = () => cancelled || requestId !== requestIdRef.current;
 
-      // Fetch programs (for filter chips) and initial projects in parallel
-      const projectsPromise = fetchProjects();
-
-      let programsResult: PublicProgram[] = [];
+    // Initial load. Declared inside the effect on purpose: every state write
+    // happens AFTER an await, so no state is set synchronously in the effect
+    // body (which would cascade renders). `loading` starts as true.
+    const loadInitial = async () => {
       try {
-        const result = await listPublicPrograms({ limit: 40 });
-        programsResult = result.items;
-      } catch {
-        // Programs fetch failed — show empty chips
+        const query: PublicProjectsQuery = { limit: 40 };
+        if (initialProgram) {
+          query.program = initialProgram;
+        }
+        const result = await listPublicProjects(query);
+        if (isStale()) return;
+        setProjects(result.items);
+      } catch (err) {
+        if (isStale()) return;
+        setError(
+          err instanceof Error ? err.message : "Failed to load projects",
+        );
+      } finally {
+        if (!isStale()) setLoading(false);
       }
-      setPrograms(programsResult);
+    };
+    void loadInitial();
 
-      await projectsPromise;
-      setLoading(false);
-    }
-    load();
-  }, [fetchProjects]);
+    // Programs only feed the filter chips - a failure must not break the list.
+    void listPublicPrograms({ limit: 40 })
+      .then((result) => {
+        if (!cancelled) setPrograms(result.items);
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialProgram]);
 
   const handleProgramSelect = useCallback(
-    async (program: string) => {
-      setLoading(true);
-      setError(null);
-      await fetchProjects(program === "All" ? undefined : program);
-      setLoading(false);
+    (program: string) => {
+      setActiveProgram(program);
+      void fetchProjects(program);
     },
     [fetchProjects],
   );
 
+  // Chip values are program slugs (what the API accepts); labels are titles.
   const chipOptions: readonly string[] = [
-    "All",
-    ...programs.map((p) => p.title),
+    ALL_PROGRAMS,
+    ...programs.map((p) => p.slug),
   ];
+
+  const chipLabel = useCallback(
+    (value: string) =>
+      value === ALL_PROGRAMS
+        ? "All"
+        : (programs.find((p) => p.slug === value)?.title ?? value),
+    [programs],
+  );
 
   return (
     <section className="bg-white">
@@ -157,6 +241,8 @@ export function ProjectsExplorer() {
         {chipOptions.length > 1 ? (
           <FilterChips
             options={chipOptions}
+            initial={activeProgram}
+            getLabel={chipLabel}
             onSelect={handleProgramSelect}
             className="justify-center"
           />
@@ -168,6 +254,13 @@ export function ProjectsExplorer() {
               <EmptyTitle>Unable to load projects</EmptyTitle>
               <EmptyDescription>{error}</EmptyDescription>
             </Empty>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void fetchProjects(activeProgram)}
+            >
+              Try again
+            </Button>
           </div>
         ) : loading ? (
           <div className="flex flex-col gap-8">
@@ -175,22 +268,38 @@ export function ProjectsExplorer() {
             <ProjectSkeleton />
             <ProjectSkeleton />
           </div>
-        ) : projects.length === 0 ? (
-          <Empty className="py-16">
-            <EmptyTitle>No projects available</EmptyTitle>
-            <EmptyDescription>
-              Projects will appear here once they are published by the team.
-            </EmptyDescription>
-          </Empty>
         ) : (
           <div className="flex flex-col gap-8">
-            {projects.map((project, index) => (
-              <ProjectDetail
-                key={project.id}
-                project={project}
-                index={index}
-              />
-            ))}
+            {projects.length > 0
+              ? projects.map((project, index) => (
+                  <ProjectDetail
+                    key={project.id}
+                    index={index}
+                    project={{
+                      slug: project.slug,
+                      title: project.title,
+                      badge: project.program.title,
+                      shortDescription: project.shortDescription,
+                      description: project.description,
+                    }}
+                  />
+                ))
+              : /* The public API is optional in local/preview environments, so
+                   fall back to the curated six programmes rather than showing
+                   an empty state on a page whose job is to list them. */
+                PROJECTS.map((project, index) => (
+                  <ProjectDetail
+                    key={project.slug}
+                    index={index}
+                    project={{
+                      slug: project.slug,
+                      title: project.name,
+                      badge: project.category,
+                      shortDescription: project.summary,
+                      description: project.description,
+                    }}
+                  />
+                ))}
           </div>
         )}
       </Container>
