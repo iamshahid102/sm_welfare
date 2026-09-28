@@ -46,17 +46,19 @@ export const NAV_ITEMS: readonly NavItem[] = [
         label: "Health Care Services",
         href: "/projects", // live: /health-care-services-2/
         children: [
-          { label: "Ambulance Services", href: "/projects" }, // live: /ambulance-services/
-          { label: "Heat Stroke Camp", href: "/projects" }, // live: /heat-stroke-camp/
+          { label: "Ambulance Services", href: "/ambulance-services" },
+          { label: "Heat Stroke Camp", href: "/heat-stroke-camp" },
         ],
       },
-      // live: /sirat-ul-quran-academy/
-      { label: "Sirat ul Quran Academy (Taleem e Baligaat)", href: "/projects" },
+      {
+        label: "Sirat ul Quran Academy (Taleem e Baligaat)",
+        href: "/sirat-ul-quran-academy",
+      },
       {
         label: "Sasta Khana Project",
         href: "/projects", // live: /category/sasta-khana-project/
         children: [
-          { label: "Iftaar Dastarkhawan", href: "/projects" }, // live: /category/iftaar-dastarkhawan/
+          { label: "Iftaar Dastarkhawan", href: "/iftaar-dastarkhawan" },
           { label: "Monthly Raashan Support Program", href: "/projects" }, // live: /monthly-raashan-support-program/
           { label: "Rehmat-e-Ramadan Rashan Program", href: "/projects" }, // live: /category/rehmat-e-ramadan-rashan-program/
         ],

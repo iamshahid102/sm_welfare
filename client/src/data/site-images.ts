@@ -43,6 +43,55 @@ export const HERO_IMAGE: SiteImage = {
   height: 1080,
 };
 
+/**
+ * Ambulance Services page banner — moved from the root `AMBULANCE_BANNER.jpg`
+ * (1920×1080), the same banner the live `/ambulance-services/` page renders as
+ * the first element of its content with `fetchpriority="high"`.
+ */
+export const AMBULANCE_BANNER: SiteImage = {
+  src: "/images/ambulance-banner.jpg",
+  alt: "Ambulance Services banner — Sirat-e-Mustaqeem Welfare Trust",
+  width: 1920,
+  height: 1080,
+};
+
+/**
+ * Heat Stroke Camp page image — moved from the root `heat-stoke.jpg`
+ * (1600×900, filename corrected while moving), the client-provided photo for
+ * the Heat Stroke Camp page.
+ */
+export const HEAT_STROKE_CAMP: SiteImage = {
+  src: "/images/heat-stroke-camp.jpg",
+  alt: "Heat Stroke Camp — Sirat-e-Mustaqeem Welfare Trust providing cold water and first aid in Orangi Town, Karachi",
+  width: 1600,
+  height: 900,
+};
+
+/**
+ * Sirat ul Quran Academy page image — moved from the root
+ * `sirat-ul-quran-academy.jpg` (1600×900), the client-provided photo for the
+ * Sirat ul Quran Academy (Taleem e Baligaat) page.
+ */
+export const SIRAT_UL_QURAN_ACADEMY: SiteImage = {
+  src: "/images/sirat-ul-quran-academy.jpg",
+  alt: "Sirat ul Quran Academy — children learning the Holy Quran with Tajweed in Orangi Town, Karachi",
+  width: 1600,
+  height: 900,
+};
+
+/**
+ * Iftaar Dastarkhawan page image — moved from the root `ramadan iftar.jpg`
+ * (960×1280, filename slugified while moving), the client-provided photo for
+ * the Ramadan Iftar Dastarkhawan page. Portrait 3:4, matching the live page's
+ * own featured image ratio (768×1024).
+ */
+export const IFTAAR_DASTARKHWAN: SiteImage = {
+  src: "/images/iftaar-dastarkhawan.jpg",
+  alt: "Ramadan Iftar Dastarkhawan — Sirat-e-Mustaqeem Welfare Trust serving iftar to deserving families",
+  width: 960,
+  height: 1280,
+};
+
 /** Used for the About page "Our story" column. */
 export const ABOUT_IMAGE: SiteImage = {
   src: "/images/story-empowering-women-vocational-training.jpg",
