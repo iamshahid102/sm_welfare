@@ -33,7 +33,7 @@ export function MobileNavigation() {
           <Button
             variant="ghost"
             size="icon"
-            className="size-11 text-white hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/60"
+            className="size-11 text-foreground hover:bg-muted hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
           />
         }
         aria-label="Open menu"

@@ -73,7 +73,6 @@ export default async function ContactPage() {
   return (
     <>
       <PageHero
-        kicker="Contact"
         title="Contact Us"
         description="Whether you want to donate, volunteer, or request assistance for a family — our team in Karachi is one message away."
       />

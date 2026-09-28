@@ -12,9 +12,7 @@ import { BTN_PRIMARY_AMBER } from "@/components/shared/home-styles";
 import { DONATE_HREF } from "@/constants/navigation";
 
 /**
- * Public site header — brand navy, continuous with the hero gradient below it.
- * Uses the same deep navy as the utility bar and the top of the hero so the
- * whole top of the page reads as one block instead of a black strip.
+ * Public site header — white bar so the brand wordmark stays legible.
  *
  * LAYOUT NOTE
  * The menu switches to the horizontal nav at 980px rather than Tailwind's
@@ -26,10 +24,10 @@ import { DONATE_HREF } from "@/constants/navigation";
  */
 export function Header() {
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-primary-deep shadow-sm shadow-black/10">
+    <header className="sticky top-0 z-40 border-b border-border bg-background shadow-sm shadow-black/5">
       <Container className="flex h-16 items-center justify-between gap-3">
         <Logo />
-        <Navigation light className="hidden min-[980px]:block" />
+        <Navigation className="hidden min-[980px]:block" />
         <div className="flex items-center gap-1.5">
           <Link
             href={DONATE_HREF}

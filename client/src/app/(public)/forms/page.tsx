@@ -22,7 +22,6 @@ export default function FormsPage() {
   return (
     <>
       <PageHero
-        kicker="Forms"
         title="Forms"
         description="Choose the programme you are interested in, fill in the form and our team in Karachi will get back to you."
       />

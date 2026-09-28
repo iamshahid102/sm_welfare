@@ -23,7 +23,6 @@ export default function DonatePage() {
   return (
     <>
       <PageHero
-        kicker="Donate"
         title="Donate Now"
         description="Choose what your giving builds — then pay directly into our Faysal Bank account or EasyPaisa wallet, or confirm with our team on WhatsApp. Every contribution is receipted and reported."
       />

@@ -22,7 +22,6 @@ export default function MediaPage() {
   return (
     <>
       <PageHero
-        kicker="Media updates"
         title="Media Updates"
         description="Field reports, blog posts and photographs from the communities we serve across Karachi."
       />

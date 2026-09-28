@@ -25,7 +25,6 @@ export default function ProjectsPage() {
   return (
     <>
       <PageHero
-        kicker="Our projects"
         title="Projects"
         description="SM Welfare Trust is one of the most reputable non-profit welfare organisations in Pakistan, dedicated to social development and providing relief to individuals from low-income groups since 2017."
       />

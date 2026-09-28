@@ -301,10 +301,14 @@ export function Navigation({
                 />
               </Link>
 
-              <ul
-                aria-label={`${item.label} submenu`}
+              {/* The offset below the trigger lives in this wrapper's padding,
+                  not a margin on the panel. A margin left a gap where the
+                  pointer sat outside the <li>, so crossing from the trigger
+                  into the panel fired mouseleave and closed the menu. Padding
+                  keeps that strip inside the <li> and acts as a hover bridge. */}
+              <div
                 className={cn(
-                  "absolute top-full z-20 mt-2 max-h-[70vh] w-72 overflow-y-auto overscroll-contain rounded-2xl border border-border bg-popover p-1.5 shadow-2xl shadow-black/25 ring-1 ring-black/5 transition duration-150 ease-out",
+                  "absolute top-full z-20 w-72 origin-top pt-2 transition duration-150 ease-out",
                   // Right-align the panel so menus near the viewport edge
                   // (e.g. "Forms") never overflow horizontally.
                   light ? "right-0 origin-top-right" : "left-0 origin-top-left",
@@ -313,56 +317,61 @@ export function Navigation({
                     : "pointer-events-none invisible -translate-y-1 opacity-0"
                 )}
               >
-                {item.children?.map((child) => {
-                  const childIsActive =
-                    child.href !== item.href &&
-                    isRouteActive(pathname, child.href);
+                <ul
+                  aria-label={`${item.label} submenu`}
+                  className="max-h-[70vh] overflow-y-auto overscroll-contain rounded-2xl border border-border bg-popover p-1.5 shadow-2xl shadow-black/25 ring-1 ring-black/5"
+                >
+                  {item.children?.map((child) => {
+                    const childIsActive =
+                      child.href !== item.href &&
+                      isRouteActive(pathname, child.href);
 
-                  return (
-                    <li key={child.label}>
-                      <Link
-                        href={child.href}
-                        onClick={handleNavigate}
-                        className={cn(
-                          "block rounded-lg px-3 py-2 text-sm leading-snug transition-colors hover:bg-muted hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                          childIsActive
-                            ? "font-semibold text-primary"
-                            : "text-foreground"
-                        )}
-                      >
-                        {child.label}
-                      </Link>
+                    return (
+                      <li key={child.label}>
+                        <Link
+                          href={child.href}
+                          onClick={handleNavigate}
+                          className={cn(
+                            "block rounded-lg px-3 py-2 text-sm leading-snug transition-colors hover:bg-muted hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                            childIsActive
+                              ? "font-semibold text-primary"
+                              : "text-foreground"
+                          )}
+                        >
+                          {child.label}
+                        </Link>
 
-                      {child.children ? (
-                        <InlineLinks
-                          items={child.children}
-                          parentHref={child.href}
-                          pathname={pathname}
-                          depth={1}
-                          onNavigate={onNavigate}
-                        />
-                      ) : null}
-                    </li>
-                  );
-                })}
+                        {child.children ? (
+                          <InlineLinks
+                            items={child.children}
+                            parentHref={child.href}
+                            pathname={pathname}
+                            depth={1}
+                            onNavigate={onNavigate}
+                          />
+                        ) : null}
+                      </li>
+                    );
+                  })}
 
-                {/* Footer keeps the section landing page one tap away and makes
-                    it obvious the panel may scroll — long menus no longer look
-                    like they are cut short. */}
-                <li className="sticky bottom-0 -mx-1.5 mt-1 border-t border-border bg-popover px-1.5 pt-1.5">
-                  <Link
-                    href={item.href}
-                    onClick={handleNavigate}
-                    className="group flex items-center justify-between rounded-lg px-3 py-2 text-sm font-semibold text-primary transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    View all {item.label}
-                    <HiArrowRight
-                      className="size-4 transition-transform group-hover:translate-x-0.5"
-                      aria-hidden="true"
-                    />
-                  </Link>
-                </li>
-              </ul>
+                  {/* Footer keeps the section landing page one tap away and makes
+                      it obvious the panel may scroll — long menus no longer look
+                      like they are cut short. */}
+                  <li className="sticky bottom-0 -mx-1.5 mt-1 border-t border-border bg-popover px-1.5 pt-1.5">
+                    <Link
+                      href={item.href}
+                      onClick={handleNavigate}
+                      className="group flex items-center justify-between rounded-lg px-3 py-2 text-sm font-semibold text-primary transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      View all {item.label}
+                      <HiArrowRight
+                        className="size-4 transition-transform group-hover:translate-x-0.5"
+                        aria-hidden="true"
+                      />
+                    </Link>
+                  </li>
+                </ul>
+              </div>
             </li>
           );
         })}

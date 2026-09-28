@@ -32,16 +32,16 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "About Us",
     href: "/about",
     children: [
-      { label: "Founder's Profile", href: "/about" }, // live: /founders-profile/
-      { label: "Our Mission", href: "/about" }, // live: /our-mission/
+      { label: "Founder's Profile", href: "/founders-profile" },
+      { label: "Our Mission", href: "/our-mission" },
     ],
   },
   {
     label: "Projects",
     href: "/projects",
     children: [
-      { label: "Hunarmand Beti Project", href: "/projects" }, // live: /hunarmand-beti-project/
-      { label: "Free Schooling System", href: "/projects" }, // live: /free-schooling-system/
+      { label: "Hunarmand Beti Project", href: "/hunarmand-beti-project" },
+      { label: "Free Schooling System", href: "/free-schooling-system" },
       {
         label: "Health Care Services",
         href: "/projects", // live: /health-care-services-2/

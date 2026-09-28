@@ -78,7 +78,6 @@ export default async function AboutPage() {
   return (
     <>
       <PageHero
-        kicker="About us"
         title="Charity Efforts Are For Happiness"
         description="Sirat e Mustaqeem Welfare Trust is one of the well-known non-profit welfare organizations in Pakistan, working since 2017 to support poor and low-income families."
       />
