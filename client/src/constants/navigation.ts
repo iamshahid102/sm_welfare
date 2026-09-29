@@ -59,18 +59,18 @@ export const NAV_ITEMS: readonly NavItem[] = [
         href: "/projects", // live: /category/sasta-khana-project/
         children: [
           { label: "Iftaar Dastarkhawan", href: "/iftaar-dastarkhawan" },
-          { label: "Monthly Raashan Support Program", href: "/projects" }, // live: /monthly-raashan-support-program/
+          { label: "Monthly Raashan Support Program", href: "/monthly-raashan-support-program" },
           { label: "Rehmat-e-Ramadan Rashan Program", href: "/projects" }, // live: /category/rehmat-e-ramadan-rashan-program/
         ],
       },
-      { label: "Rozgar Project", href: "/projects" }, // live: /rozgar-project/
-      { label: "Marriage Support Program", href: "/projects" }, // live: /category/marriage-support-program/
-      { label: "Free Eid Shopping", href: "/projects" }, // live: /free-eid-shopping/
-      { label: "Flood Relief Mission", href: "/projects" }, // live: /flood-relief-mission/
-      { label: "Home & Masjid Renovation", href: "/projects" }, // live: /home-masjid-renovation/
-      { label: "Qurbani Barae Waqaf", href: "/projects" }, // live: /qurbani-barae-waqaf/
-      { label: "Tree for Tomorrow (Plantation Compaign)", href: "/projects" }, // live: /tree-for-tomorrow-plantation-compaign/
-      { label: "Winter Relief", href: "/projects" }, // live: /category/winter-relief/
+      { label: "Rozgar Project", href: "/rozgar-project" },
+      { label: "Marriage Support Program", href: "/marriage-support-program" },
+      { label: "Free Eid Shopping", href: "/free-eid-shopping" },
+      { label: "Flood Relief Mission", href: "/flood-relief-mission" },
+      { label: "Home & Masjid Renovation", href: "/home-masjid-renovation" },
+      { label: "Qurbani Barae Waqaf", href: "/qurbani-barae-waqaf" },
+      { label: "Tree for Tomorrow (Plantation Compaign)", href: "/tree-for-tomorrow-plantation-compaign" },
+      { label: "Winter Relief", href: "/winter-relief" },
     ],
   },
   { label: "Media", href: "/media" }, // live: /blog/

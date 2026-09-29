@@ -92,6 +92,114 @@ export const IFTAAR_DASTARKHWAN: SiteImage = {
   height: 1280,
 };
 
+/**
+ * Monthly Raashan Support Program page image — moved from the root
+ * `Rashan_Distribution.jpg` (1920×1080, filename slugified while moving), the
+ * client-provided photo for the Monthly Raashan Support Program page.
+ */
+export const MONTHLY_RAASHAN_SUPPORT: SiteImage = {
+  src: "/images/monthly-raashan-support.jpg",
+  alt: "Monthly Raashan Support Program — ration packages being distributed to deserving families by Sirat-e-Mustaqeem Welfare Trust in Orangi Town, Karachi",
+  width: 1920,
+  height: 1080,
+};
+
+/**
+ * Rozgar Project page image — moved from the root `rozgar-projects.jpg`
+ * (1600×900, filename singularised while moving to match the page slug), the
+ * client-provided photo for the Rozgar Project page.
+ */
+export const ROZGAR_PROJECT: SiteImage = {
+  src: "/images/rozgar-project.jpg",
+  alt: "Rozgar Project — a beneficiary earning a dignified living from a fruit and vegetable cart provided by Sirat-e-Mustaqeem Welfare Trust",
+  width: 1600,
+  height: 900,
+};
+
+/**
+ * Marriage Support Program page image — moved from the root
+ * `marriage-support.jpg` (1024×684, kept at its original filename), the
+ * client-provided photo for the Marriage Support Program page.
+ */
+export const MARRIAGE_SUPPORT: SiteImage = {
+  src: "/images/marriage-support.jpg",
+  alt: "Marriage Support Program — a daughter's wedding arranged with dignity by Sirat-e-Mustaqeem Welfare Trust",
+  width: 1024,
+  height: 684,
+};
+
+/**
+ * Free Eid Shopping page image — moved from the root `free-eid-shopping.jpg`
+ * (1600×900, kept at its original filename), the client-provided photo for
+ * the Free Eid Shopping page.
+ */
+export const FREE_EID_SHOPPING: SiteImage = {
+  src: "/images/free-eid-shopping.jpg",
+  alt: "Free Eid Shopping — families choosing Eid clothes, shoes and gifts for just Rs. 10 at a Sirat-e-Mustaqeem Welfare Trust event",
+  width: 1600,
+  height: 900,
+};
+
+/**
+ * Flood Relief Mission page image — moved from the root
+ * `flood-relief-mission.jpg` (1600×900, kept at its original filename), the
+ * client-provided photo for the Flood Relief Mission page.
+ */
+export const FLOOD_RELIEF_MISSION: SiteImage = {
+  src: "/images/flood-relief-mission.jpg",
+  alt: "Flood Relief Mission — volunteers delivering food rations, tents and clean drinking water to flood-affected families in Pakistan",
+  width: 1600,
+  height: 900,
+};
+
+/**
+ * Home & Masjid Renovation page image — moved from the root `masjid.jpg`
+ * (745×500, kept at its original filename), the client-provided photo for the
+ * Home & Masjid Renovation page.
+ */
+export const HOME_MASJID_RENOVATION: SiteImage = {
+  src: "/images/masjid.jpg",
+  alt: "Home & Masjid Renovation — a repaired and rebuilt home alongside a renovated mosque in Karachi by Sirat-e-Mustaqeem Welfare Trust",
+  width: 745,
+  height: 500,
+};
+
+/**
+ * Qurbani Barae Waqaf page image — moved from the root `qurbani barae
+ * waqaf.jpg` (1600×900, filename slugified while moving), the client-provided
+ * photo for the Qurbani Barae Waqaf page.
+ */
+export const QURBANI_BARAE_WAQAF: SiteImage = {
+  src: "/images/qurbani-barae-waqaf.jpg",
+  alt: "Qurbani Barae Waqaf — Waqf Qurbani meat packed and delivered door-to-door to deserving families in Orangi Town, Karachi",
+  width: 1600,
+  height: 900,
+};
+
+/**
+ * Tree for Tomorrow (Plantation Campaign) page image — moved from the root
+ * `tree-for-tomorrow.jpg` (1600×900, kept at its original filename), the
+ * client-provided photo for the Tree for Tomorrow page.
+ */
+export const TREE_FOR_TOMORROW: SiteImage = {
+  src: "/images/tree-for-tomorrow.jpg",
+  alt: "Tree for Tomorrow plantation campaign — saplings planted by Sirat-e-Mustaqeem Welfare Trust volunteers in Karachi",
+  width: 1600,
+  height: 900,
+};
+
+/**
+ * Winter Relief page image — moved from the root `winter-relief.jpg`
+ * (1280×960, kept at its original filename), the client-provided photo for
+ * the Winter Relief page.
+ */
+export const WINTER_RELIEF: SiteImage = {
+  src: "/images/winter-relief.jpg",
+  alt: "Winter Relief 2025 — blankets and warm clothing distributed to families facing the cold season by Sirat-e-Mustaqeem Welfare Trust",
+  width: 1280,
+  height: 960,
+};
+
 /** Used for the About page "Our story" column. */
 export const ABOUT_IMAGE: SiteImage = {
   src: "/images/story-empowering-women-vocational-training.jpg",
@@ -300,15 +408,38 @@ export const STORY_HIGHLIGHTS: readonly StoryHighlight[] = [
 // ─── Live /blog/ archive posts (Media page) ───────────────────────────
 
 /**
- * The six posts the live /blog/ archive lists. Their WordPress thumbnails
- * are not part of the provided photo set, so these render on the designed
- * placeholder frame instead of an unrelated photograph.
+ * The six posts the live /blog/ archive lists, in the live order (WordPress
+ * REST: /wp-json/wp/v2/posts). Titles are the live posts' own titles in the
+ * title case this file already used, and every summary is the post's own
+ * excerpt — the `[…]` marker the live archive appends to truncated excerpts is
+ * dropped, nothing else is changed.
+ *
+ * IMAGERY: every post now carries its real photo. Four come from the client's
+ * photo set — `we-prayed-for-ayatollah-khomeini.jpg` (1500×1500, the dua
+ * social-media post), `a-story-of-healing.jpg` (864×1536),
+ * `installing-water-hand-pumps.jpg` (1280×960) and
+ * `serving-flood-effective-punjab.jpg` (1280×960) — while the iftar and winter
+ * posts reuse the photos already on the site for those pages
+ * (`iftaar-dastarkhawan.jpg`, 960×1280 and `winter-relief.jpg`, 1280×960).
+ * `imageAspect` picks the tile each photo is framed in: portrait and square
+ * shots get the square tile, landscape shots the 16:9 tile, so a photo is
+ * never squashed — only cropped to its tile.
+ *
+ * SOURCE NOTES: the live flood post's route reads "effective" where the post
+ * means "affected"; the slug keeps the live spelling for URL parity and the
+ * visible title uses "Affected", as this file already did. The live winter
+ * post's slug carries the source's "releif" spelling, preserved for the same
+ * reason while the visible title is normalised.
  */
 export interface BlogPost {
   slug: string;
   title: string;
   category: string;
   summary?: string;
+  /** Curated local photo for the post. */
+  image?: SiteImage;
+  /** Tile the photo is framed in on the Media page. */
+  imageAspect?: "wide" | "square";
 }
 
 export const BLOG_POSTS: readonly BlogPost[] = [
@@ -317,7 +448,14 @@ export const BLOG_POSTS: readonly BlogPost[] = [
     title: "We Prayed for Ayatollah Khomeini",
     category: "Blog",
     summary:
-      "Today at Sirat e Mustaqeem Welfare Trust, during our Iftar Dastarkhawan, we expressed solidarity and offered special prayers for the strength, safety, and guidance of Muslim leadership and for the unity of the Ummah.",
+      "Today at Sirat e Mustaqeem Welfare Trust, during our Iftar Dastarkhawan, we expressed solidarity and offered special prayers for the strength, safety, and guidance of Muslim leadership and for the unity of the Ummah. Our volunteers stood together in remembrance of those who strive for the dignity of Islam and the protection of Muslim communities.",
+    image: {
+      src: "/images/we-prayed-for-ayatollah-khomeini.jpg",
+      alt: "Iftar Dastarkhawan gathering where SM Welfare Trust offered special prayers for the guidance of Muslim leadership and the unity of the Ummah",
+      width: 1500,
+      height: 1500,
+    },
+    imageAspect: "square",
   },
   {
     slug: "ramadan-iftar-dastarkhawan",
@@ -325,29 +463,64 @@ export const BLOG_POSTS: readonly BlogPost[] = [
     category: "Blog",
     summary:
       "Sirat-e-Mustaqeem Welfare Trust is hosting daily Iftar gatherings for hundreds of deserving families. Every day, 250 to 300 people join our Iftar, sharing moments of spiritual peace and community togetherness.",
+    image: {
+      src: "/images/iftaar-dastarkhawan.jpg",
+      alt: "Ramadan Iftar Dastarkhawan — daily Iftar gatherings for hundreds of deserving families",
+      width: 960,
+      height: 1280,
+    },
+    imageAspect: "square",
   },
   {
-    slug: "a-story-of-healing-dreams",
+    slug: "a-story-of-healing-dreams-and-a-brighter-future",
     title: "A Story of Healing, Dreams, and a Brighter Future",
     category: "Blog",
     summary:
       "We've shared a heartfelt video highlighting the journey of free education and big dreams for a brighter tomorrow.",
+    image: {
+      src: "/images/a-story-of-healing.jpg",
+      alt: "A story of healing, dreams and a brighter future — the journey of free education supported by SM Welfare Trust",
+      width: 864,
+      height: 1536,
+    },
+    imageAspect: "square",
   },
   {
-    slug: "winter-relief-2025",
+    slug: "winter-releif-2025-in-collaboration-with-alamgir-welfare-trust",
     title: "Winter Relief 2025 in Collaboration with Alamgir Welfare Trust",
     category: "Blog",
+    image: {
+      src: "/images/winter-relief.jpg",
+      alt: "Winter Relief 2025 in collaboration with Alamgir Welfare Trust — blankets and warm clothing for families facing the cold season",
+      width: 1280,
+      height: 960,
+    },
+    imageAspect: "wide",
   },
   {
     slug: "installing-water-hand-pumps",
     title: "Installing Water Hand Pumps",
     category: "Blog",
+    image: {
+      src: "/images/installing-water-hand-pumps.jpg",
+      alt: "Installing water hand pumps to bring clean drinking water to underserved communities in Karachi",
+      width: 1280,
+      height: 960,
+    },
+    imageAspect: "wide",
   },
   {
-    slug: "serving-flood-affected-punjab",
+    slug: "serving-flood-effective-punjab",
     title: "Serving Flood Affected Punjab",
     category: "Blog",
     summary:
       "Arranged this mega free medical camp, more than 300 patients got treated.",
+    image: {
+      src: "/images/serving-flood-effective-punjab.jpg",
+      alt: "Serving flood affected Punjab — a free medical camp where more than 300 patients were treated",
+      width: 1280,
+      height: 960,
+    },
+    imageAspect: "wide",
   },
 ];

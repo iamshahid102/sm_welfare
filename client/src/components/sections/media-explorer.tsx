@@ -16,9 +16,18 @@ import {
   type PublicMediaQuery,
 } from "@/services/public-media";
 import type { PublicMedia } from "@/types/public-api";
-import { BLOG_POSTS, STORY_HIGHLIGHTS } from "@/data/site-images";
+import { BLOG_POSTS } from "@/data/site-images";
 
-/** Media page body — fetches real public media from the API. */
+/**
+ * Media page body.
+ *
+ * Real uploads win: when GET /public/media returns assets, those render.
+ * Otherwise the page falls back to the curated copy of the live /blog/
+ * archive — the six posts the site's own blog lists, in the live order, each
+ * with its real photo (`BLOG_POSTS` in `data/site-images.ts`). The six
+ * homepage "Stories from the field" cards used to be mixed in here too; they
+ * are homepage content and now appear only on the homepage.
+ */
 export function MediaExplorer() {
   const [media, setMedia] = useState<PublicMedia[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,23 +103,9 @@ export function MediaExplorer() {
             <Skeleton className="aspect-square rounded-xl" />
           </div>
         ) : visible.length === 0 ? (
-          /* Curated content mirrors the live site: the six homepage Media
-             Updates (byte-verified photos + live excerpts) followed by the
-             six live /blog/ archive posts, so the page is never empty. */
+          /* The live /blog/ archive, reproduced: the six posts the site's
+             own blog lists, in the live order, each with its real photo. */
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {STORY_HIGHLIGHTS.map((story) => (
-              <MediaCard
-                key={story.slug}
-                update={{
-                  slug: story.slug,
-                  category: story.category,
-                  title: story.title,
-                  summary: story.summary,
-                  image: story.image,
-                  source: "static",
-                }}
-              />
-            ))}
             {BLOG_POSTS.map((post) => (
               <MediaCard
                 key={post.slug}
@@ -119,6 +114,8 @@ export function MediaExplorer() {
                   category: post.category,
                   title: post.title,
                   summary: post.summary,
+                  image: post.image,
+                  imageAspect: post.imageAspect,
                   source: "static",
                 }}
               />
