@@ -10,7 +10,7 @@ import {
   verifyAuthToken,
 } from '../utils/auth.js';
 import { verifyPassword } from '../utils/password.js';
-import { EMAIL_PATTERN, type UserRole } from '../constants/user.js';
+import { ADMIN_ROLE, EMAIL_PATTERN, type UserRole } from '../constants/user.js';
 
 // Precomputed bcrypt hash of a random throwaway string (cost 12, same as the
 // configured work factor). Used to equalize login timing for unknown emails so
@@ -91,8 +91,8 @@ async function passwordMatchesStored(password: string, passwordHash: string): Pr
 
 /**
  * Authenticates credentials and issues fresh access + refresh credentials.
- * Any failure (unknown user, wrong password, inactive account) maps to the
- * same generic 401.
+ * Exactly one administrator account can exist; any failure (unknown user,
+ * wrong password, inactive account) maps to the same generic 401.
  */
 export async function login(email: unknown, password: unknown): Promise<LoginResult> {
   const { email: normalizedEmail, password: plainPassword } = validateLoginInput(email, password);
@@ -112,8 +112,15 @@ export async function login(email: unknown, password: unknown): Promise<LoginRes
     throw new ApiError(401, GENERIC_LOGIN_ERROR);
   }
 
-  user.lastLoginAt = new Date();
-  await user.save();
+  // Targeted update instead of a full-document save():
+  //  - only the two fields that actually change are written
+  //  - full-document validation is skipped, so a legacy document provisioned
+  //    with an older multi-role value can never fail to log in - it is healed
+  //    to the single ADMIN role right here
+  await UserModel.updateOne(
+    { _id: user.id },
+    { $set: { lastLoginAt: new Date(), role: ADMIN_ROLE } },
+  );
 
   const tokens = await signTokens(user.id, user.role);
   await persistRefreshSession(user.id, tokens.refreshToken);

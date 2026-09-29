@@ -71,21 +71,21 @@ function isCloudinaryNotFound(error: unknown): boolean {
 describeLive('Media API with live Cloudinary (MongoDB-backed)', () => {
   let server: Server;
   let baseUrl = '';
-  let superCookies = '';
-  let adminCookies = '';
+  let cookies = '';
   const trackedUserIds: string[] = [];
   const trackedPublicIds: string[] = [];
 
-  function uniqueEmail(role: 'super' | 'admin'): string {
-    return `media-live-${role}-${Date.now()}-${Math.random().toString(36).slice(2)}@example.test`;
+  function uniqueEmail(): string {
+    return `media-live-${Date.now()}-${Math.random().toString(36).slice(2)}@example.test`;
   }
 
-  async function createAndLoginUser(role: 'SUPER_ADMIN' | 'ADMIN'): Promise<string> {
+  /** Creates and logs in the single admin account. */
+  async function createAndLoginUser(): Promise<string> {
     const user = await UserModel.create({
-      name: `Live ${role}`,
-      email: uniqueEmail(role === 'SUPER_ADMIN' ? 'super' : 'admin'),
+      name: 'Live Admin',
+      email: uniqueEmail(),
       passwordHash: await hashPassword(TEST_PASSWORD),
-      role,
+      role: 'ADMIN',
       status: 'ACTIVE',
     });
     trackedUserIds.push(user.id);
@@ -152,8 +152,7 @@ describeLive('Media API with live Cloudinary (MongoDB-backed)', () => {
       baseUrl = `http://127.0.0.1:${address.port}`;
     }
 
-    superCookies = await createAndLoginUser('SUPER_ADMIN');
-    adminCookies = await createAndLoginUser('ADMIN');
+    cookies = await createAndLoginUser();
   });
 
   after(async () => {
@@ -194,9 +193,9 @@ describeLive('Media API with live Cloudinary (MongoDB-backed)', () => {
     }
   });
 
-  it('uploads a real image as SUPER_ADMIN and persists its metadata', async () => {
+  it('uploads a real image and persists its metadata', async () => {
     const before = await MediaModel.countDocuments({ createdBy: { $in: trackedUserIds } });
-    const media = await uploadViaApi(superCookies, 'live-super.png');
+    const media = await uploadViaApi(cookies, 'live-super.png');
 
     assert.equal(media.publicId.startsWith(`${MEDIA_UPLOAD_FOLDER}/`), true);
     const stored = await MediaModel.findById(media.id);
@@ -209,9 +208,9 @@ describeLive('Media API with live Cloudinary (MongoDB-backed)', () => {
   });
 
   it('retrieves the uploaded media metadata', async () => {
-    const uploaded = await uploadViaApi(superCookies, 'live-get.png');
+    const uploaded = await uploadViaApi(cookies, 'live-get.png');
 
-    const result = await request(`/api/v1/media/${uploaded.id}`, {}, superCookies);
+    const result = await request(`/api/v1/media/${uploaded.id}`, {}, cookies);
     assert.equal(result.status, 200);
     const media = (result.body.data as { media: Record<string, unknown> }).media;
     assert.equal(media.id, uploaded.id);
@@ -219,26 +218,26 @@ describeLive('Media API with live Cloudinary (MongoDB-backed)', () => {
     assert.equal(JSON.stringify(result.body).includes('__v'), false);
   });
 
-  it('uploads and deletes as an ADMIN', async () => {
-    const uploaded = await uploadViaApi(adminCookies, 'live-admin.png');
+  it('uploads and deletes media', async () => {
+    const uploaded = await uploadViaApi(cookies, 'live-admin.png');
 
-    const deleted = await request(`/api/v1/media/${uploaded.id}`, { method: 'DELETE' }, adminCookies);
+    const deleted = await request(`/api/v1/media/${uploaded.id}`, { method: 'DELETE' }, cookies);
     assert.equal(deleted.status, 200, 'ADMIN is allowed to delete');
     assert.equal(await MediaModel.findById(uploaded.id), null, 'metadata removed after successful deletion');
     await assert.rejects(cloudinary.api.resource(uploaded.publicId), isCloudinaryNotFound, 'asset destroyed');
   });
 
   it('deletes the Cloudinary asset first and only then the MongoDB metadata', async () => {
-    const uploaded = await uploadViaApi(superCookies, 'live-delete.png');
+    const uploaded = await uploadViaApi(cookies, 'live-delete.png');
 
-    const result = await request(`/api/v1/media/${uploaded.id}`, { method: 'DELETE' }, superCookies);
+    const result = await request(`/api/v1/media/${uploaded.id}`, { method: 'DELETE' }, cookies);
     assert.equal(result.status, 200);
     assert.equal(await MediaModel.findById(uploaded.id), null, 'metadata must be removed');
     await assert.rejects(cloudinary.api.resource(uploaded.publicId), isCloudinaryNotFound, 'Cloudinary asset must be destroyed');
   });
 
   it('completes deletion when the Cloudinary asset is already missing', async () => {
-    const uploaded = await uploadViaApi(superCookies, 'live-already-gone.png');
+    const uploaded = await uploadViaApi(cookies, 'live-already-gone.png');
 
     // Simulate an externally deleted asset (e.g. removed from the Cloudinary console).
     const external = await cloudinary.uploader.destroy(uploaded.publicId, { resource_type: 'image' });
@@ -246,7 +245,7 @@ describeLive('Media API with live Cloudinary (MongoDB-backed)', () => {
 
     // The documented behavior: an already-missing asset is treated as deleted,
     // so the stale metadata record can be cleaned up.
-    const result = await request(`/api/v1/media/${uploaded.id}`, { method: 'DELETE' }, superCookies);
+    const result = await request(`/api/v1/media/${uploaded.id}`, { method: 'DELETE' }, cookies);
     assert.equal(result.status, 200);
     assert.equal(await MediaModel.findById(uploaded.id), null, 'stale metadata record must be removed');
   });
@@ -290,7 +289,7 @@ describeLive('Media API with live Cloudinary (MongoDB-backed)', () => {
   });
 
   it('returns 404 for an unknown media id', async () => {
-    const result = await request('/api/v1/media/64b7f2c4a1b2c3d4e5f6a7b8', {}, superCookies);
+    const result = await request('/api/v1/media/64b7f2c4a1b2c3d4e5f6a7b8', {}, cookies);
     assert.equal(result.status, 404);
   });
 });

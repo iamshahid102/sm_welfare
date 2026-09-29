@@ -12,7 +12,7 @@ import { Empty, EmptyContent, EmptyDescription } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { ApiError } from "@/lib/api/client";
-import { isSuperAdmin } from "@/types/auth";
+import { canAccessAdmin } from "@/types/auth";
 import {
   getSiteSettings,
   initializeSiteSettings,
@@ -354,8 +354,8 @@ export default function AdminSiteSettingsPage() {
   // field to the persisted settings - the form seeds its fields on mount.
   const [formKey, setFormKey] = useState(0);
 
-  const userIsSuperAdmin = isSuperAdmin(user);
-  const canEdit = userIsSuperAdmin;
+  // The single admin owns every content type — editing is always allowed.
+  const canEdit = canAccessAdmin(user);
 
   const loadSettings = useCallback(async () => {
     setState({ status: "loading" });

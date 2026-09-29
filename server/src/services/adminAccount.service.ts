@@ -7,35 +7,35 @@ import { isDuplicateKeyError } from '../utils/mongo.js';
 import { hashPassword, MAX_PASSWORD_BYTES } from '../utils/password.js';
 
 /**
- * Initial SUPER_ADMIN provisioning service.
+ * Single administrator provisioning service.
  *
- * This is the ONLY code path that creates a SUPER_ADMIN account. It is invoked
- * exclusively by the server-side CLI (scripts/provisionSuperAdmin.ts) - there
- * is deliberately no HTTP route for it, so neither an unauthenticated request
- * nor an ADMIN session can ever reach it.
+ * This CMS is operated by exactly ONE admin account, so this is the ONLY code
+ * path that creates a user - and it can run only once. It is invoked
+ * exclusively by the server-side CLI (scripts/provisionAdmin.ts); there is
+ * deliberately no HTTP route for it, so neither an unauthenticated request nor
+ * an existing session can ever create a second account.
  *
  * Security properties:
  *  - credentials are validated and normalized exactly like the User schema
  *    (trim + lowercase email, EMAIL_PATTERN, the shared 72-byte bcrypt limit)
  *  - the password goes through the existing hashPassword() utility - bcrypt
  *    logic is never duplicated here
- *  - the document is always created with role SUPER_ADMIN and status ACTIVE;
- *    neither is taken from input
- *  - provisioning fails safely if any SUPER_ADMIN already exists (ACTIVE or
+ *  - the document is always created with the single ADMIN role and status
+ *    ACTIVE; neither is taken from input
+ *  - provisioning fails safely if ANY user already exists (ACTIVE or
  *    INACTIVE) - this is a strict one-time operation
  *  - the returned value is serializeSafeUser(): passwordHash can never leave
  *    the server through this service
  */
 
-const SUPER_ADMIN_ROLE = 'SUPER_ADMIN' as const;
 const ACTIVE_STATUS = 'ACTIVE' as const;
 
 /** Fallback display name when the operator does not provide one. */
-export const DEFAULT_SUPER_ADMIN_NAME = 'Super Admin';
+export const DEFAULT_ADMIN_NAME = 'Administrator';
 
 const MAX_NAME_LENGTH = 100; // mirrors the User schema maxlength
 
-export interface SuperAdminCredentials {
+export interface AdminCredentials {
   email: string;
   password: string;
 }
@@ -46,10 +46,10 @@ export interface SuperAdminCredentials {
  * Throws ApiError(400) on missing or malformed input; the message never
  * echoes the password itself.
  */
-export function validateSuperAdminCredentials(
+export function validateAdminCredentials(
   email: unknown,
   password: unknown,
-): SuperAdminCredentials {
+): AdminCredentials {
   if (typeof email !== 'string' || email.trim().length === 0) {
     throw new ApiError(400, 'Email is required.');
   }
@@ -69,7 +69,7 @@ export function validateSuperAdminCredentials(
 /** Validates the optional display name; falls back to the default when absent. */
 function validateName(name: unknown): string {
   if (name === undefined || name === null) {
-    return DEFAULT_SUPER_ADMIN_NAME;
+    return DEFAULT_ADMIN_NAME;
   }
   if (typeof name !== 'string' || name.trim().length === 0) {
     throw new ApiError(400, 'Name is required.');
@@ -82,32 +82,30 @@ function validateName(name: unknown): string {
 }
 
 /**
- * Creates the first SUPER_ADMIN account.
+ * Creates the one administrator account.
  *
- * Fails safely (409, nothing created) when:
- *  - a SUPER_ADMIN already exists - provisioning is strictly one-time
- *  - the email is already taken by any user (e.g. an existing ADMIN) - the
- *    mechanism can never convert or shadow an existing account
- *
- * The duplicate-key fallback covers the race between the existence checks and
- * the insert - the unique email index is the authoritative guard.
+ * Fails safely (409, nothing created) when any user already exists - the
+ * account is strictly one-time, so the single-admin guarantee can never be
+ * broken by re-running the CLI. The duplicate-key fallback covers the race
+ * between the existence check and the insert - the unique email index is the
+ * authoritative guard.
  */
-export async function provisionInitialSuperAdmin(
+export async function provisionAdmin(
   email: unknown,
   password: unknown,
   name?: unknown,
 ): Promise<SafeUser> {
   const { email: normalizedEmail, password: plainPassword } =
-    validateSuperAdminCredentials(email, password);
+    validateAdminCredentials(email, password);
   const displayName = validateName(name);
 
-  // Fail-safe guard: an existing SUPER_ADMIN (ACTIVE or INACTIVE) blocks
-  // provisioning forever - there is no way to create a second one.
-  const existing = await UserModel.exists({ role: SUPER_ADMIN_ROLE });
+  // Fail-safe guard: any existing account (ACTIVE or INACTIVE) blocks
+  // provisioning, so there can only ever be one admin.
+  const existing = await UserModel.exists({});
   if (existing) {
     throw new ApiError(
       409,
-      'A SUPER_ADMIN already exists; initial provisioning is a one-time operation.',
+      'An administrator account already exists; provisioning is a one-time operation.',
     );
   }
 
@@ -117,7 +115,7 @@ export async function provisionInitialSuperAdmin(
       name: displayName,
       email: normalizedEmail,
       passwordHash,
-      role: SUPER_ADMIN_ROLE,
+      role: 'ADMIN',
       status: ACTIVE_STATUS,
     });
     return serializeSafeUser(user);

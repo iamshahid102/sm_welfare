@@ -1,26 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/use-auth";
-import { isSuperAdmin, getUserInitials } from "@/types/auth";
+import { getUserInitials } from "@/types/auth";
 import Link from "next/link";
 import { listPrograms } from "@/services/programs";
 import { listProjects } from "@/services/projects";
-import { listAdmins } from "@/services/admins";
 import { listMedia } from "@/services/media";
+import { runCmsSeed, type SeedResult } from "@/services/seed";
 import {
   HiPlus,
   HiPhoto,
   HiCog6Tooth,
-  HiUsers,
   HiCommandLine,
   HiFolderOpen,
   HiInbox,
-  HiUserGroup,
+  HiArrowPath,
+  HiCheckCircle,
 } from "react-icons/hi2";
 import type { ElementType } from "react";
 
@@ -28,19 +28,10 @@ import type { ElementType } from "react";
 
 const PAGE_SIZE = 1;
 
-/**
- * Third metric is role-aware: /admins is SUPER_ADMIN-only, so an ADMIN
- * session would get 403 — it sees the media library count instead (both
- * roles may list media).
- */
-type ThirdMetric =
-  | { kind: "admins"; total: number }
-  | { kind: "media"; total: number };
-
 type DashboardData = {
   programs: { total: number };
   projects: { total: number };
-  third: ThirdMetric;
+  media: { total: number };
 };
 
 function MetricCard({
@@ -77,6 +68,15 @@ function MetricCard({
   );
 }
 
+/** Human-readable summary of a completed seed run. */
+function describeSeed(result: SeedResult): string {
+  return [
+    `${result.programs.created} programmes added, ${result.programs.reSynced} re-synced`,
+    `${result.projects.created} projects added, ${result.projects.reSynced} re-synced`,
+    result.siteSettings.created ? "site settings created" : "site settings updated",
+  ].join(" · ");
+}
+
 export default function AdminDashboardPage() {
   const { user, isLoading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
@@ -84,29 +84,23 @@ export default function AdminDashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const hasLoadedRef = useRef(false);
 
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [seedSummary, setSeedSummary] = useState<string | null>(null);
+  const [seedError, setSeedError] = useState<string | null>(null);
+
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [programsData, projectsData, third] = await Promise.all([
+      const [programsData, projectsData, mediaData] = await Promise.all([
         listPrograms({ page: 1, limit: PAGE_SIZE }),
         listProjects({ page: 1, limit: PAGE_SIZE }),
-        // Role-aware: asking /admins as an ADMIN would 403 and fail the whole
-        // dashboard. "Active admin accounts" also filters ACTIVE so the number
-        // matches its label.
-        isSuperAdmin(user)
-          ? listAdmins({ page: 1, limit: PAGE_SIZE, status: "ACTIVE" }).then(
-              (result) => ({ kind: "admins" as const, total: result.total }),
-            )
-          : listMedia({ page: 1, limit: PAGE_SIZE }).then((result) => ({
-              kind: "media" as const,
-              total: result.total,
-            })),
+        listMedia({ page: 1, limit: PAGE_SIZE }),
       ]);
       setData({
         programs: { total: programsData.total },
         projects: { total: projectsData.total },
-        third,
+        media: { total: mediaData.total },
       });
     } catch (err) {
       setError(
@@ -115,18 +109,34 @@ export default function AdminDashboardPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, []);
+
+  const handleSeed = useCallback(async () => {
+    setIsSeeding(true);
+    setSeedSummary(null);
+    setSeedError(null);
+    try {
+      const result = await runCmsSeed();
+      setSeedSummary(describeSeed(result));
+      // The counts above just changed - refresh them.
+      hasLoadedRef.current = true;
+      await fetchData();
+    } catch (err) {
+      setSeedError(
+        err instanceof Error ? err.message : "Failed to seed the site content.",
+      );
+    } finally {
+      setIsSeeding(false);
+    }
+  }, [fetchData]);
 
   useEffect(() => {
-    // `user` is a dependency because the third metric depends on the role;
     // hasLoadedRef guards the single-run behavior, not the dependency array.
     if (!authLoading && user && !hasLoadedRef.current) {
       hasLoadedRef.current = true;
       fetchData();
     }
   }, [authLoading, user, fetchData]);
-
-  const userIsSuperAdmin = isSuperAdmin(user);
 
   if (authLoading) {
     return (
@@ -224,60 +234,65 @@ export default function AdminDashboardPage() {
                     )
               }
             />
-            {userIsSuperAdmin ? (
-              <MetricCard
-                title="Administrators"
-                value={
-                  isLoading || !data
-                    ? "—"
-                    : data.third.kind === "admins"
-                      ? data.third.total
-                      : 0
-                }
-                description="Active admin accounts"
-                icon={HiUserGroup}
-                action={
-                  isLoading
-                    ? undefined
-                    : data && (
-                        <Link
-                          href="/admin/admins"
-                          className={buttonVariants({ variant: "ghost", size: "sm", className: "h-8 px-2" })}
-                        >
-                          <HiPlus className="mr-1 size-3.5" aria-hidden="true" />
-                          Manage admins
-                        </Link>
-                      )
-                }
-              />
-            ) : (
-              <MetricCard
-                title="Media"
-                value={
-                  isLoading || !data
-                    ? "—"
-                    : data.third.kind === "media"
-                      ? data.third.total
-                      : 0
-                }
-                description="Images in the media library"
-                icon={HiPhoto}
-                action={
-                  isLoading
-                    ? undefined
-                    : data && (
-                        <Link
-                          href="/admin/media"
-                          className={buttonVariants({ variant: "ghost", size: "sm", className: "h-8 px-2" })}
-                        >
-                          <HiPlus className="mr-1 size-3.5" aria-hidden="true" />
-                          Manage media
-                        </Link>
-                      )
-                }
-              />
-            )}
+            <MetricCard
+              title="Media"
+              value={isLoading ? "—" : data?.media.total ?? 0}
+              description="Images in the media library"
+              icon={HiPhoto}
+              action={
+                isLoading
+                  ? undefined
+                  : data && (
+                      <Link
+                        href="/admin/media"
+                        className={buttonVariants({ variant: "ghost", size: "sm", className: "h-8 px-2" })}
+                      >
+                        <HiPlus className="mr-1 size-3.5" aria-hidden="true" />
+                        Manage media
+                      </Link>
+                    )
+              }
+            />
           </div>
+
+          <Card className="border-primary/30 bg-primary/[0.03]">
+            <CardHeader>
+              <CardTitle className="font-heading">Site content</CardTitle>
+              <CardDescription>
+                Load the website&apos;s real content into the CMS — 13 programmes,
+                17 projects and the site settings. Everything the public site
+                currently shows becomes editable from this panel.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <p className="text-sm text-muted-foreground">
+                Safe to run any number of times: content is matched by slug and
+                re-synced in place, never duplicated, and anything you created
+                yourself is left untouched. Images are not seeded — upload them
+                in the media library.
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button onClick={handleSeed} disabled={isSeeding}>
+                  <HiArrowPath
+                    className={`mr-1.5 size-4 ${isSeeding ? "animate-spin" : ""}`}
+                    aria-hidden="true"
+                  />
+                  {isSeeding ? "Seeding content…" : "Seed / re-sync content"}
+                </Button>
+                {seedSummary && (
+                  <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <HiCheckCircle className="size-4 text-primary" aria-hidden="true" />
+                    {seedSummary}
+                  </span>
+                )}
+              </div>
+              {seedError && (
+                <Alert variant="destructive">
+                  <AlertDescription>{seedError}</AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
 
           <Card className="border-dashed">
             <CardHeader>
@@ -313,24 +328,13 @@ export default function AdminDashboardPage() {
                   <HiInbox className="mr-1.5 size-3.5" aria-hidden="true" />
                   View submissions
                 </Link>
-                {userIsSuperAdmin && (
-                  <Link
-                    href="/admin/site-settings"
-                    className={buttonVariants({ variant: "secondary", size: "sm" })}
-                  >
-                    <HiCog6Tooth className="mr-1.5 size-3.5" aria-hidden="true" />
-                    Edit site settings
-                  </Link>
-                )}
-                {userIsSuperAdmin && (
-                  <Link
-                    href="/admin/admins"
-                    className={buttonVariants({ variant: "secondary", size: "sm" })}
-                  >
-                    <HiUsers className="mr-1.5 size-3.5" aria-hidden="true" />
-                    Manage admins
-                  </Link>
-                )}
+                <Link
+                  href="/admin/site-settings"
+                  className={buttonVariants({ variant: "secondary", size: "sm" })}
+                >
+                  <HiCog6Tooth className="mr-1.5 size-3.5" aria-hidden="true" />
+                  Edit site settings
+                </Link>
               </div>
             </CardContent>
           </Card>

@@ -10,7 +10,6 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import type { SafeUser } from "@/types/api";
-import type { UserRole } from "@/types/auth";
 import * as authService from "@/services/auth";
 import { isSafeInternalAdminPath } from "@/lib/auth";
 import { setUnauthorizedHandler } from "@/lib/api/client";
@@ -26,8 +25,6 @@ export interface AuthContextValue {
   isLoading: boolean;
   /** Whether a user is authenticated. */
   isAuthenticated: boolean;
-  /** Convenience accessor for the user's role. */
-  role: UserRole | null;
   /**
    * Authenticate with email/password and establish a session.
    * Optionally return to a previously-intended admin destination.
@@ -134,7 +131,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       isLoading,
       isAuthenticated: user !== null,
-      role: user?.role ?? null,
       login,
       logout,
       refreshUser,

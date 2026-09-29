@@ -1,45 +1,17 @@
 import { Router } from 'express';
 import * as mediaController from '../../controllers/media.controller.js';
 import { requireAuth } from '../../middlewares/auth.middleware.js';
-import { requireRole } from '../../middlewares/role.middleware.js';
 import { uploadSingleFile } from '../../middlewares/upload.middleware.js';
 
 const mediaRouter = Router();
 
-// Every media endpoint requires authentication. SUPER_ADMIN and ADMIN are both
-// allowed to upload, read, update and delete media; unauthenticated requests
-// get 401. There is no endpoint for arbitrary Cloudinary administration, and
-// Cloudinary credentials never leave the server.
-mediaRouter.get(
-  '/',
-  requireAuth,
-  requireRole('SUPER_ADMIN', 'ADMIN'),
-  mediaController.listMedia,
-);
-mediaRouter.post(
-  '/',
-  requireAuth,
-  requireRole('SUPER_ADMIN', 'ADMIN'),
-  uploadSingleFile,
-  mediaController.uploadMedia,
-);
-mediaRouter.get(
-  '/:id',
-  requireAuth,
-  requireRole('SUPER_ADMIN', 'ADMIN'),
-  mediaController.getMedia,
-);
-mediaRouter.patch(
-  '/:id',
-  requireAuth,
-  requireRole('SUPER_ADMIN', 'ADMIN'),
-  mediaController.updateMedia,
-);
-mediaRouter.delete(
-  '/:id',
-  requireAuth,
-  requireRole('SUPER_ADMIN', 'ADMIN'),
-  mediaController.deleteMedia,
-);
+// Every media endpoint requires the single admin session; unauthenticated
+// requests get 401. There is no endpoint for arbitrary Cloudinary
+// administration, and Cloudinary credentials never leave the server.
+mediaRouter.get('/', requireAuth, mediaController.listMedia);
+mediaRouter.post('/', requireAuth, uploadSingleFile, mediaController.uploadMedia);
+mediaRouter.get('/:id', requireAuth, mediaController.getMedia);
+mediaRouter.patch('/:id', requireAuth, mediaController.updateMedia);
+mediaRouter.delete('/:id', requireAuth, mediaController.deleteMedia);
 
 export { mediaRouter };

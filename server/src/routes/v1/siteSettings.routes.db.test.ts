@@ -74,8 +74,7 @@ function validSettingsPayload(overrides: Record<string, unknown> = {}): Record<s
 describeDb('Site settings API (MongoDB-backed)', () => {
   let server: Server;
   let baseUrl = '';
-  let superCookies = '';
-  let adminCookies = '';
+  let cookies = '';
   const trackedUserIds: string[] = [];
   // Snapshot of the settings document that existed before this suite ran, so
   // the singleton can be restored byte-for-byte in after() (or left empty).
@@ -85,13 +84,14 @@ describeDb('Site settings API (MongoDB-backed)', () => {
     return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}@example.test`;
   }
 
-  async function createUser(role: 'SUPER_ADMIN' | 'ADMIN'): Promise<string> {
-    const email = uniqueEmail(`settings-${role.toLowerCase()}`);
+  /** Creates the single admin account every authenticated request uses. */
+  async function createUser(): Promise<string> {
+    const email = uniqueEmail('settings-admin');
     const user = await UserModel.create({
-      name: `Settings Test ${role}`,
+      name: 'Settings Test Admin',
       email,
       passwordHash: await hashPassword(TEST_PASSWORD),
-      role,
+      role: 'ADMIN',
       status: 'ACTIVE',
     });
     trackedUserIds.push(user.id);
@@ -149,10 +149,8 @@ describeDb('Site settings API (MongoDB-backed)', () => {
     originalSettings = existing as Record<string, unknown> | null;
     await SiteSettingsModel.deleteMany({ key: SITE_SETTINGS_KEY });
 
-    const superEmail = await createUser('SUPER_ADMIN');
-    superCookies = await loginCookies(superEmail);
-    const adminEmail = await createUser('ADMIN');
-    adminCookies = await loginCookies(adminEmail);
+    const adminEmail = await createUser();
+    cookies = await loginCookies(adminEmail);
   });
 
   after(async () => {
@@ -204,28 +202,11 @@ describeDb('Site settings API (MongoDB-backed)', () => {
     assert.equal(asError(result.body).message, 'Authentication required.');
   });
 
-  it('rejects ADMIN mutations with 403', async () => {
-    const post = await request(
-      '/api/v1/site-settings',
-      { method: 'POST', body: JSON.stringify(validSettingsPayload()) },
-      adminCookies,
-    );
-    assert.equal(post.status, 403);
-    assert.equal(asError(post.body).message, 'Insufficient permissions.');
-
-    const patch = await request(
-      '/api/v1/site-settings',
-      { method: 'PATCH', body: JSON.stringify({ tagline: 'x' }) },
-      adminCookies,
-    );
-    assert.equal(patch.status, 403);
-  });
-
-  it('SUPER_ADMIN creates settings with normalized values', async () => {
+  it('creates settings with normalized values', async () => {
     const result = await request(
       '/api/v1/site-settings',
       { method: 'POST', body: JSON.stringify(validSettingsPayload()) },
-      superCookies,
+      cookies,
     );
 
     assert.equal(result.status, 201);
@@ -258,26 +239,20 @@ describeDb('Site settings API (MongoDB-backed)', () => {
     const result = await request(
       '/api/v1/site-settings',
       { method: 'POST', body: JSON.stringify(validSettingsPayload()) },
-      superCookies,
+      cookies,
     );
     assert.equal(result.status, 409);
     assert.equal(asError(result.body).message, 'Site settings already exist.');
     assert.equal(await SiteSettingsModel.countDocuments({ key: SITE_SETTINGS_KEY }), 1);
   });
 
-  it('SUPER_ADMIN reads the current settings', async () => {
-    const result = await request('/api/v1/site-settings', {}, superCookies);
+  it('reads the current settings', async () => {
+    const result = await request('/api/v1/site-settings', {}, cookies);
     assert.equal(result.status, 200);
     const settings = asSettings(result.body);
     assert.equal(settings.organizationName, 'SM Welfare');
     assert.equal(settings.contact.email, 'hello@smwelfare.example');
     assert.equal(settings.socialLinks.website, 'https://www.smwelfare.example');
-  });
-
-  it('ADMIN can read the current settings', async () => {
-    const result = await request('/api/v1/site-settings', {}, adminCookies);
-    assert.equal(result.status, 200);
-    assert.equal(asSettings(result.body).organizationName, 'SM Welfare');
   });
 
   it('applies a partial PATCH without touching other fields', async () => {
@@ -290,7 +265,7 @@ describeDb('Site settings API (MongoDB-backed)', () => {
           contact: { email: 'new@smwelfare.example' },
         }),
       },
-      superCookies,
+      cookies,
     );
 
     assert.equal(result.status, 200);
@@ -319,12 +294,12 @@ describeDb('Site settings API (MongoDB-backed)', () => {
       const result = await request(
         '/api/v1/site-settings',
         { method: 'PATCH', body: JSON.stringify(body) },
-        superCookies,
+        cookies,
       );
       assert.equal(result.status, 400, `expected 400 for ${JSON.stringify(body)}`);
     }
 
-    const after = await request('/api/v1/site-settings', {}, superCookies);
+    const after = await request('/api/v1/site-settings', {}, cookies);
     const settings = asSettings(after.body);
     assert.equal(settings.organizationName, 'SM Welfare');
     assert.equal(settings.tagline, 'New tagline');
@@ -342,7 +317,7 @@ describeDb('Site settings API (MongoDB-backed)', () => {
           contact: { email: 'a@b.com', evil: 'y' },
         }),
       },
-      superCookies,
+      cookies,
     );
     assert.equal(result.status, 200);
 
@@ -365,11 +340,11 @@ describeDb('Site settings API (MongoDB-backed)', () => {
         body: JSON.stringify({
           organizationName: 'Fresh Org',
           hacker: 'x',
-          role: 'SUPER_ADMIN',
+          role: 'ADMIN',
           contact: { email: 'fresh@smwelfare.example', evil: 'z' },
         }),
       },
-      superCookies,
+      cookies,
     );
     assert.equal(result.status, 201);
     assert.equal(await SiteSettingsModel.countDocuments({ key: SITE_SETTINGS_KEY }), 1);
@@ -399,14 +374,14 @@ describeDb('Site settings API (MongoDB-backed)', () => {
   it('returns 404 for read/update before initialization', async () => {
     await SiteSettingsModel.deleteMany({ key: SITE_SETTINGS_KEY });
 
-    const get = await request('/api/v1/site-settings', {}, superCookies);
+    const get = await request('/api/v1/site-settings', {}, cookies);
     assert.equal(get.status, 404);
     assert.equal(asError(get.body).message, 'Site settings not found.');
 
     const patch = await request(
       '/api/v1/site-settings',
       { method: 'PATCH', body: JSON.stringify({ tagline: 'x' }) },
-      superCookies,
+      cookies,
     );
     assert.equal(patch.status, 404);
 
@@ -414,13 +389,13 @@ describeDb('Site settings API (MongoDB-backed)', () => {
     const post = await request(
       '/api/v1/site-settings',
       { method: 'POST', body: JSON.stringify(validSettingsPayload()) },
-      superCookies,
+      cookies,
     );
     assert.equal(post.status, 201);
   });
 
   it('serves the re-initialized settings afterwards', async () => {
-    const result = await request('/api/v1/site-settings', {}, superCookies);
+    const result = await request('/api/v1/site-settings', {}, cookies);
     assert.equal(result.status, 200);
     assert.equal(asSettings(result.body).organizationName, 'SM Welfare');
     assert.equal(await SiteSettingsModel.countDocuments({ key: SITE_SETTINGS_KEY }), 1);

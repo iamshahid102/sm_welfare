@@ -1,11 +1,17 @@
 import { Schema, model } from 'mongoose';
-import { EMAIL_PATTERN, USER_ROLES, USER_STATUSES } from '../constants/user.js';
+import {
+  ADMIN_ROLE,
+  EMAIL_PATTERN,
+  USER_ROLES,
+  USER_STATUSES,
+} from '../constants/user.js';
 import type { UserRole, UserStatus } from '../constants/user.js';
 
 /**
- * Shape of a user document. Mirrors the schema below; `role` and `status` are
- * the strongly-typed unions derived from constants/user.ts. `createdAt` and
- * `updatedAt` are managed by the timestamps plugin (absent until first save).
+ * Shape of a user document. Mirrors the schema below; `role` is the single
+ * ADMIN role and `status` is the strongly-typed union, both derived from
+ * constants/user.ts. `createdAt` and `updatedAt` are managed by the timestamps
+ * plugin (absent until first save).
  */
 export interface User {
   name: string;
@@ -37,7 +43,7 @@ function redactSerialized(
 /**
  * User document schema.
  *
- * Only administrator accounts exist at this stage (roles: SUPER_ADMIN, ADMIN).
+ * Exactly one administrator account exists, carrying the single ADMIN role.
  * The model deliberately contains no authentication logic - it only defines
  * how a user is stored. Passwords are stored exclusively as hashes; plaintext
  * is never written, and the hash is never part of normal serialization.
@@ -69,10 +75,13 @@ const userSchema = new Schema(
       // (e.g. .select('+passwordHash')) by the code that verifies passwords.
       select: false,
     },
+    // Exactly one role exists (ADMIN). The enum is kept so any stored value
+    // outside the single role is rejected on write.
     role: {
       type: String,
       enum: { values: [...USER_ROLES], message: '{VALUE} is not a supported role' },
       required: [true, 'role is required'],
+      default: ADMIN_ROLE,
     },
     status: {
       type: String,

@@ -12,9 +12,9 @@ import type { ApiSuccessResponse } from '../types/index.js';
 
 /**
  * Project controllers - thin HTTP adapters.
- * Reads require authentication (requireAuth); mutations additionally require
- * requireRole('SUPER_ADMIN') in the route definitions. Controllers only
- * translate request data into service calls and results into responses.
+ * Every route requires the single admin session (requireAuth) in the route
+ * definitions. Controllers only translate request data into service calls and
+ * results into responses.
  */
 
 function projectPayload(project: ProjectResponse): ApiSuccessResponse<{ project: ProjectResponse }> {

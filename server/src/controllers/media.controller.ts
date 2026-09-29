@@ -13,9 +13,8 @@ import { ApiError } from '../utils/ApiError.js';
 
 /**
  * Media controllers - thin HTTP adapters. All routes are guarded by
- * requireAuth + requireRole('SUPER_ADMIN', 'ADMIN') in the route definitions;
- * controllers only translate request data into service calls and results into
- * responses.
+ * requireAuth in the route definitions; controllers only translate request
+ * data into service calls and results into responses.
  */
 
 function mediaPayload(media: SafeMedia): ApiSuccessResponse<{ media: SafeMedia }> {

@@ -5,15 +5,22 @@ import { SITE } from "@/constants/site";
 
 interface LogoProps {
   className?: string;
+  /**
+   * Preload the wordmark. Defaults to true because the header lockup sits
+   * above the fold; the footer passes false so the below-the-fold copy is
+   * not prioritised.
+   */
+  priority?: boolean;
 }
 
 /**
  * Brand lockup — the SM Welfare logo (icon + wordmark).
  *
- * Uses the white smwelfare.png wordmark which is clearly visible on the
- * dark navbar background.
+ * Uses `public/smwelfare.png` (512×131), the navy wordmark the header
+ * renders. It is a DARK mark, so on a dark surface put it on a light chip
+ * (the footer does this) rather than straight on the gradient.
  */
-export function Logo({ className }: LogoProps) {
+export function Logo({ className, priority = true }: LogoProps) {
   return (
     <Link
       href="/"
@@ -28,8 +35,8 @@ export function Logo({ className }: LogoProps) {
         src="/smwelfare.png"
         alt={`${SITE.name} logo`}
         width={512}
-        height={134}
-        priority
+        height={131}
+        priority={priority}
         className="h-8 w-auto sm:h-9 lg:h-10"
       />
     </Link>

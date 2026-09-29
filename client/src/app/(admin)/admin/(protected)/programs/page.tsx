@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
-import { isSuperAdmin } from "@/types/auth";
+import { canAccessAdmin } from "@/types/auth";
 import {
   listPrograms,
   createProgram,
@@ -126,8 +126,8 @@ export default function AdminProgramsPage() {
   // search term can never overwrite a newer one.
   const requestIdRef = useRef(0);
 
-  const userIsSuperAdmin = isSuperAdmin(user);
-  const canEdit = userIsSuperAdmin;
+  // The single admin owns every content type — editing is always allowed.
+  const canEdit = canAccessAdmin(user);
 
   const loadPrograms = useCallback(async (query: ListProgramsQuery = {}) => {
     const requestId = ++requestIdRef.current;

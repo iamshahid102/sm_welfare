@@ -1,18 +1,18 @@
 import type { SafeUser } from "@/types/api";
 
-/** Roles recognized by the backend RBAC system. */
-export type UserRole = "SUPER_ADMIN" | "ADMIN";
+/** The single role this CMS issues. */
+export type UserRole = "ADMIN";
 
 /**
- * UX-only role helpers. The backend RBAC middleware is the security
- * authority — these only decide what the UI shows.
+ * UX-only helpers. The backend session is the security authority — these only
+ * decide what the UI shows.
+ *
+ * Because this CMS is operated by exactly one admin account that owns every
+ * content type, there is no role distinction left to make: being
+ * authenticated *is* being the admin.
  */
 export function canAccessAdmin(user: SafeUser | null): boolean {
-  return user?.role === "SUPER_ADMIN" || user?.role === "ADMIN";
-}
-
-export function isSuperAdmin(user: SafeUser | null): boolean {
-  return user?.role === "SUPER_ADMIN";
+  return user !== null;
 }
 
 /** Get display initials from user name. */

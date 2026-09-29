@@ -60,8 +60,7 @@ function asError(body: unknown): { statusCode: number; message: string } {
 describeDb('Programs API (MongoDB-backed)', () => {
   let server: Server;
   let baseUrl = '';
-  let superCookies = '';
-  let adminCookies = '';
+  let cookies = '';
   const trackedProgramIds: string[] = [];
   const trackedUserIds: string[] = [];
 
@@ -82,14 +81,14 @@ describeDb('Programs API (MongoDB-backed)', () => {
     };
   }
 
-  /** Creates a program through the real API as SUPER_ADMIN; tracks the id. */
+  /** Creates a program through the real API as the admin; tracks the id. */
   async function createProgramViaApi(
     overrides: Record<string, unknown> = {},
   ): Promise<ProgramShape> {
     const result = await request(
       '/api/v1/programs',
       { method: 'POST', body: JSON.stringify(validProgramBody(overrides)) },
-      superCookies,
+      cookies,
     );
     assert.equal(result.status, 201, `create program expected 201, got ${result.status}`);
     const program = asProgram(result.body);
@@ -97,13 +96,14 @@ describeDb('Programs API (MongoDB-backed)', () => {
     return program;
   }
 
-  async function createUser(role: 'SUPER_ADMIN' | 'ADMIN'): Promise<string> {
-    const email = `${uniqueToken(`program-${role.toLowerCase()}`)}@example.test`;
+  /** Creates the single admin account every authenticated request uses. */
+  async function createUser(): Promise<string> {
+    const email = `${uniqueToken('program-admin')}@example.test`;
     const user = await UserModel.create({
-      name: `Program Test ${role}`,
+      name: 'Program Test Admin',
       email,
       passwordHash: await hashPassword(TEST_PASSWORD),
-      role,
+      role: 'ADMIN',
       status: 'ACTIVE',
     });
     trackedUserIds.push(user.id);
@@ -154,10 +154,8 @@ describeDb('Programs API (MongoDB-backed)', () => {
       baseUrl = `http://127.0.0.1:${address.port}`;
     }
 
-    const superEmail = await createUser('SUPER_ADMIN');
-    superCookies = await loginCookies(superEmail);
-    const adminEmail = await createUser('ADMIN');
-    adminCookies = await loginCookies(adminEmail);
+    const adminEmail = await createUser();
+    cookies = await loginCookies(adminEmail);
   });
 
   after(async () => {
@@ -193,17 +191,7 @@ describeDb('Programs API (MongoDB-backed)', () => {
     assert.equal(result.status, 401);
   });
 
-  it('rejects an ADMIN create with 403', async () => {
-    const result = await request(
-      '/api/v1/programs',
-      { method: 'POST', body: JSON.stringify(validProgramBody()) },
-      adminCookies,
-    );
-    assert.equal(result.status, 403);
-    assert.equal(asError(result.body).message, 'Insufficient permissions.');
-  });
-
-  it('SUPER_ADMIN creates a program that starts as DRAFT', async () => {
+  it('creates a program that starts as DRAFT', async () => {
     const result = await request(
       '/api/v1/programs',
       {
@@ -212,7 +200,7 @@ describeDb('Programs API (MongoDB-backed)', () => {
           validProgramBody({ title: '  New Initiative  ', displayOrder: 7 }),
         ),
       },
-      superCookies,
+      cookies,
     );
 
     assert.equal(result.status, 201);
@@ -240,7 +228,7 @@ describeDb('Programs API (MongoDB-backed)', () => {
           validProgramBody({ title: 'Food & Community Support', slug: undefined }),
         ),
       },
-      superCookies,
+      cookies,
     );
 
     assert.equal(result.status, 201);
@@ -256,7 +244,7 @@ describeDb('Programs API (MongoDB-backed)', () => {
         method: 'POST',
         body: JSON.stringify(validProgramBody({ slug: 'Not A Slug' })),
       },
-      superCookies,
+      cookies,
     );
     assert.equal(result.status, 400);
     assert.match(asError(result.body).message, /URL-safe/);
@@ -270,7 +258,7 @@ describeDb('Programs API (MongoDB-backed)', () => {
         method: 'POST',
         body: JSON.stringify(validProgramBody({ slug: first.slug })),
       },
-      superCookies,
+      cookies,
     );
     assert.equal(duplicate.status, 409);
     assert.equal(asError(duplicate.body).message, 'A program with this slug already exists.');
@@ -296,8 +284,8 @@ describeDb('Programs API (MongoDB-backed)', () => {
   it('handles concurrent creation of the same slug safely', async () => {
     const body = JSON.stringify(validProgramBody());
     const [first, second] = await Promise.all([
-      request('/api/v1/programs', { method: 'POST', body }, superCookies),
-      request('/api/v1/programs', { method: 'POST', body }, superCookies),
+      request('/api/v1/programs', { method: 'POST', body }, cookies),
+      request('/api/v1/programs', { method: 'POST', body }, cookies),
     ]);
     // Track any winner before asserting, so a failed assertion can never
     // leak an untracked program past the after() cleanup.
@@ -318,14 +306,14 @@ describeDb('Programs API (MongoDB-backed)', () => {
     const empty = await request(
       '/api/v1/programs',
       { method: 'POST', body: JSON.stringify(validProgramBody({ title: '' })) },
-      superCookies,
+      cookies,
     );
     assert.equal(empty.status, 400);
 
     const overLong = await request(
       '/api/v1/programs',
       { method: 'POST', body: JSON.stringify(validProgramBody({ title: 'a'.repeat(151) })) },
-      superCookies,
+      cookies,
     );
     assert.equal(overLong.status, 400);
   });
@@ -337,7 +325,7 @@ describeDb('Programs API (MongoDB-backed)', () => {
         method: 'POST',
         body: JSON.stringify(validProgramBody({ shortDescription: undefined, description: undefined })),
       },
-      superCookies,
+      cookies,
     );
     assert.equal(missing.status, 400);
 
@@ -347,7 +335,7 @@ describeDb('Programs API (MongoDB-backed)', () => {
         method: 'POST',
         body: JSON.stringify(validProgramBody({ description: 'a'.repeat(5_001) })),
       },
-      superCookies,
+      cookies,
     );
     assert.equal(overLong.status, 400);
   });
@@ -357,13 +345,13 @@ describeDb('Programs API (MongoDB-backed)', () => {
       const result = await request(
         '/api/v1/programs',
         { method: 'POST', body: JSON.stringify(validProgramBody({ displayOrder })) },
-        superCookies,
+        cookies,
       );
       assert.equal(result.status, 400, `displayOrder=${String(displayOrder)} must be rejected`);
     }
   });
 
-  it('lists programs for SUPER_ADMIN and ADMIN with pagination', async () => {
+  it('lists programs with pagination', async () => {
     const token = uniqueToken('page');
     const first = await createProgramViaApi({
       title: `${token} One`,
@@ -376,27 +364,25 @@ describeDb('Programs API (MongoDB-backed)', () => {
       displayOrder: 1,
     });
 
-    for (const cookies of [superCookies, adminCookies]) {
-      const page1 = await request(`/api/v1/programs?search=${token}&limit=1`, {}, cookies);
-      assert.equal(page1.status, 200);
-      const list1 = asList(page1.body);
-      assert.equal(list1.items.length, 1);
-      assert.equal(list1.total, 2);
-      assert.equal(list1.totalPages, 2);
-      assert.equal(list1.page, 1);
-      assert.equal(list1.limit, 1);
+    const page1 = await request(`/api/v1/programs?search=${token}&limit=1`, {}, cookies);
+    assert.equal(page1.status, 200);
+    const list1 = asList(page1.body);
+    assert.equal(list1.items.length, 1);
+    assert.equal(list1.total, 2);
+    assert.equal(list1.totalPages, 2);
+    assert.equal(list1.page, 1);
+    assert.equal(list1.limit, 1);
 
-      const page2 = await request(
-        `/api/v1/programs?search=${token}&page=2&limit=1`,
-        {},
-        cookies,
-      );
-      const list2 = asList(page2.body);
-      assert.equal(list2.items.length, 1);
+    const page2 = await request(
+      `/api/v1/programs?search=${token}&page=2&limit=1`,
+      {},
+      cookies,
+    );
+    const list2 = asList(page2.body);
+    assert.equal(list2.items.length, 1);
 
-      const ids = [list1.items[0]?.id, list2.items[0]?.id].sort();
-      assert.deepEqual(ids, [first.id, second.id].sort(), 'both programs appear across pages');
-    }
+    const ids = [list1.items[0]?.id, list2.items[0]?.id].sort();
+    assert.deepEqual(ids, [first.id, second.id].sort(), 'both programs appear across pages');
   });
 
   it('filters programs by status and searches title/description', async () => {
@@ -405,53 +391,51 @@ describeDb('Programs API (MongoDB-backed)', () => {
     await request(
       `/api/v1/programs/${created.id}/status`,
       { method: 'PATCH', body: JSON.stringify({ status: 'PUBLISHED' }) },
-      superCookies,
+      cookies,
     );
 
     const byStatus = await request(
       `/api/v1/programs?search=${token}&status=ARCHIVED`,
       {},
-      superCookies,
+      cookies,
     );
     assert.equal(asList(byStatus.body).total, 0);
 
     const published = await request(
       `/api/v1/programs?search=${token}&status=PUBLISHED`,
       {},
-      superCookies,
+      cookies,
     );
     assert.equal(asList(published.body).total, 1);
 
     const byDescription = await request(
       `/api/v1/programs?search=${token}`,
       {},
-      superCookies,
+      cookies,
     );
     assert.equal(asList(byDescription.body).total, 1);
   });
 
   it('returns 400 for an invalid id and 404 for an unknown id', async () => {
-    const invalid = await request('/api/v1/programs/not-an-id', {}, superCookies);
+    const invalid = await request('/api/v1/programs/not-an-id', {}, cookies);
     assert.equal(invalid.status, 400);
     assert.equal(asError(invalid.body).message, 'Invalid program id.');
 
     const missing = new Types.ObjectId().toString();
-    const notFound = await request(`/api/v1/programs/${missing}`, {}, superCookies);
+    const notFound = await request(`/api/v1/programs/${missing}`, {}, cookies);
     assert.equal(notFound.status, 404);
     assert.equal(asError(notFound.body).message, 'Program not found.');
   });
 
-  it('gets a single program for SUPER_ADMIN and ADMIN', async () => {
+  it('gets a single program', async () => {
     const created = await createProgramViaApi();
 
-    for (const cookies of [superCookies, adminCookies]) {
-      const result = await request(`/api/v1/programs/${created.id}`, {}, cookies);
-      assert.equal(result.status, 200);
-      const program = asProgram(result.body);
-      assert.equal(program.id, created.id);
-      assert.equal(program.title, created.title);
-      assert.equal(program.status, 'DRAFT');
-    }
+    const result = await request(`/api/v1/programs/${created.id}`, {}, cookies);
+    assert.equal(result.status, 200);
+    const program = asProgram(result.body);
+    assert.equal(program.id, created.id);
+    assert.equal(program.title, created.title);
+    assert.equal(program.status, 'DRAFT');
   });
 
   it('updates a program partially without wiping other fields', async () => {
@@ -465,7 +449,7 @@ describeDb('Programs API (MongoDB-backed)', () => {
         // through the dedicated status endpoint.
         body: JSON.stringify({ title: 'Renamed Program', status: 'PUBLISHED' }),
       },
-      superCookies,
+      cookies,
     );
 
     assert.equal(result.status, 200);
@@ -486,7 +470,7 @@ describeDb('Programs API (MongoDB-backed)', () => {
     const conflict = await request(
       `/api/v1/programs/${first.id}`,
       { method: 'PATCH', body: JSON.stringify({ slug: second.slug }) },
-      superCookies,
+      cookies,
     );
     assert.equal(conflict.status, 409);
 
@@ -495,7 +479,7 @@ describeDb('Programs API (MongoDB-backed)', () => {
     const ok = await request(
       `/api/v1/programs/${first.id}`,
       { method: 'PATCH', body: JSON.stringify({ slug: newSlug }) },
-      superCookies,
+      cookies,
     );
     assert.equal(ok.status, 200);
     assert.equal(asProgram(ok.body).slug, newSlug);
@@ -507,14 +491,14 @@ describeDb('Programs API (MongoDB-backed)', () => {
     const empty = await request(
       `/api/v1/programs/${created.id}`,
       { method: 'PATCH', body: JSON.stringify({}) },
-      superCookies,
+      cookies,
     );
     assert.equal(empty.status, 400);
 
     const unknown = await request(
       `/api/v1/programs/${created.id}`,
-      { method: 'PATCH', body: JSON.stringify({ hacker: 'x', role: 'SUPER_ADMIN' }) },
-      superCookies,
+      { method: 'PATCH', body: JSON.stringify({ hacker: 'x', role: 'ADMIN' }) },
+      cookies,
     );
     assert.equal(unknown.status, 400);
   });
@@ -525,10 +509,10 @@ describeDb('Programs API (MongoDB-backed)', () => {
       {
         method: 'POST',
         body: JSON.stringify(
-          validProgramBody({ hacker: 'field', role: 'SUPER_ADMIN', status: 'PUBLISHED' }),
+          validProgramBody({ hacker: 'field', role: 'ADMIN', status: 'PUBLISHED' }),
         ),
       },
-      superCookies,
+      cookies,
     );
     assert.equal(result.status, 201);
     const program = asProgram(result.body);
@@ -546,7 +530,7 @@ describeDb('Programs API (MongoDB-backed)', () => {
     const published = await request(
       `/api/v1/programs/${created.id}/status`,
       { method: 'PATCH', body: JSON.stringify({ status: 'PUBLISHED' }) },
-      superCookies,
+      cookies,
     );
     assert.equal(published.status, 200);
     assert.equal(asProgram(published.body).status, 'PUBLISHED');
@@ -554,7 +538,7 @@ describeDb('Programs API (MongoDB-backed)', () => {
     const archived = await request(
       `/api/v1/programs/${created.id}/status`,
       { method: 'PATCH', body: JSON.stringify({ status: 'ARCHIVED' }) },
-      superCookies,
+      cookies,
     );
     assert.equal(archived.status, 200);
     assert.equal(asProgram(archived.body).status, 'ARCHIVED');
@@ -570,7 +554,7 @@ describeDb('Programs API (MongoDB-backed)', () => {
     const result = await request(
       `/api/v1/programs/${created.id}/status`,
       { method: 'PATCH', body: JSON.stringify({ status: 'BANNED' }) },
-      superCookies,
+      cookies,
     );
     assert.equal(result.status, 400);
     assert.equal(asError(result.body).message, 'Status must be DRAFT, PUBLISHED or ARCHIVED.');
@@ -578,7 +562,7 @@ describeDb('Programs API (MongoDB-backed)', () => {
 
   it('has no DELETE endpoint', async () => {
     const created = await createProgramViaApi();
-    const del = await request(`/api/v1/programs/${created.id}`, { method: 'DELETE' }, superCookies);
+    const del = await request(`/api/v1/programs/${created.id}`, { method: 'DELETE' }, cookies);
     assert.equal(del.status, 404);
     const stored = await ProgramModel.findById(created.id);
     assert.ok(stored, 'program still exists after attempted DELETE');

@@ -7,15 +7,18 @@ import { ApiError } from '../utils/ApiError.js';
 import { verifyAuthToken } from '../utils/auth.js';
 
 /**
- * requireAuth - guards protected routes.
+ * requireAuth - guards every protected route.
  *
  *   1. reads the access credential from its HttpOnly cookie
  *   2. validates the JWT signature and expiry
- *   3. reloads the user from the database (authoritative role/status)
+ *   3. reloads the user from the database (authoritative account state)
  *   4. rejects non-ACTIVE accounts
  *   5. attaches a typed context and calls next()
  *
- * Only generic 401 messages leave the server - token internals never do.
+ * This CMS has exactly one administrator account and one role, so there is no
+ * separate role-authorization layer: passing requireAuth already means "the
+ * one admin". Only generic 401 messages leave the server - token internals
+ * never do.
  */
 export const requireAuth: RequestHandler = async (req, _res, next) => {
   try {
@@ -26,7 +29,8 @@ export const requireAuth: RequestHandler = async (req, _res, next) => {
 
     const verified = await verifyAuthToken(token, 'access', env.authAccessTokenSecret);
 
-    // Never trust role/status from the token - the database is authoritative.
+    // Never trust the account state from the token - the database is
+    // authoritative.
     const user = await UserModel.findById(verified.userId);
     if (!user || user.status !== 'ACTIVE') {
       throw new ApiError(401, 'Authentication required.');

@@ -72,7 +72,7 @@ function asError(body: unknown): { statusCode: number; message: string } {
 describeDb('Public projects API (MongoDB-backed)', () => {
   let server: Server;
   let baseUrl = '';
-  let superCookies = '';
+  let cookies = '';
   const trackedProjectIds: string[] = [];
   const trackedProgramIds: string[] = [];
   const trackedUserIds: string[] = [];
@@ -108,13 +108,14 @@ describeDb('Public projects API (MongoDB-backed)', () => {
     return { _id: project.id, programId, status: project.status, slug: project.slug };
   }
 
-  async function createUser(role: 'SUPER_ADMIN' | 'ADMIN'): Promise<string> {
-    const email = `${uniqueToken(`user-${role.toLowerCase()}`)}@example.test`;
+  /** Creates the single admin account the authenticated proxy route uses. */
+  async function createUser(): Promise<string> {
+    const email = `${uniqueToken('public-project-admin')}@example.test`;
     const user = await UserModel.create({
-      name: `Public Project Test ${role}`,
+      name: 'Public Project Test Admin',
       email,
       passwordHash: await hashPassword(TEST_PASSWORD),
-      role,
+      role: 'ADMIN',
       status: 'ACTIVE',
     });
     trackedUserIds.push(user.id);
@@ -165,8 +166,8 @@ describeDb('Public projects API (MongoDB-backed)', () => {
       baseUrl = `http://127.0.0.1:${address.port}`;
     }
 
-    const superEmail = await createUser('SUPER_ADMIN');
-    superCookies = await loginCookies(superEmail);
+    const adminEmail = await createUser();
+    cookies = await loginCookies(adminEmail);
   });
 
   after(async () => {
@@ -321,7 +322,7 @@ describeDb('Public projects API (MongoDB-backed)', () => {
     const anon = await request('/api/v1/projects');
     assert.equal(anon.status, 401);
 
-    const admin = await request('/api/v1/projects', {}, superCookies);
+    const admin = await request('/api/v1/projects', {}, cookies);
     assert.equal(admin.status, 200);
   });
 });

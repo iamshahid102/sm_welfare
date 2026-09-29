@@ -17,10 +17,10 @@ export type {
  *   GET /api/v1/forms/submissions  (filterable by formType)
  *   GET /api/v1/contact
  *
- * Both require an authenticated ADMIN / SUPER_ADMIN session (HttpOnly
- * cookies, handled by the shared API client). The payloads contain personal
- * data, which is why only these authenticated reads exist — the public site
- * can write submissions but never read them back.
+ * Both require the authenticated admin session (HttpOnly cookies, handled by
+ * the shared API client). The payloads contain personal data, which is why
+ * only these authenticated reads exist — the public site can write
+ * submissions but never read them back.
  */
 
 export interface ListFormSubmissionsQuery {

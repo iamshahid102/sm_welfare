@@ -58,22 +58,22 @@ interface ApiResult {
 describeDb('Media API (MongoDB-backed)', () => {
   let server: Server;
   let baseUrl = '';
-  let superCookies = '';
-  let adminCookies = '';
-  let superAdminId = '';
+  let cookies = '';
+  let adminId = '';
   const trackedUserIds: string[] = [];
   const trackedMediaIds: string[] = [];
 
-  function uniqueEmail(role: 'super' | 'admin'): string {
-    return `media-${role}-${Date.now()}-${Math.random().toString(36).slice(2)}@example.test`;
+  function uniqueEmail(): string {
+    return `media-${Date.now()}-${Math.random().toString(36).slice(2)}@example.test`;
   }
 
-  async function createUser(role: 'SUPER_ADMIN' | 'ADMIN'): Promise<string> {
+  /** Creates the single admin account every authenticated request uses. */
+  async function createUser(): Promise<string> {
     const user = await UserModel.create({
-      name: `Media ${role}`,
-      email: uniqueEmail(role === 'SUPER_ADMIN' ? 'super' : 'admin'),
+      name: 'Media Admin',
+      email: uniqueEmail(),
       passwordHash: await hashPassword(TEST_PASSWORD),
-      role,
+      role: 'ADMIN',
       status: 'ACTIVE',
     });
     trackedUserIds.push(user.id);
@@ -133,7 +133,7 @@ describeDb('Media API (MongoDB-backed)', () => {
       bytes: 100,
       folder: MEDIA_UPLOAD_FOLDER,
       originalFilename: 'test.png',
-      createdBy: superAdminId,
+      createdBy: adminId,
     });
     trackedMediaIds.push(media.id);
     return media.id;
@@ -154,10 +154,8 @@ describeDb('Media API (MongoDB-backed)', () => {
       baseUrl = `http://127.0.0.1:${address.port}`;
     }
 
-    superAdminId = await createUser('SUPER_ADMIN');
-    const adminId = await createUser('ADMIN');
-    superCookies = await loginCookies(superAdminId);
-    adminCookies = await loginCookies(adminId);
+    adminId = await createUser();
+    cookies = await loginCookies(adminId);
   });
 
   after(async () => {
@@ -197,14 +195,14 @@ describeDb('Media API (MongoDB-backed)', () => {
 
   it('returns 400 when no file is uploaded', async () => {
     const form = new FormData(); // multipart request without a `file` part
-    const result = await request('/api/v1/media', { method: 'POST', body: form }, adminCookies);
+    const result = await request('/api/v1/media', { method: 'POST', body: form }, cookies);
     assert.equal(result.status, 400);
     assert.match((result.body.error as { message: string }).message, /No file uploaded/);
   });
 
   it('returns 400 for an unsupported file type and persists nothing', async () => {
     const form = multipartFile(Buffer.from('this is not an image at all', 'utf8'), 'fake.png', PNG_MIME);
-    const result = await request('/api/v1/media', { method: 'POST', body: form }, adminCookies);
+    const result = await request('/api/v1/media', { method: 'POST', body: form }, cookies);
 
     assert.equal(result.status, 400);
     assert.match((result.body.error as { message: string }).message, /Unsupported file type/);
@@ -214,22 +212,22 @@ describeDb('Media API (MongoDB-backed)', () => {
   it('returns 413 for an oversize upload (multer size limit) and persists nothing', async () => {
     const oversized = Buffer.alloc(5 * 1024 * 1024 + 1, 0x00);
     const form = multipartFile(oversized, 'huge.png', PNG_MIME);
-    const result = await request('/api/v1/media', { method: 'POST', body: form }, adminCookies);
+    const result = await request('/api/v1/media', { method: 'POST', body: form }, cookies);
 
     assert.equal(result.status, 413);
     assert.equal(await MediaModel.countDocuments({ createdBy: { $in: trackedUserIds } }), 0, 'nothing persisted for an oversize file');
   });
 
   it('returns 400 for an invalid media id', async () => {
-    const get = await request('/api/v1/media/not-an-id', {}, superCookies);
+    const get = await request('/api/v1/media/not-an-id', {}, cookies);
     assert.equal(get.status, 400);
-    const del = await request('/api/v1/media/not-an-id', { method: 'DELETE' }, superCookies);
+    const del = await request('/api/v1/media/not-an-id', { method: 'DELETE' }, cookies);
     assert.equal(del.status, 400);
   });
 
   it('returns 404 for an unknown media id', async () => {
     const missing = new Types.ObjectId().toString();
-    const result = await request(`/api/v1/media/${missing}`, {}, superCookies);
+    const result = await request(`/api/v1/media/${missing}`, {}, cookies);
     assert.equal(result.status, 404);
     assert.equal((result.body.error as { message: string }).message, 'Media not found.');
   });
@@ -237,7 +235,7 @@ describeDb('Media API (MongoDB-backed)', () => {
   it('returns existing metadata with only safe fields', async () => {
     const id = await createMediaRecord();
 
-    const result = await request(`/api/v1/media/${id}`, {}, superCookies);
+    const result = await request(`/api/v1/media/${id}`, {}, cookies);
 
     assert.equal(result.status, 200);
     const media = (result.body.data as { media: Record<string, unknown> }).media;
@@ -245,21 +243,18 @@ describeDb('Media API (MongoDB-backed)', () => {
     assert.equal(media.resourceType, 'image');
     assert.equal(media.format, 'png');
     assert.equal(media.folder, MEDIA_UPLOAD_FOLDER);
-    assert.equal(media.createdBy, superAdminId);
+    assert.equal(media.createdBy, adminId);
     const json = JSON.stringify(result.body);
     assert.equal(json.includes('_id'), false, 'internal _id must not be exposed');
     assert.equal(json.includes('__v'), false, 'internal __v must not be exposed');
     assert.equal(json.includes('passwordHash'), false);
   });
 
-  it('lets an ADMIN and a SUPER_ADMIN read media metadata', async () => {
+  it('lets the admin read media metadata', async () => {
     const id = await createMediaRecord();
 
-    const asAdmin = await request(`/api/v1/media/${id}`, {}, adminCookies);
-    assert.equal(asAdmin.status, 200, 'ADMIN is allowed to read media');
-
-    const asSuper = await request(`/api/v1/media/${id}`, {}, superCookies);
-    assert.equal(asSuper.status, 200, 'SUPER_ADMIN is allowed to read media');
+    const result = await request(`/api/v1/media/${id}`, {}, cookies);
+    assert.equal(result.status, 200, 'the admin is allowed to read media');
   });
 
   it('keeps the MongoDB record when the Cloudinary deletion fails', async () => {

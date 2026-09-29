@@ -49,17 +49,18 @@ function asError(body: unknown): { statusCode: number; message: string } {
 describeDb('Public site settings API (MongoDB-backed)', () => {
   let server: Server;
   let baseUrl = '';
-  let superCookies = '';
+  let cookies = '';
   const trackedUserIds: string[] = [];
   let originalSettings: Record<string, unknown> | null = null;
 
-  async function createUser(role: 'SUPER_ADMIN' | 'ADMIN'): Promise<string> {
+  /** Creates the single admin account the authenticated proxy route uses. */
+  async function createUser(): Promise<string> {
     const email = `public-settings-${Date.now()}-${Math.random().toString(36).slice(2)}@example.test`;
     const user = await UserModel.create({
-      name: `Public Settings Test ${role}`,
+      name: 'Public Settings Test Admin',
       email,
       passwordHash: await hashPassword(TEST_PASSWORD),
-      role,
+      role: 'ADMIN',
       status: 'ACTIVE',
     });
     trackedUserIds.push(user.id);
@@ -113,8 +114,8 @@ describeDb('Public site settings API (MongoDB-backed)', () => {
     originalSettings = existing as unknown as { _id?: string } | null;
     await SiteSettingsModel.deleteMany({ key: SITE_SETTINGS_KEY });
 
-    const superEmail = await createUser('SUPER_ADMIN');
-    superCookies = await loginCookies(superEmail);
+    const adminEmail = await createUser();
+    cookies = await loginCookies(adminEmail);
   });
 
   after(async () => {
@@ -197,7 +198,7 @@ describeDb('Public site settings API (MongoDB-backed)', () => {
     const anon = await request('/api/v1/site-settings');
     assert.equal(anon.status, 401);
 
-    const admin = await request('/api/v1/site-settings', {}, superCookies);
+    const admin = await request('/api/v1/site-settings', {}, cookies);
     assert.equal(admin.status, 200);
   });
 });

@@ -26,14 +26,6 @@ export interface PublicMediaListQuery {
   limit: number;
 }
 
-export interface PublicMediaListResult {
-  items: PublicMedia[];
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-}
-
 export interface PublicMedia {
   id: string;
   publicId: string;

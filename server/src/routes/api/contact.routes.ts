@@ -2,7 +2,6 @@ import { Router } from 'express';
 import type { Request, RequestHandler } from 'express';
 import { requireAuth } from '../../middlewares/auth.middleware.js';
 import { submissionRateLimiter } from '../../middlewares/rateLimit.middleware.js';
-import { requireRole } from '../../middlewares/role.middleware.js';
 import { ContactMessageModel } from '../../models/contactMessage.model.js';
 import { ApiError } from '../../utils/ApiError.js';
 
@@ -228,12 +227,7 @@ export const listContactMessages: RequestHandler = async (req, res, next) => {
 const contactRouter = Router();
 
 contactRouter.post('/', submissionRateLimiter, sendContactMessage);
-contactRouter.get('/', requireAuth, requireRole('SUPER_ADMIN', 'ADMIN'), listContactMessages);
-contactRouter.get(
-  '/:id',
-  requireAuth,
-  requireRole('SUPER_ADMIN', 'ADMIN'),
-  getContactMessage,
-);
+contactRouter.get('/', requireAuth, listContactMessages);
+contactRouter.get('/:id', requireAuth, getContactMessage);
 
 export { contactRouter };

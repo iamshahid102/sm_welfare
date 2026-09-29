@@ -26,26 +26,19 @@ export type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse;
 /**
  * Client-side view of a serialized user (SafeUser from the backend).
  * Kept in sync with server/src/types/auth.ts SafeUser.
+ *
+ * There is exactly ONE administrator account in this CMS, so `role` always
+ * holds the single ADMIN value.
  */
 export interface SafeUser {
   id: string;
   name: string;
   email: string;
-  role: "SUPER_ADMIN" | "ADMIN";
+  role: "ADMIN";
   status: "ACTIVE" | "INACTIVE";
   lastLoginAt: string | null;
   createdAt: string;
   updatedAt: string;
-}
-
-// ─── Admin management types ────────────────────────────────────────────
-
-export interface AdminListResponse {
-  admins: SafeUser[];
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
 }
 
 // ─── Site settings types ───────────────────────────────────────────────

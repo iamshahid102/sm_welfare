@@ -28,14 +28,14 @@ export async function getSiteSettings(): Promise<SiteSettings> {
   return data.settings;
 }
 
-// ─── Initialize settings (SUPER_ADMIN only) ─────────────────────────────
+// ─── Initialize the settings singleton ──────────────────────────────────
 
 export async function initializeSiteSettings(input: CreateSiteSettingsInput): Promise<SiteSettings> {
   const data = await api.post<{ settings: SiteSettings }>("/site-settings", input);
   return data.settings;
 }
 
-// ─── Update settings (SUPER_ADMIN only) ─────────────────────────────────
+// ─── Update settings ────────────────────────────────────────────────────
 
 export async function updateSiteSettings(input: UpdateSiteSettingsInput): Promise<SiteSettings> {
   const data = await api.patch<{ settings: SiteSettings }>("/site-settings", input);

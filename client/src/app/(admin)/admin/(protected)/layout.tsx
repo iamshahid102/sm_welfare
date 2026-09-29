@@ -4,16 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
-import { canAccessAdmin, isSuperAdmin, getUserInitials } from "@/types/auth";
+import { canAccessAdmin, getUserInitials } from "@/types/auth";
 import { Container } from "@/components/shared/container";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
@@ -26,24 +19,16 @@ import {
 
 /**
  * Admin navigation items.
- * SUPER_ADMIN-only items are marked with `superAdminOnly`.
+ * There is exactly one admin account, so every item is always visible.
  */
 const ADMIN_NAV_ITEMS = [
-  { label: "Dashboard", href: "/admin/dashboard", superAdminOnly: false },
-  {
-    label: "Site settings",
-    href: "/admin/site-settings",
-    superAdminOnly: true,
-  },
-  { label: "Programs", href: "/admin/programs", superAdminOnly: false },
-  { label: "Projects", href: "/admin/projects", superAdminOnly: false },
-  { label: "Media", href: "/admin/media", superAdminOnly: false },
-  { label: "Submissions", href: "/admin/submissions", superAdminOnly: false },
-  { label: "Admins", href: "/admin/admins", superAdminOnly: true },
+  { label: "Dashboard", href: "/admin/dashboard" },
+  { label: "Site settings", href: "/admin/site-settings" },
+  { label: "Programs", href: "/admin/programs" },
+  { label: "Projects", href: "/admin/projects" },
+  { label: "Media", href: "/admin/media" },
+  { label: "Submissions", href: "/admin/submissions" },
 ] as const;
-
-/** Paths only SUPER_ADMIN may open directly. */
-const SUPER_ADMIN_ONLY_PREFIXES = ["/admin/site-settings", "/admin/admins"];
 
 /**
  * Admin shell — with authentication guard.
@@ -52,8 +37,6 @@ const SUPER_ADMIN_ONLY_PREFIXES = ["/admin/site-settings", "/admin/admins"];
  *   destination via ?from= for post-login return)
  * - Shows loading state while auth is resolving
  * - Displays user info and logout button
- * - Hides SUPER_ADMIN-only nav items for ADMIN users
- * - Shows an unauthorized state when an ADMIN opens a SUPER_ADMIN-only route
  * - Backend remains the actual security authority
  */
 export default function AdminProtectedLayout({
@@ -143,18 +126,7 @@ export default function AdminProtectedLayout({
     return null;
   }
 
-  const userIsSuperAdmin = isSuperAdmin(user);
   const initials = getUserInitials(user);
-
-  // Filter nav items based on role.
-  const visibleNavItems = ADMIN_NAV_ITEMS.filter(
-    (item) => !item.superAdminOnly || userIsSuperAdmin,
-  );
-
-  // Direct URL access to a SUPER_ADMIN-only route by an ADMIN → unauthorized state.
-  const routeRequiresSuperAdmin = SUPER_ADMIN_ONLY_PREFIXES.some((prefix) =>
-    pathname?.startsWith(prefix),
-  );
 
   return (
     <div className="flex min-h-screen flex-col bg-muted/30">
@@ -179,7 +151,7 @@ export default function AdminProtectedLayout({
             className="hidden items-center gap-1 lg:flex"
           >
             <ul className="flex items-center gap-0.5">
-              {visibleNavItems.map((item) => {
+              {ADMIN_NAV_ITEMS.map((item) => {
                 const isActive = pathname === item.href;
                 return (
                   <li key={item.href}>
@@ -231,7 +203,7 @@ export default function AdminProtectedLayout({
               className="absolute top-full left-0 right-0 z-50 border-b border-border bg-background/95 shadow-xl backdrop-blur-md supports-[backdrop-filter]:bg-background/80 lg:hidden"
             >
               <div className="flex flex-col gap-1 p-3">
-                {visibleNavItems.map((item) => {
+                {ADMIN_NAV_ITEMS.map((item) => {
                   const isActive = pathname === item.href;
                   return (
                     <Link
@@ -263,7 +235,7 @@ export default function AdminProtectedLayout({
                       {user.name}
                     </span>
                     <span className="text-[11px] text-muted-foreground">
-                      {userIsSuperAdmin ? "Super Admin" : "Admin"}
+                      Administrator
                     </span>
                   </div>
                 </div>
@@ -312,7 +284,7 @@ export default function AdminProtectedLayout({
                   {user.name}
                 </span>
                 <span className="text-[11px] text-muted-foreground">
-                  {userIsSuperAdmin ? "Super Admin" : "Admin"}
+                  Administrator
                 </span>
               </div>
             </div>
@@ -329,24 +301,7 @@ export default function AdminProtectedLayout({
         </Container>
       </header>
       <main id="main-content" className="flex-1">
-        <Container className="py-10">
-          {routeRequiresSuperAdmin && !userIsSuperAdmin ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-heading text-xl">Access denied</CardTitle>
-                <CardDescription>
-                  This section is restricted to super administrators.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                Your account does not have permission to view this page. If you
-                believe this is a mistake, contact the system administrator.
-              </CardContent>
-            </Card>
-          ) : (
-            children
-          )}
-        </Container>
+        <Container className="py-10">{children}</Container>
       </main>
     </div>
   );

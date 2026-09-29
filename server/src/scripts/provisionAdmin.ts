@@ -1,15 +1,19 @@
 /**
- * Initial SUPER_ADMIN provisioning CLI.
+ * One-time administrator provisioning CLI.
  *
  * Usage (from server/):
- *   npm run provision:super-admin
+ *   npm run provision:admin
  *
- * Credentials are supplied through environment variables or interactive
- * prompts (never through command-line arguments, which would leak the
- * password into the process list / shell history):
- *   SUPER_ADMIN_EMAIL      - the email for the first SUPER_ADMIN account
- *   SUPER_ADMIN_PASSWORD   - the password (hidden when prompted)
- *   SUPER_ADMIN_NAME       - optional display name (defaults to "Super Admin")
+ * Creates the single admin account this CMS is operated with. Credentials are
+ * supplied through environment variables or interactive prompts (never through
+ * command-line arguments, which would leak the password into the process list /
+ * shell history):
+ *   ADMIN_EMAIL      - the email for the admin account
+ *   ADMIN_PASSWORD   - the password (hidden when prompted)
+ *   ADMIN_NAME       - optional display name (defaults to "Administrator")
+ *
+ * The legacy names SUPER_ADMIN_EMAIL / SUPER_ADMIN_PASSWORD / SUPER_ADMIN_NAME
+ * are still read as fallbacks, so an existing .env keeps working.
  *
  * When stdin is a terminal, any missing piece is prompted for; the password
  * prompt runs with echo disabled. In a non-interactive shell (CI, scripts) all
@@ -17,21 +21,26 @@
  * instead of hanging on a prompt that can never be answered.
  *
  * Output policy: the password, its hash, JWT secrets and the MongoDB URI are
- * never printed. Only the normalized email and role/status of the created
- * account are reported.
+ * never printed. Only the normalized email and status of the created account
+ * are reported.
  */
 import { createInterface } from 'node:readline';
 import { stdin, stdout } from 'node:process';
 import { connectToDatabase, disconnectFromDatabase } from '../config/database.js';
 import { APP_NAME } from '../constants/index.js';
 import {
-  DEFAULT_SUPER_ADMIN_NAME,
-  provisionInitialSuperAdmin,
-} from '../services/superAdmin.service.js';
+  DEFAULT_ADMIN_NAME,
+  provisionAdmin,
+} from '../services/adminAccount.service.js';
 
-const SUPER_ADMIN_EMAIL_ENV = 'SUPER_ADMIN_EMAIL';
-const SUPER_ADMIN_PASSWORD_ENV = 'SUPER_ADMIN_PASSWORD';
-const SUPER_ADMIN_NAME_ENV = 'SUPER_ADMIN_NAME';
+const ADMIN_EMAIL_ENV = 'ADMIN_EMAIL';
+const ADMIN_PASSWORD_ENV = 'ADMIN_PASSWORD';
+const ADMIN_NAME_ENV = 'ADMIN_NAME';
+
+/** Legacy variable names accepted as fallbacks. */
+const LEGACY_EMAIL_ENV = 'SUPER_ADMIN_EMAIL';
+const LEGACY_PASSWORD_ENV = 'SUPER_ADMIN_PASSWORD';
+const LEGACY_NAME_ENV = 'SUPER_ADMIN_NAME';
 
 const EXIT_FAILURE = 1;
 
@@ -117,36 +126,49 @@ interface ResolvedCredentials {
 }
 
 /**
+ * Reads the first non-empty value among the given environment variables.
+ * Lets the canonical ADMIN_* names take precedence over the legacy ones.
+ */
+function readEnv(...names: string[]): string | undefined {
+  for (const name of names) {
+    const value = process.env[name];
+    if (value !== undefined && value.trim().length > 0) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
+/**
  * Resolves credentials from the environment, prompting interactively for any
  * missing piece when stdin is a terminal. Fails safely (no DB work) with a
  * clear message when a credential is still missing afterwards.
  */
 async function resolveCredentials(): Promise<ResolvedCredentials> {
-  const envEmail = process.env[SUPER_ADMIN_EMAIL_ENV];
-  const envPassword = process.env[SUPER_ADMIN_PASSWORD_ENV];
-  const envName = process.env[SUPER_ADMIN_NAME_ENV]?.trim();
-  const name = envName && envName.length > 0 ? envName : DEFAULT_SUPER_ADMIN_NAME;
+  const envEmail = readEnv(ADMIN_EMAIL_ENV, LEGACY_EMAIL_ENV);
+  const envPassword = readEnv(ADMIN_PASSWORD_ENV, LEGACY_PASSWORD_ENV);
+  const name = readEnv(ADMIN_NAME_ENV, LEGACY_NAME_ENV) ?? DEFAULT_ADMIN_NAME;
 
   let email = envEmail;
   let password = envPassword;
 
   if (stdin.isTTY === true) {
-    if (email === undefined || email.trim().length === 0) {
-      email = await prompt('SUPER_ADMIN email: ');
+    if (email === undefined) {
+      email = await prompt('Administrator email: ');
     }
-    if (password === undefined || password.trim().length === 0) {
-      password = await promptHidden('SUPER_ADMIN password: ');
+    if (password === undefined) {
+      password = await promptHidden('Administrator password: ');
     }
   }
 
-  if (email === undefined || email.trim().length === 0) {
+  if (email === undefined) {
     throw new Error(
-      `Missing SUPER_ADMIN email. Set ${SUPER_ADMIN_EMAIL_ENV} (and ${SUPER_ADMIN_PASSWORD_ENV}), or run interactively in a terminal.`,
+      `Missing administrator email. Set ${ADMIN_EMAIL_ENV} (and ${ADMIN_PASSWORD_ENV}), or run interactively in a terminal.`,
     );
   }
-  if (password === undefined || password.trim().length === 0) {
+  if (password === undefined) {
     throw new Error(
-      `Missing SUPER_ADMIN password. Set ${SUPER_ADMIN_PASSWORD_ENV}, or run interactively in a terminal.`,
+      `Missing administrator password. Set ${ADMIN_PASSWORD_ENV}, or run interactively in a terminal.`,
     );
   }
 
@@ -161,8 +183,8 @@ async function main(): Promise<void> {
   console.log(`[${APP_NAME}] connected to MongoDB`);
 
   try {
-    const user = await provisionInitialSuperAdmin(email, password, name);
-    console.log(`[${APP_NAME}] SUPER_ADMIN provisioned successfully.`);
+    const user = await provisionAdmin(email, password, name);
+    console.log(`[${APP_NAME}] administrator provisioned successfully.`);
     console.log(`  email:  ${user.email}`);
     console.log(`  role:   ${user.role}`);
     console.log(`  status: ${user.status}`);
@@ -176,6 +198,6 @@ async function main(): Promise<void> {
 
 main().catch((error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
-  console.error(`[${APP_NAME}] SUPER_ADMIN provisioning failed: ${message}`);
+  console.error(`[${APP_NAME}] administrator provisioning failed: ${message}`);
   process.exitCode = EXIT_FAILURE;
 });

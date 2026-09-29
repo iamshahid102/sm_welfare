@@ -65,18 +65,19 @@ function asPublicList(body: unknown): PublicListResult {
 describeDb('Public media API (MongoDB-backed)', () => {
   let server: Server;
   let baseUrl = '';
-  let superCookies = '';
-  let superAdminId = '';
+  let cookies = '';
+  let adminId = '';
   const trackedMediaIds: string[] = [];
   const trackedUserIds: string[] = [];
 
-  async function createUser(role: 'SUPER_ADMIN' | 'ADMIN'): Promise<string> {
+  /** Creates the single admin account the media records are attributed to. */
+  async function createUser(): Promise<string> {
     const email = `public-media-${Date.now()}-${Math.random().toString(36).slice(2)}@example.test`;
     const user = await UserModel.create({
-      name: `Public Media Test ${role}`,
+      name: 'Public Media Test Admin',
       email,
       passwordHash: await hashPassword(TEST_PASSWORD),
-      role,
+      role: 'ADMIN',
       status: 'ACTIVE',
     });
     trackedUserIds.push(user.id);
@@ -109,7 +110,7 @@ describeDb('Public media API (MongoDB-backed)', () => {
       bytes: 1000,
       folder: MEDIA_UPLOAD_FOLDER,
       originalFilename: 'test.png',
-      createdBy: superAdminId,
+      createdBy: adminId,
     });
     trackedMediaIds.push(media.id);
     return media.id;
@@ -145,10 +146,8 @@ describeDb('Public media API (MongoDB-backed)', () => {
       baseUrl = `http://127.0.0.1:${address.port}`;
     }
 
-    superAdminId = await createUser('SUPER_ADMIN');
-    const adminId = await createUser('ADMIN');
-    superCookies = await loginCookies(superAdminId);
-    await loginCookies(adminId);
+    adminId = await createUser();
+    cookies = await loginCookies(adminId);
   });
 
   after(async () => {
@@ -255,7 +254,7 @@ describeDb('Public media API (MongoDB-backed)', () => {
     const anon = await request('/api/v1/media/64b7f2c4a1b2c3d4e5f6a7b8');
     assert.equal(anon.status, 401);
 
-    const admin = await request('/api/v1/media/64b7f2c4a1b2c3d4e5f6a7b8', {}, superCookies);
+    const admin = await request('/api/v1/media/64b7f2c4a1b2c3d4e5f6a7b8', {}, cookies);
     assert.equal(admin.status, 404);
   });
 });

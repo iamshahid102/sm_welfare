@@ -45,7 +45,7 @@ describeDb('User model (MongoDB-backed)', () => {
       name: 'Db Admin',
       email: `db-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`,
       passwordHash: 'hashed-password-value',
-      role: 'SUPER_ADMIN',
+      role: 'ADMIN',
       status: 'ACTIVE',
     });
     createdIds.push(user.id);

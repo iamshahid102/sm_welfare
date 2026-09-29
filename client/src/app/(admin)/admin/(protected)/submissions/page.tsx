@@ -90,7 +90,7 @@ function MessageCell({ message }: { message: string }) {
  *   - "Forms" tab  → GET /api/v1/forms/submissions (filterable by formType)
  *   - "Contact" tab → GET /api/v1/contact
  *
- * Both endpoints require ADMIN / SUPER_ADMIN (HttpOnly cookie session via the
+ * Both endpoints require the authenticated admin session (HttpOnly cookies via the
  * shared API client); the payloads are personal data, so nothing here is
  * public. Read-only by design: the models document an inbox for review —
  * deletion of submitted personal data is a separate, deliberate action.

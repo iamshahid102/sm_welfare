@@ -2,7 +2,7 @@
   "name": "sm-welfare-server",
   "version": "0.1.0",
   "private": true,
-  "description": "SM Welfare - production-grade Express REST API server",
+  "description": "SM Welfare - Express REST API server + single-admin CMS backend",
   "type": "module",
   "main": "dist/server.js",
   "engines": {
@@ -12,7 +12,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
-    "provision:super-admin": "tsx src/scripts/provisionSuperAdmin.ts",
+    "provision:admin": "tsx src/scripts/provisionAdmin.ts",
     "seed:cms": "tsx src/scripts/seedCms.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

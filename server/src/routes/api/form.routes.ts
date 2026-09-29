@@ -3,7 +3,6 @@ import type { Request, RequestHandler } from 'express';
 import { FORM_TYPES, type FormType } from '../../constants/form.js';
 import { requireAuth } from '../../middlewares/auth.middleware.js';
 import { submissionRateLimiter } from '../../middlewares/rateLimit.middleware.js';
-import { requireRole } from '../../middlewares/role.middleware.js';
 import { FormSubmissionModel } from '../../models/formSubmission.model.js';
 import { ApiError } from '../../utils/ApiError.js';
 
@@ -242,17 +241,7 @@ export const listSubmissions: RequestHandler = async (req, res, next) => {
 const formRouter = Router();
 
 formRouter.post('/submit', submissionRateLimiter, submitForm);
-formRouter.get(
-  '/submissions',
-  requireAuth,
-  requireRole('SUPER_ADMIN', 'ADMIN'),
-  listSubmissions,
-);
-formRouter.get(
-  '/submission/:id',
-  requireAuth,
-  requireRole('SUPER_ADMIN', 'ADMIN'),
-  getSubmission,
-);
+formRouter.get('/submissions', requireAuth, listSubmissions);
+formRouter.get('/submission/:id', requireAuth, getSubmission);
 
 export { formRouter };

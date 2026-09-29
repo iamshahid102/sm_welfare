@@ -9,9 +9,9 @@ import type { ApiSuccessResponse } from '../types/index.js';
 
 /**
  * Site settings controllers - thin HTTP adapters.
- * Reads require authentication (requireAuth); mutations additionally require
- * requireRole('SUPER_ADMIN') in the route definitions. Controllers only
- * translate request data into service calls and results into responses.
+ * Every route requires the single admin session (requireAuth) in the route
+ * definitions. Controllers only translate request data into service calls and
+ * results into responses.
  */
 
 function settingsPayload(
@@ -20,19 +20,19 @@ function settingsPayload(
   return { success: true, data: { settings } };
 }
 
-/** GET /api/v1/site-settings - current settings (authenticated users). */
+/** GET /api/v1/site-settings - current settings (admin session). */
 export const getSiteSettings: RequestHandler = async (_req, res) => {
   const settings = await getSettings();
   res.status(200).json(settingsPayload(settings));
 };
 
-/** POST /api/v1/site-settings - initialize settings (SUPER_ADMIN only). */
+/** POST /api/v1/site-settings - initialize the settings singleton. */
 export const initializeSiteSettings: RequestHandler = async (req, res) => {
   const settings = await initSettings(req.body);
   res.status(201).json(settingsPayload(settings));
 };
 
-/** PATCH /api/v1/site-settings - partial update (SUPER_ADMIN only). */
+/** PATCH /api/v1/site-settings - partial update. */
 export const updateSiteSettings: RequestHandler = async (req, res) => {
   const settings = await patchSettings(req.body);
   res.status(200).json(settingsPayload(settings));

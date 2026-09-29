@@ -50,12 +50,6 @@ describe('User model (schema-level)', () => {
     assert.equal(user.lastLoginAt, null);
   });
 
-  it('accepts the SUPER_ADMIN role', async () => {
-    const user = buildUser({ role: 'SUPER_ADMIN' });
-    await user.validate();
-    assert.equal(user.role, 'SUPER_ADMIN');
-  });
-
   it('rejects a user without a name', async () => {
     const user = new UserModel({
       email: VALID_USER.email,

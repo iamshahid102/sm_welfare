@@ -200,6 +200,27 @@ export const WINTER_RELIEF: SiteImage = {
   height: 960,
 };
 
+/**
+ * Payment-provider marks on the Donate page — the two logos the live /donate/
+ * page renders beside its details (Faysal Bank above the account details,
+ * EasyPaisa above the wallet number), fetched from the live site's own uploads
+ * so no brand mark is redrawn by hand. `alt` names the provider, matching how
+ * the live page uses them.
+ */
+export const FAYSAL_BANK_LOGO: SiteImage = {
+  src: "/images/faysal-bank-logo.png",
+  alt: "Faysal Bank",
+  width: 1024,
+  height: 264,
+};
+
+export const EASYPAISA_LOGO: SiteImage = {
+  src: "/images/easypaisa-logo.png",
+  alt: "EasyPaisa",
+  width: 300,
+  height: 300,
+};
+
 /** Used for the About page "Our story" column. */
 export const ABOUT_IMAGE: SiteImage = {
   src: "/images/story-empowering-women-vocational-training.jpg",
