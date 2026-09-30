@@ -11,10 +11,10 @@ const server = createServer(app);
  *   1. connect to MongoDB (fails fast with a clear error -> no HTTP server)
  *   2. start the HTTP server
  *
- * This file is for `npm run dev` and `npm start` only. On Vercel the HTTP
- * listener is not used at all: `api/index.js` (see vercel.json) is the
- * serverless entry point and hands requests straight to the Express app,
- * which is why this module never needs to be imported by the platform.
+ * This file is for `npm run dev` and `npm start` only. On Vercel the platform
+ * imports `app.ts` directly (zero-configuration Express support) and manages
+ * the HTTP layer itself, so this module is never used there — the app opens
+ * its own database connection, which is why it works with either entry point.
  */
 export async function startServer(): Promise<void> {
   await connectToDatabase();
@@ -63,7 +63,7 @@ async function shutdown(signal: string): Promise<void> {
 process.on('SIGINT', () => void shutdown('SIGINT'));
 process.on('SIGTERM', () => void shutdown('SIGTERM'));
 
-// Start listening immediately. Vercel never runs this module - see api/index.js.
+// Start listening immediately. Vercel never runs this module.
 startServer().catch((error) => {
   console.error(`[${APP_NAME}] failed to start:`, error);
   process.exit(1);

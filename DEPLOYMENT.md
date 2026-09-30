@@ -15,24 +15,40 @@ but then the pages ship with fallback data instead of live CMS data).
 
 ## 1. API project (`server/`)
 
+### Zero configuration — do not add `vercel.json` or an `api/` folder
+
+Vercel detects the Express app and deploys it as a single Vercel Function. It
+finds the app by looking for a **default export** (or a port listener) in
+`app`, `index` or `server` at the project root or under `src/`. This project
+satisfies that twice over:
+
+- `src/app.ts` exports the Express app as its **default export**, and
+- `src/server.ts` starts one with a port listener (used for local dev).
+
+Vercel's own docs are explicit that this removes the need for rewrites in
+`vercel.json` **and** for an `api/` folder. Adding either one actively breaks
+things:
+
+- an `api/` function plus a catch-all rewrite makes Vercel treat the request
+  path as the *rewrite destination*, so Express would receive `/api` instead of
+  `/api/v1/...` and every route would 404 (Vercel warns about this at build
+  time: *"Internal rewrites in backend framework projects now route requests
+  using the rewritten destination path"*);
+- a custom `buildCommand` competes with the framework build.
+
+**So: no `vercel.json`, no `api/` folder, no build command, no output
+directory.** Every path (`/api/v1/...`) reaches the Express router unchanged.
+
 ### Vercel project settings
 
 | Setting | Value |
 | ------- | ----- |
-| Framework Preset | Other |
+| Framework Preset | Express (auto-detected — leave it) |
 | Root Directory | `server` |
-| Build Command | `npm run build` (also pinned in `server/vercel.json`) |
+| Build Command | *(leave empty — the Express preset supplies it)* |
 | Output Directory | *(leave empty)* |
 | Install Command | `npm install` |
 | Node.js Version | 24.x (from `server/package.json` `engines`) |
-
-`server/vercel.json` wires everything up:
-
-- `buildCommand` compiles TypeScript to `dist/` (`tsc` is what resolves the
-  server's NodeNext `.js` → `.ts` import specifiers).
-- `functions.includeFiles: "dist/**"` ships the compiled tree with the function.
-- `rewrites` send **every** path to `/api` (`api/index.js`). A Vercel rewrite
-  preserves the original URL, so Express still receives `/api/v1/...`.
 
 ### Environment variables
 
@@ -55,17 +71,34 @@ Preview):
 Optional (defaults shown): `AUTH_ACCESS_TOKEN_TTL_SECONDS=900`,
 `AUTH_REFRESH_TOKEN_TTL_SECONDS=604800`, `BCRYPT_ROUNDS=12`.
 
-> **Do not set `HOST` or `PORT`.** They are only used by the long-running
-> server (`npm run dev` / `npm start`); Vercel runs `api/index.js` instead.
+> **Do not set `HOST` or `PORT`.** They are only read by the long-running
+> server (`npm run dev` / `npm start`); Vercel manages the HTTP layer itself.
 
 > **`NODE_ENV=production` is required.** The server refuses to boot without the
 > Cloudinary credentials in production, and the secure-cookie default depends
 > on it.
 
 **MongoDB Atlas:** allow connections from anywhere (`0.0.0.0/0`) — Vercel
-Functions have no static egress IP. The API keeps a cached, pooled connection
+Functions have no static egress IP. The app keeps a cached, pooled connection
 per instance (`maxPoolSize: 10`) so parallel instances do not exhaust the
 cluster's connection limit.
+
+### Two code details that exist because of serverless
+
+1. **Database bootstrap** — `src/app.ts` opens the connection in a middleware
+   rather than relying on `src/server.ts`. A serverless platform imports the
+   app module directly, so nothing would ever connect and every query would
+   hang until the request timed out. `connectToDatabase()` caches its promise,
+   so this costs one connection per warm instance and nothing per request; a
+   failed connect clears the cache and the next request retries.
+2. **helmet's dual typings** — helmet ships `index.d.mts` *and* `index.d.cts`
+   and its `exports` map has no `types` condition, so the declaration file
+   TypeScript picks depends on the consumer's module resolution. Vercel's
+   Express build resolves the **CommonJS** one, where the default import is
+   typed as the module namespace and `helmet()` fails with
+   *TS2349: This expression is not callable*. `src/app.ts` normalises the
+   import once through a documented assertion that builds under both
+   resolutions.
 
 ### Verify
 
@@ -126,14 +159,15 @@ With `API_ORIGIN` set, `client/next.config.mjs` rewrites `/api/v1/*` to the API,
 so browser requests are **first-party**:
 
 - the API's cookies are stored against `sm-welfare.vercel.app`;
-- the `/admin` guard and the Axios-style 401-refresh flow work unchanged;
+- the `/admin` guard and the 401-refresh flow work unchanged;
 - **no CORS and no `SameSite=None` are needed** — `SameSite=lax` is both
   sufficient and safer.
 
 Server components (`public-programs`, `public-projects`, `public-pages`,
 `public-site-settings`) still call the absolute `NEXT_PUBLIC_API_URL`, because
 Node's `fetch` cannot resolve a relative URL. `client/src/lib/api/config.ts`
-picks the right one automatically.
+picks the right one automatically. (This rewrite is on the **client** project,
+which is Next.js — it is unrelated to the Express project, which needs none.)
 
 ### Verify
 
@@ -156,17 +190,8 @@ Then in a browser:
 | Limit | Effect here |
 | ----- | ----------- |
 | Function request body ≤ 4.5 MB | `MAX_MEDIA_BYTES` is **4 MB** (`server/src/constants/media.ts`, mirrored in the admin upload UI) so the API returns a clear 413 instead of Vercel rejecting the request opaquely. |
-| Function duration | `maxDuration: 30` in `server/vercel.json`. |
-| No always-on process | MongoDB connects lazily in `api/index.js` and the promise is cached per warm instance. Expect a short cold start on the first request after idle. |
+| Function duration | Left at the platform default. If a long route (e.g. `POST /api/v1/seed`) ever times out, raise it per-path under Project → Settings → Functions rather than adding a `vercel.json` `functions` block, which would have to guess the framework's internal entry path. |
+| No always-on process | The app connects to MongoDB lazily (see above) and reuses the connection on warm instances. Expect a short cold start on the first request after idle. |
 | In-memory rate limiting | `express-rate-limit` counters live per instance and reset on cold start, so limits are looser than a single server. Move the store to Redis (e.g. Upstash) if strict login throttling matters. |
 | Serverless filesystem is read-only | The seed scripts that upload from `client/public/images` must run locally, never on Vercel. |
-
-## Alternative: single domain
-
-If you later put both apps on one registrable domain (e.g.
-`app.example.com` + `api.example.com`, or a custom domain on the API and a
-rewrite from the client), you can drop `NEXT_PUBLIC_API_PROXY_PATH`,
-`API_ORIGIN` and the rewrite, point `NEXT_PUBLIC_API_URL` straight at the API,
-and keep `AUTH_COOKIE_SAMESITE=lax`. Cookies are shared across subdomains of the
-same registrable domain only when the API sets an explicit `domain` attribute —
-the rewrite approach above therefore stays the simplest option.
+| Single bundled function ≤ 250 MB | Mongoose + Express + Cloudinary are well inside this. |
