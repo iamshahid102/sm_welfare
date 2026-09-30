@@ -29,6 +29,7 @@ import type {
   PublicProgram,
   PublicProject,
 } from "@/types/public-api";
+import type { ContentImage } from "@/types/content";
 import { cn } from "@/lib/utils";
 
 /** Chip value meaning "no program filter". */
@@ -45,6 +46,8 @@ interface ProjectDetailData {
   badge: string;
   shortDescription: string;
   description: string;
+  /** CMS cover photo from the API; preferred over the curated fallback. */
+  coverImage?: ContentImage | null;
 }
 
 function ProjectDetail({
@@ -55,7 +58,11 @@ function ProjectDetail({
   index: number;
 }) {
   const imageRight = index % 2 === 1;
-  const image = resolveProjectImage({ slug: project.slug, title: project.title });
+  const image = resolveProjectImage({
+    slug: project.slug,
+    title: project.title,
+    coverImage: project.coverImage,
+  });
 
   return (
     <article
@@ -282,6 +289,7 @@ export function ProjectsExplorer() {
                         badge: project.program.title,
                         shortDescription: project.shortDescription,
                         description: project.description,
+                        coverImage: project.coverImage,
                       }}
                     />
                   </Reveal>

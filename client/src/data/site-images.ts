@@ -10,11 +10,12 @@
  * URLs against the source files, not by guessing from filenames.
  *
  * WHY THIS FILE EXISTS
- * The public API contract (see types/public-api.ts) has no image field on
- * projects, and media images live in Cloudinary. Until the CMS has imagery,
- * these verified local assets keep every image slot on the public site filled
- * with real photographs instead of grey placeholders. API data always wins
- * where it exists — nothing here overrides backend content.
+ * Programs and projects both carry a CMS `coverImage` (see
+ * types/public-api.ts → ContentFields), and that is always preferred — the
+ * resolver below returns it first. These verified local assets are the
+ * fallback for documents that have no cover yet and for the curated list used
+ * when the public API is unavailable, so an image slot is never left grey.
+ * API data always wins — nothing here overrides backend content.
  *
  * SWAPPING AN IMAGE
  * Replace the file in `public/images` (keep the name) or point the entry at a
@@ -332,6 +333,50 @@ const PROJECT_IMAGE_MATCHERS: ReadonlyArray<{
       height: 563,
     },
   },
+  // ── Remaining programmes ───────────────────────────────────────────────
+  // Reuse the client's own page photos so the curated fallback (used when the
+  // public API is unavailable and no CMS cover exists) never renders a grey
+  // placeholder for a real programme.
+  {
+    match: ["home", "masjid", "renovation"],
+    image: HOME_MASJID_RENOVATION,
+  },
+  {
+    match: ["rozgar"],
+    image: ROZGAR_PROJECT,
+  },
+  {
+    match: ["marriage"],
+    image: MARRIAGE_SUPPORT,
+  },
+  {
+    match: ["flood"],
+    image: FLOOD_RELIEF_MISSION,
+  },
+  {
+    match: ["tree", "plantation"],
+    image: TREE_FOR_TOMORROW,
+  },
+  {
+    match: ["winter"],
+    image: WINTER_RELIEF,
+  },
+  {
+    match: ["quran", "sirat"],
+    image: SIRAT_UL_QURAN_ACADEMY,
+  },
+  {
+    match: ["heat"],
+    image: HEAT_STROKE_CAMP,
+  },
+  {
+    match: ["iftaar", "iftar"],
+    image: IFTAAR_DASTARKHWAN,
+  },
+  {
+    match: ["raashan", "rashan", "monthly"],
+    image: MONTHLY_RAASHAN_SUPPORT,
+  },
 ];
 
 const normalize = (value: string) =>
@@ -341,15 +386,44 @@ const normalize = (value: string) =>
     .trim();
 
 /**
- * Resolve the curated photo for a project. Returns `undefined` when nothing
- * matches, which lets callers fall back to the placeholder treatment instead of
- * rendering an unrelated picture.
+ * Resolve the photo for a project.
+ *
+ * The CMS `coverImage` always wins: it is the photo the admin chose for that
+ * project, so it must be used whenever the public API supplies one. The
+ * curated matchers below are only a fallback for projects that have no cover
+ * yet (or when the public API is unavailable and the curated list is used).
+ *
+ * The matchers also key off slug/title rather than an exact slug, so the right
+ * photo still attaches when the backend slug differs from the template slug
+ * (e.g. "health-care-services-2" or "hunarmand-beti-project").
+ *
+ * Returns `undefined` when nothing matches, which lets callers fall back to the
+ * placeholder treatment instead of rendering an unrelated picture.
  */
 export function resolveProjectImage(project: {
   slug?: string;
   title?: string;
   name?: string;
+  coverImage?: {
+    url?: string;
+    alt?: string;
+    width?: number;
+    height?: number;
+  } | null;
 }): SiteImage | undefined {
+  // API photo first — this is what fixes programmes whose curated matcher is
+  // missing (only six of the thirteen had one), which previously fell through
+  // to a grey placeholder even though the CMS had a cover image.
+  const cover = project.coverImage;
+  if (cover?.url) {
+    return {
+      src: cover.url,
+      alt: cover.alt || project.title || project.name || "",
+      width: cover.width ?? 1000,
+      height: cover.height ?? 563,
+    };
+  }
+
   const haystack = normalize(
     [project.slug, project.title, project.name].filter(Boolean).join(" ")
   );

@@ -4,6 +4,7 @@ import { HiArrowRight } from "react-icons/hi2";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { resolveProjectImage } from "@/data/site-images";
+import type { ContentImage } from "@/types/content";
 import { cn } from "@/lib/utils";
 
 /** Shared card image sizing hint (3-up grid on desktop, full width on mobile). */
@@ -30,6 +31,8 @@ export interface ProjectCardApiData {
   title: string;
   shortDescription: string;
   program: { id: string; title: string; slug: string };
+  /** CMS cover photo — used when present, curated fallback otherwise. */
+  coverImage?: ContentImage | null;
   source: "api";
 }
 
