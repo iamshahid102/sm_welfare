@@ -45,7 +45,7 @@ export function Hero() {
       <Link
         href={DONATE_HREF}
         aria-label="Donate now — support SM Welfare Trust programmes"
-        className="group relative block overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-4 focus-visible:ring-offset-primary-deep"
+        className="anim-fade-in group relative block overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-4 focus-visible:ring-offset-primary-deep"
       >
         <Image
           src={HERO_IMAGE.src}

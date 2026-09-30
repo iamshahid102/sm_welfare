@@ -3,6 +3,7 @@ import { HiReceiptPercent, HiScale, HiShieldCheck } from "react-icons/hi2";
 import { PageHero } from "@/components/shared/page-hero";
 import { Container } from "@/components/shared/container";
 import { SectionHeading } from "@/components/shared/section-heading";
+import { Reveal } from "@/components/shared/reveal";
 import { DonationBuilder } from "@/components/sections/donation-builder";
 
 /**
@@ -92,12 +93,14 @@ export default function DonatePage() {
           />
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {TRUST_POINTS.map((point) => (
-              <article
+            {TRUST_POINTS.map((point, index) => (
+              <Reveal
+                as="article"
                 key={point.title}
-                className="flex flex-col gap-3 rounded-xl border border-border bg-white p-6 shadow-sm"
+                delay={index * 90}
+                className="hover-lift group flex flex-col gap-3 rounded-xl border border-border bg-white p-6 shadow-sm hover:border-primary/25"
               >
-                <span className="flex size-11 items-center justify-center rounded-full bg-secondary text-primary">
+                <span className="flex size-11 items-center justify-center rounded-full bg-secondary text-primary transition-colors duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
                   <point.icon className="size-5" aria-hidden="true" />
                 </span>
                 <h3 className="font-heading text-lg font-bold tracking-tight">
@@ -106,7 +109,7 @@ export default function DonatePage() {
                 <p className="text-sm leading-relaxed text-muted-foreground">
                   {point.description}
                 </p>
-              </article>
+              </Reveal>
             ))}
           </div>
         </Container>

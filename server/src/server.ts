@@ -7,15 +7,14 @@ import { APP_NAME } from './constants/index.js';
 const server = createServer(app);
 
 /**
- * HTTP server bootstrap:
+ * Local / long-running HTTP server bootstrap:
  *   1. connect to MongoDB (fails fast with a clear error -> no HTTP server)
  *   2. start the HTTP server
  *
- * Exported so tests and tooling can import it without listening on a port.
- * On Vercel, this same `server.listen(...)` call during module startup is what
- * Vercel's zero-configuration Node.js server detection captures: `src/server.ts`
- * is a recognized entry point and Vercel routes incoming requests to the server
- * through an internal port. No vercel.json `functions` configuration is needed.
+ * This file is for `npm run dev` and `npm start` only. On Vercel the HTTP
+ * listener is not used at all: `api/index.js` (see vercel.json) is the
+ * serverless entry point and hands requests straight to the Express app,
+ * which is why this module never needs to be imported by the platform.
  */
 export async function startServer(): Promise<void> {
   await connectToDatabase();
@@ -64,9 +63,7 @@ async function shutdown(signal: string): Promise<void> {
 process.on('SIGINT', () => void shutdown('SIGINT'));
 process.on('SIGTERM', () => void shutdown('SIGTERM'));
 
-// Start listening immediately. Locally this boots the API on env.port; on
-// Vercel the top-level listen() call is captured by zero-configuration
-// Node.js server detection (the port is only used locally).
+// Start listening immediately. Vercel never runs this module - see api/index.js.
 startServer().catch((error) => {
   console.error(`[${APP_NAME}] failed to start:`, error);
   process.exit(1);

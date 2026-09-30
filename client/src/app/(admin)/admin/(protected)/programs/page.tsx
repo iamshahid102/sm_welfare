@@ -1,841 +1,570 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import Image from "next/image";
+import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { useAuth } from "@/hooks/use-auth";
-import { canAccessAdmin } from "@/types/auth";
+import { Textarea } from "@/components/ui/textarea";
+import { AdminPageHeader } from "@/components/admin/page-header";
+import { ContentEditor } from "@/components/admin/content-editor";
 import {
-  listPrograms,
   createProgram,
+  listPrograms,
   updateProgram,
   updateProgramStatus,
-  type ListProgramsQuery,
   type CreateProgramInput,
-  type UpdateProgramInput,
   type Program,
   type ProgramStatus,
+  type UpdateProgramInput,
 } from "@/services/programs";
-import { HiLockClosed } from "react-icons/hi2";
+import type { ContentFieldsInput } from "@/types/content";
+import { cn } from "@/lib/utils";
+import {
+  HiArrowTopRightOnSquare,
+  HiPhoto,
+  HiPlus,
+  HiPencilSquare,
+  HiRectangleStack,
+} from "react-icons/hi2";
 
-// Title is set via the layout
+/**
+ * Admin → Programs.
+ *
+ * A program is the top-level welfare initiative and the badge/filter category
+ * on the public site. This screen lists every program with its cover photo and
+ * a quick "how much content it has" summary, and edits the exact fields the
+ * public page shows — tagline, cover, gallery, sections, highlight cards,
+ * quick facts and the closing call to action.
+ */
 
 const PAGE_SIZE = 10;
 
-interface LoadingState {
-  status: "loading";
-}
-
-interface ErrorState {
-  status: "error";
-  message: string;
-}
-
-interface ReadyState {
-  status: "ready";
-  programs: Program[];
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-  search: string;
-  filterStatus: ProgramStatus | "all";
-  /** True while a refetch is in flight - the rendered list stays mounted. */
-  refreshing: boolean;
-  selectingProgram: Program | null;
-  editingProgram: Program | null;
-  editingForm: UpdateProgramInput;
-  saving: boolean;
-  lastError: string | null;
-}
-
-type PageState = LoadingState | ErrorState | ReadyState;
-
-function isReadyState(state: PageState): state is ReadyState {
-  return state.status === "ready";
-}
-
-const STATUS_BADGE_VARIANT: Record<ProgramStatus, "secondary" | "default" | "outline" | "ghost" | "destructive" | "link" | null | undefined> = {
+const STATUS_BADGE_VARIANT: Record<
+  ProgramStatus,
+  "secondary" | "default" | "outline"
+> = {
   DRAFT: "secondary",
   PUBLISHED: "default",
   ARCHIVED: "outline",
 };
 
-function ProgramRow({
+interface ListState {
+  items: Program[];
+  page: number;
+  total: number;
+  totalPages: number;
+}
+
+function ProgramCard({
   program,
   onEdit,
-  canEdit,
 }: {
   program: Program;
   onEdit: () => void;
-  canEdit: boolean;
 }) {
+  const sectionCount = program.sections.length;
+  const highlightCount = program.highlights.length;
+  const factCount = program.facts.length;
+  const photoCount = (program.coverImage ? 1 : 0) + program.gallery.length;
+
   return (
-    <tr className="group cursor-default border-border/60 hover:bg-muted/50">
-      <td className="px-4 py-3 align-middle font-medium">
-        <div className="flex flex-wrap items-center gap-2">
-          <span>{program.title}</span>
-          <Badge variant={STATUS_BADGE_VARIANT[program.status]} className="whitespace-nowrap">
+    // Shadow-only hover (no lift): these rows carry action buttons, and a
+    // row that moves under the pointer makes those targets harder to click.
+    <div className="group flex flex-col gap-4 rounded-2xl border border-border bg-background p-4 transition-[box-shadow,border-color] duration-300 hover:border-primary/25 hover:shadow-lg sm:flex-row sm:items-center">
+      <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden rounded-xl border border-border bg-muted sm:w-40">
+        {program.coverImage ? (
+          <Image
+            src={program.coverImage.url}
+            alt={program.coverImage.alt ?? program.title}
+            fill
+            unoptimized
+            sizes="200px"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        ) : (
+          <span className="flex h-full w-full items-center justify-center text-muted-foreground">
+            <HiPhoto className="size-6" aria-hidden="true" />
+          </span>
+        )}
+        <span className="absolute left-2 top-2">
+          <Badge variant={STATUS_BADGE_VARIANT[program.status]}>
             {program.status}
           </Badge>
-        </div>
-      </td>
-      <td className="px-4 py-3 align-middle text-sm text-muted-foreground font-mono text-xs">
-        {program.slug}
-      </td>
-      <td className="px-4 py-3 align-middle text-sm text-muted-foreground">
-        {program.shortDescription}
-      </td>
-      <td className="px-4 py-3 align-middle text-sm">
-        <span className="font-mono text-muted-foreground">{program.displayOrder}</span>
-      </td>
-      <td className="px-4 py-3 align-middle">
-        {canEdit && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onEdit}
-          >
-            Edit
-          </Button>
-        )}
-      </td>
-    </tr>
-  );
-}
-
-export default function AdminProgramsPage() {
-  const { user } = useAuth();
-  const [state, setState] = useState<PageState>({ status: "loading" });
-  const [programSearch, setProgramSearch] = useState("");
-  const [programStatus, setProgramStatus] = useState<ProgramStatus | "all">("all");
-  const [page, setPage] = useState(1);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  // Bumped after a mutation so the effect refetches even when the query
-  // parameters themselves are unchanged (e.g. create while on page 1).
-  const [refreshToken, setRefreshToken] = useState(0);
-
-  // Only the newest request may write state - a slow response for an older
-  // search term can never overwrite a newer one.
-  const requestIdRef = useRef(0);
-
-  // The single admin owns every content type — editing is always allowed.
-  const canEdit = canAccessAdmin(user);
-
-  const loadPrograms = useCallback(async (query: ListProgramsQuery = {}) => {
-    const requestId = ++requestIdRef.current;
-
-    // Refetching must NOT unmount the ready UI: replacing it with a skeleton
-    // would unmount the search input mid-typing and drop keyboard focus.
-    setState((prev) =>
-      prev.status === "ready"
-        ? { ...prev, refreshing: true }
-        : { status: "loading" },
-    );
-
-    try {
-      const data = await listPrograms(query);
-      if (requestId !== requestIdRef.current) return;
-      setState({
-        status: "ready",
-        programs: data.items,
-        page: data.page,
-        limit: data.limit,
-        total: data.total,
-        totalPages: data.totalPages,
-        search: query.search ?? "",
-        filterStatus: query.status ?? "all",
-        refreshing: false,
-        selectingProgram: null,
-        editingProgram: null,
-        editingForm: {},
-        saving: false,
-        lastError: null,
-      });
-    } catch (error) {
-      if (requestId !== requestIdRef.current) return;
-      setState({
-        status: "error",
-        message:
-          error instanceof Error ? error.message : "Failed to load programs.",
-      });
-    }
-  }, []);
-
-  useEffect(() => {
-    if (user) {
-      loadPrograms({ page, limit: PAGE_SIZE, search: programSearch || undefined, status: programStatus !== "all" ? programStatus : undefined });
-    }
-  }, [user, loadPrograms, page, programSearch, programStatus, refreshToken]);
-
-  const handleSearch = useCallback(
-    (value: string) => {
-      setProgramSearch(value);
-      setPage(1);
-    },
-    [],
-  );
-
-  const handleStatusFilter = useCallback(
-    (status: ProgramStatus | "all") => {
-      setProgramStatus(status);
-      setPage(1);
-    },
-    [],
-  );
-
-  const handlePageChange = useCallback(
-    (newPage: number) => {
-      setPage(newPage);
-    },
-    [],
-  );
-
-  const openEditDialog = useCallback(
-    (program: Program) => {
-      setState((prev) =>
-        prev.status === "ready"
-          ? {
-              ...prev,
-              editingProgram: program,
-              editingForm: {
-                title: program.title,
-                slug: program.slug,
-                shortDescription: program.shortDescription,
-                description: program.description,
-                displayOrder: program.displayOrder,
-              },
-              saving: false,
-              lastError: null,
-            }
-          : prev,
-      );
-    },
-    [],
-  );
-
-  const closeDialog = useCallback(() => {
-    setCreateDialogOpen(false);
-    setState((prev) =>
-      prev.status === "ready"
-        ? {
-            ...prev,
-            selectingProgram: null,
-            editingProgram: null,
-            editingForm: {},
-            saving: false,
-            lastError: null,
-          }
-        : prev,
-    );
-  }, []);
-
-  const handleCreate = useCallback(
-    async (values: CreateProgramInput) => {
-      setState((prev) =>
-        prev.status === "ready"
-          ? { ...prev, saving: true, lastError: null }
-          : prev,
-      );
-      try {
-        await createProgram(values);
-        setPage(1);
-        closeDialog();
-        // Refetch even when page/search/filter were already at their defaults.
-        setRefreshToken((token) => token + 1);
-      } catch (error) {
-        setState((prev) =>
-          prev.status === "ready"
-            ? { ...prev, saving: false, lastError: error instanceof Error ? error.message : "Failed to create program." }
-            : prev,
-        );
-      }
-    },
-    [closeDialog],
-  );
-
-  const handleUpdate = useCallback(
-    async (values: UpdateProgramInput) => {
-      setState((prev) =>
-        prev.status === "ready"
-          ? { ...prev, saving: true, lastError: null }
-          : prev,
-      );
-      try {
-        const readyState = isReadyState(state) ? state : null;
-        if (!readyState || !readyState.editingProgram) return;
-        const updated = await updateProgram(readyState.editingProgram.id, values);
-        setState((prev) => {
-          if (!isReadyState(prev)) return prev;
-          return {
-            ...prev,
-            programs: prev.programs.map((p) => p.id === updated.id ? updated : p),
-            editingProgram: updated,
-            editingForm: values,
-            saving: false,
-            lastError: null,
-          };
-        });
-      } catch (error) {
-        setState((prev) =>
-          prev.status === "ready"
-            ? { ...prev, saving: false, lastError: error instanceof Error ? error.message : "Failed to update program." }
-            : prev,
-        );
-      }
-    },
-    [state],
-  );  const handleStatusChange = useCallback(async (programId: string, newStatus: ProgramStatus) => {
-    try {
-      const updated = await updateProgramStatus(programId, newStatus);
-      setState((prev) => {
-        if (!isReadyState(prev)) return prev;
-        return {
-          ...prev,
-          programs: prev.programs.map((p) => p.id === updated.id ? updated : p),
-        };
-      });
-    } catch (error) {
-      setState((prev) =>
-        prev.status === "ready"
-          ? { ...prev, lastError: error instanceof Error ? error.message : "Failed to change status." }
-          : prev,
-      );
-    }
-  }, []);
-
-  if (!user) {
-    return null;
-  }
-
-  if (state.status === "loading") {
-    return (
-      <div className="flex flex-col gap-6">
-        <div>
-          <Skeleton className="h-8 w-36" />
-          <Skeleton className="mt-2 h-4 w-64" />
-        </div>
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <CardTitle className="font-heading">
-                <Skeleton className="h-6 w-32" />
-              </CardTitle>
-              <div className="flex gap-2">
-                <Skeleton className="h-8 w-16" />
-                <Skeleton className="h-8 w-16" />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-10 w-full" />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (state.status === "error") {
-    return (
-      <div className="flex flex-col gap-6">
-        <div>
-          <h1 className="font-heading text-2xl font-semibold">Programs</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage the programmes shown on the public Projects page.
-          </p>
-        </div>
-        <Card className="border-destructive/50">
-          <CardContent className="flex items-center gap-3 py-4">
-            <span className="text-destructive font-medium">Error</span>
-            <span className="text-sm text-muted-foreground">
-              {state.message}
-            </span>
-            <Button variant="outline" size="sm" onClick={() => loadPrograms()}>
-              Retry
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (state.status !== "ready") {
-    return null;
-  }
-
-  const { programs, total, totalPages, editingProgram, editingForm, saving, lastError, refreshing } = state;
-
-  const EmptyState = (
-    <Card className="border-dashed">
-      <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
-        <HiLockClosed
-          className="size-10 text-muted-foreground/60"
-          aria-hidden="true"
-        />
-        <span className="text-sm font-medium">No programs yet</span>
-        <span className="text-sm text-muted-foreground">
-          Create a program to start organizing projects.
         </span>
-      </CardContent>
-    </Card>
-  );
-
-  return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="font-heading text-2xl font-semibold">Programs</h1>
-        <p className="text-sm text-muted-foreground">
-          Manage the programmes shown on the public Projects page.
-        </p>
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-wrap items-center gap-4">
-          <div className="flex-1">
-            <CardTitle className="font-heading">All programs</CardTitle>
-            <CardDescription>
-              {total} program{total === 1 ? "" : "s"} total
-              {refreshing ? " · Refreshing…" : ""}
-            </CardDescription>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Input
-              placeholder="Search programs…"
-              value={programSearch}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="w-48"
-            />
-            <select
-              value={programStatus === "all" ? "" : programStatus}
-              onChange={(e) => {
-                const val = e.target.value;
-                handleStatusFilter(val ? (val as ProgramStatus) : "all");
-              }}
-              className="rounded-lg border-border bg-background px-2 text-sm"
-            >
-              <option value="">All statuses</option>
-              <option value="DRAFT">Draft</option>
-              <option value="PUBLISHED">Published</option>
-              <option value="ARCHIVED">Archived</option>
-            </select>
-            {canEdit && (
-              <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-                <DialogTrigger render={<Button size="sm">Create program</Button>} />
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle className="font-heading">Create program</DialogTitle>
-                    <DialogDescription>
-                      Add a new program. It will start as a draft.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <CreateProgramForm
-                    onSubmit={handleCreate}
-                    saving={saving}
-                    lastError={lastError}
-                    onClose={closeDialog}
-                  />
-                </DialogContent>
-              </Dialog>
-            )}
-          </div>
-        </CardHeader>
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="font-heading text-base font-bold tracking-tight">
+            {program.title}
+          </h3>
+          <span className="font-mono text-xs text-muted-foreground">
+            #{program.displayOrder}
+          </span>
+        </div>
+        {program.tagline ? (
+          <p className="text-sm font-medium text-primary">{program.tagline}</p>
+        ) : null}
+        <p className="line-clamp-2 text-sm text-muted-foreground">
+          {program.shortDescription}
+        </p>
+        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+            <HiPhoto className="size-3" aria-hidden="true" />
+            {photoCount} photo{photoCount === 1 ? "" : "s"}
+          </span>
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+            {sectionCount} section{sectionCount === 1 ? "" : "s"}
+          </span>
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+            {highlightCount} card{highlightCount === 1 ? "" : "s"}
+          </span>
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+            {factCount} fact{factCount === 1 ? "" : "s"}
+          </span>
+        </div>
+      </div>
 
-        <CardContent>
-          {programs.length === 0 ? (
-            EmptyState
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-border/60 text-left">
-                      <th className="px-4 py-2 text-sm font-medium">Name</th>
-                      <th className="px-4 py-2 text-sm font-medium">Slug</th>
-                      <th className="px-4 py-2 text-sm font-medium">Short description</th>
-                      <th className="px-4 py-2 text-sm font-medium">Order</th>
-                      <th className="px-4 py-2 text-sm font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {programs.map((program) => (
-                      <ProgramRow
-                        key={program.id}
-                        program={program}
-                        onEdit={() => openEditDialog(program)}
-                        canEdit={canEdit}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {totalPages > 1 && (
-                <div className="flex flex-wrap items-center justify-between gap-4 pt-4">
-                  <div className="text-sm text-muted-foreground">
-                    Page {state.page} of {totalPages}
-                  </div>
-                  <PaginationControls
-                    page={state.page}
-                    totalPages={totalPages}
-                    onPageChange={handlePageChange}
-                  />
-                </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {editingProgram && canEdit && (
-        <Dialog open onOpenChange={(open) => { if (!open) closeDialog(); }}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle className="font-heading">Edit program</DialogTitle>
-              <DialogDescription>
-                Update the program details.
-              </DialogDescription>
-            </DialogHeader>
-            <EditProgramForm
-              program={editingProgram}
-              initialValues={editingForm}
-              onSave={handleUpdate}
-              onStatusChange={handleStatusChange}
-              saving={saving}
-              lastError={lastError}
-              onClose={closeDialog}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
-    </div>
-  );
-}
-
-function PaginationControls({
-  page,
-  totalPages,
-  onPageChange,
-}: {
-  page: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
-}) {
-  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
-  return (
-    // flex-wrap keeps a long page list from forcing horizontal page overflow
-    // on narrow screens.
-    <div className="flex max-w-full flex-wrap items-center gap-1">
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={page <= 1}
-        onClick={() => onPageChange(page - 1)}
-      >
-        Previous
-      </Button>
-      {pages.map((p) => (
-        <Button
-          key={p}
-          variant={p === page ? "default" : "outline"}
-          size="sm"
-          onClick={() => onPageChange(p)}
-        >
-          {p}
+      <div className="flex shrink-0 items-center gap-2 sm:flex-col sm:items-stretch">
+        <Button size="sm" variant="outline" onClick={onEdit}>
+          <HiPencilSquare className="mr-1.5 size-4" aria-hidden="true" />
+          Edit content
         </Button>
-      ))}
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={page >= totalPages}
-        onClick={() => onPageChange(page + 1)}
-      >
-        Next
-      </Button>
+        <Link
+          href={`/${program.slug}`}
+          target="_blank"
+          className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <HiArrowTopRightOnSquare className="size-3.5" aria-hidden="true" />
+          Preview
+        </Link>
+      </div>
     </div>
   );
 }
 
-function CreateProgramForm({
-  onSubmit,
+/** Self-contained create/edit form — owns its draft state. */
+function ProgramForm({
+  program,
   saving,
-  lastError,
-  onClose,
+  error,
+  onSubmit,
+  onCancel,
 }: {
-  onSubmit: (values: CreateProgramInput) => void;
+  program: Program | null;
   saving: boolean;
-  lastError: string | null;
-  onClose: () => void;
+  error: string | null;
+  onSubmit: (values: CreateProgramInput | UpdateProgramInput) => void;
+  onCancel: () => void;
 }) {
-  const [title, setTitle] = useState("");
-  const [slug, setSlug] = useState("");
-  const [shortDescription, setShortDescription] = useState("");
-  const [description, setDescription] = useState("");
-  const [displayOrder, setDisplayOrder] = useState<number | undefined>(undefined);
+  const [title, setTitle] = useState(program?.title ?? "");
+  const [shortDescription, setShortDescription] = useState(
+    program?.shortDescription ?? "",
+  );
+  const [description, setDescription] = useState(program?.description ?? "");
+  const [displayOrder, setDisplayOrder] = useState(
+    program?.displayOrder !== undefined ? String(program.displayOrder) : "",
+  );
+  const [content, setContent] = useState<ContentFieldsInput>({
+    tagline: program?.tagline ?? undefined,
+    coverImage: program?.coverImage ?? null,
+    gallery: program?.gallery ?? [],
+    sections: program?.sections ?? [],
+    highlights: program?.highlights ?? [],
+    facts: program?.facts ?? [],
+    cta: program?.cta ?? null,
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const [tab, setTab] = useState<"basics" | "content">("basics");
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const orderValue = displayOrder.trim() === "" ? undefined : Number(displayOrder);
     onSubmit({
       title: title.trim(),
-      ...(slug.trim() && { slug: slug.trim() }),
       shortDescription: shortDescription.trim(),
       description: description.trim(),
-      ...(displayOrder !== undefined && { displayOrder }),
+      ...(orderValue !== undefined && !Number.isNaN(orderValue)
+        ? { displayOrder: orderValue }
+        : {}),
+      tagline: content.tagline,
+      coverImage: content.coverImage ?? null,
+      gallery: content.gallery,
+      sections: content.sections,
+      highlights: content.highlights,
+      facts: content.facts,
+      cta: content.cta ?? null,
     });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {lastError && (
-        <div className="rounded-lg border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-          {lastError}
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      {error ? (
+        <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
+
+      <div className="flex gap-1 rounded-lg border border-border bg-muted/40 p-1">
+        {(
+          [
+            ["basics", "Basics"],
+            ["content", "Page content"],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setTab(key)}
+            className={cn(
+              "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+              tab === key
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "basics" ? (
+        <div className="flex flex-col gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="programTitle">Title *</Label>
+            <Input
+              id="programTitle"
+              value={title}
+              required
+              disabled={saving}
+              onChange={(event) => setTitle(event.target.value)}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="programShort">Short description *</Label>
+            <Textarea
+              id="programShort"
+              rows={2}
+              value={shortDescription}
+              required
+              disabled={saving}
+              onChange={(event) => setShortDescription(event.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Shown on cards and listings across the site.
+            </p>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="programDescription">Full description *</Label>
+            <Textarea
+              id="programDescription"
+              rows={5}
+              value={description}
+              required
+              disabled={saving}
+              onChange={(event) => setDescription(event.target.value)}
+            />
+          </div>
+          <div className="grid gap-2 sm:max-w-xs">
+            <Label htmlFor="programOrder">Display order</Label>
+            <Input
+              id="programOrder"
+              type="number"
+              min={0}
+              step={1}
+              value={displayOrder}
+              disabled={saving}
+              onChange={(event) => setDisplayOrder(event.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Lower numbers appear first.
+            </p>
+          </div>
         </div>
+      ) : (
+        <ContentEditor value={content} onChange={setContent} disabled={saving} />
       )}
-      <div className="grid gap-2">
-        <Label htmlFor="createTitle">Title *</Label>
-        <Input
-          id="createTitle"
-          value={title}
-          onChange={(e) => {
-            setTitle(e.target.value);
-          }}
-          required
-          disabled={saving}
-          aria-invalid={lastError ? true : undefined}
-        />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="createSlug">Slug (optional)</Label>
-        <Input
-          id="createSlug"
-          value={slug}
-          onChange={(e) => {
-            setSlug(e.target.value);
-          }}
-          disabled={saving}
-          placeholder="Auto-generated from title if empty"
-          className="text-xs font-mono"
-        />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="createShortDescription">Short description *</Label>
-        <Textarea
-          id="createShortDescription"
-          value={shortDescription}
-          onChange={(e) => {
-            setShortDescription(e.target.value);
-          }}
-          required
-          disabled={saving}
-          rows={2}
-        />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="createDescription">Description *</Label>
-        <Textarea
-          id="createDescription"
-          value={description}
-          onChange={(e) => {
-            setDescription(e.target.value);
-          }}
-          required
-          disabled={saving}
-          rows={4}
-        />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="createDisplayOrder">Display order</Label>
-        <Input
-          id="createDisplayOrder"
-          type="number"
-          min={0}
-          step={1}
-          value={displayOrder ?? ""}
-          onChange={(e) => {
-            const val = e.target.value;
-            setDisplayOrder(val ? Number(val) : undefined);
-          }}
-          disabled={saving}
-        />
-      </div>
-      <div className="flex justify-end gap-2 pt-2">
-        <Button
-          type="button"
-          variant="outline"
-          disabled={saving}
-          onClick={onClose}
-        >
+
+      <div className="flex justify-end gap-2 border-t border-border pt-4">
+        <Button type="button" variant="outline" disabled={saving} onClick={onCancel}>
           Cancel
         </Button>
         <Button type="submit" disabled={saving}>
-          {saving ? "Creating…" : "Create program"}
+          {saving ? "Saving…" : program ? "Save changes" : "Create program"}
         </Button>
       </div>
     </form>
   );
 }
 
-function EditProgramForm({
-  program,
-  initialValues,
-  onSave,
-  onStatusChange,
-  saving,
-  lastError,
-  onClose,
-}: {
-  program: Program;
-  initialValues: UpdateProgramInput;
-  onSave: (values: UpdateProgramInput) => void;
-  onStatusChange: (id: string, status: ProgramStatus) => void;
-  saving: boolean;
-  lastError: string | null;
-  onClose: () => void;
-}) {
-  const [title, setTitle] = useState(initialValues.title ?? program.title);
-  const [slug, setSlug] = useState(initialValues.slug ?? program.slug);
-  const [shortDescription, setShortDescription] = useState(initialValues.shortDescription ?? program.shortDescription);
-  const [description, setDescription] = useState(initialValues.description ?? program.description);
-  const [displayOrder, setDisplayOrder] = useState<number | undefined>(initialValues.displayOrder ?? program.displayOrder);
+export default function AdminProgramsPage() {
+  const [state, setState] = useState<ListState | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<ProgramStatus | "all">("all");
+  const [page, setPage] = useState(1);
+  const [refreshToken, setRefreshToken] = useState(0);
 
-  const hasChanges =
-    title !== program.title ||
-    slug !== program.slug ||
-    shortDescription !== program.shortDescription ||
-    description !== program.description ||
-    displayOrder !== program.displayOrder;
+  const [dialog, setDialog] = useState<
+    { mode: "create" } | { mode: "edit"; program: Program } | null
+  >(null);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave({
-      ...(title !== program.title && { title: title.trim() }),
-      ...(slug !== program.slug && { slug: slug.trim() }),
-      ...(shortDescription !== program.shortDescription && { shortDescription: shortDescription.trim() }),
-      ...(description !== program.description && { description: description.trim() }),
-      ...(displayOrder !== program.displayOrder && { displayOrder }),
-    });
-  };
+  const load = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
+    try {
+      const data = await listPrograms({
+        page,
+        limit: PAGE_SIZE,
+        search: search || undefined,
+        status: status !== "all" ? status : undefined,
+      });
+      if (requestId !== requestIdRef.current) return;
+      setState({
+        items: data.items,
+        page: data.page,
+        total: data.total,
+        totalPages: data.totalPages,
+      });
+      setError(null);
+    } catch (err) {
+      if (requestId !== requestIdRef.current) return;
+      setError(err instanceof Error ? err.message : "Failed to load programs.");
+    } finally {
+      if (requestId === requestIdRef.current) setLoading(false);
+    }
+  }, [page, search, status]);
+
+  // Guarded so an effect can never fire twice for the same query (and a
+  // refreshToken bump always forces a fresh load).
+  const loadKeyRef = useRef<string>("");
+  useEffect(() => {
+    const key = `${page}|${search}|${status}|${refreshToken}`;
+    if (loadKeyRef.current === key) return;
+    loadKeyRef.current = key;
+    void load();
+  }, [load, page, search, status, refreshToken]);
+
+  const handleSave = useCallback(
+    async (values: CreateProgramInput | UpdateProgramInput) => {
+      if (!dialog) return;
+      setSaving(true);
+      setFormError(null);
+      try {
+        if (dialog.mode === "create") {
+          await createProgram(values as CreateProgramInput);
+        } else {
+          await updateProgram(dialog.program.id, values as UpdateProgramInput);
+        }
+        setDialog(null);
+        setPage(1);
+        setRefreshToken((token) => token + 1);
+      } catch (err) {
+        setFormError(err instanceof Error ? err.message : "Failed to save.");
+      } finally {
+        setSaving(false);
+      }
+    },
+    [dialog],
+  );
+
+  const handleStatusChange = useCallback(
+    async (program: Program, next: ProgramStatus) => {
+      try {
+        const updated = await updateProgramStatus(program.id, next);
+        setState((prev) =>
+          prev
+            ? {
+                ...prev,
+                items: prev.items.map((p) => (p.id === updated.id ? updated : p)),
+              }
+            : prev,
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to change status.");
+      }
+    },
+    [],
+  );
 
   return (
-    <div className="space-y-6">
-      {lastError && (
-        <div className="rounded-lg border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-          {lastError}
-        </div>
-      )}
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid gap-2">
-          <Label htmlFor="editTitle">Title</Label>
-          <Input
-            id="editTitle"
-            value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-            }}
-            required
-            disabled={saving}
-            aria-invalid={lastError ? true : undefined}
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="editSlug">Slug</Label>
-          <Input
-            id="editSlug"
-            value={slug}
-            onChange={(e) => {
-              setSlug(e.target.value);
-            }}
-            disabled={saving}
-            className="text-xs font-mono"
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="editShortDescription">Short description</Label>
-          <Textarea
-            id="editShortDescription"
-            value={shortDescription}
-            onChange={(e) => {
-              setShortDescription(e.target.value);
-            }}
-            disabled={saving}
-            rows={2}
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="editDescription">Description</Label>
-          <Textarea
-            id="editDescription"
-            value={description}
-            onChange={(e) => {
-              setDescription(e.target.value);
-            }}
-            disabled={saving}
-            rows={4}
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="editDisplayOrder">Display order</Label>
-          <Input
-            id="editDisplayOrder"
-            type="number"
-            min={0}
-            step={1}
-            value={displayOrder ?? ""}
-            onChange={(e) => {
-              const val = e.target.value;
-              setDisplayOrder(val ? Number(val) : undefined);
-            }}
-            disabled={saving}
-          />
-        </div>
-        <div className="flex justify-end gap-2 pt-2">
+    <div className="flex flex-col gap-6">
+      <AdminPageHeader
+        title="Programs"
+        description="The main welfare initiatives — each one is a category on the public site and can own its own page, photos and details."
+        icon={HiRectangleStack}
+        actions={
           <Button
-            type="button"
-            variant="outline"
-            disabled={saving}
-            onClick={onClose}
+            size="sm"
+            onClick={() => {
+              setFormError(null);
+              setDialog({ mode: "create" });
+            }}
           >
-            Cancel
+            <HiPlus className="mr-1.5 size-4" aria-hidden="true" />
+            Create program
           </Button>
-          <Button
-            type="submit"
-            disabled={saving || !hasChanges}
-          >
-            {saving ? "Saving…" : "Save changes"}
-          </Button>
-        </div>
-      </form>
+        }
+      />
 
-      <Separator />
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          placeholder="Search programs…"
+          value={search}
+          onChange={(event) => {
+            setSearch(event.target.value);
+            setPage(1);
+          }}
+          className="w-56"
+        />
+        <select
+          value={status === "all" ? "" : status}
+          onChange={(event) => {
+            setStatus((event.target.value as ProgramStatus) || "all");
+            setPage(1);
+          }}
+          className="h-9 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          <option value="">All statuses</option>
+          <option value="DRAFT">Draft</option>
+          <option value="PUBLISHED">Published</option>
+          <option value="ARCHIVED">Archived</option>
+        </select>
+        {state ? (
+          <span className="text-sm text-muted-foreground">
+            {state.total} program{state.total === 1 ? "" : "s"}
+          </span>
+        ) : null}
+      </div>
 
-      <div>
-        <h3 className="font-heading text-base font-medium mb-3">Status</h3>
-        <div className="flex flex-wrap gap-2">
-          {["DRAFT", "PUBLISHED", "ARCHIVED"].filter((s) => s !== program.status).map((nextStatus) => (
-            <Button
-              key={nextStatus}
-              variant="outline"
-              size="sm"
-              disabled={saving}
-              onClick={() => onStatusChange(program.id, nextStatus as ProgramStatus)}
-            >
-              Set to {nextStatus.charAt(0) + nextStatus.slice(1).toLowerCase()}
-            </Button>
+      {loading && !state ? (
+        <div className="flex flex-col gap-3">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Skeleton key={index} className="h-32 rounded-2xl" />
           ))}
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">
-          Status changes are made through a dedicated endpoint.
-        </p>
-      </div>
+      ) : error ? (
+        <Card className="border-destructive/40">
+          <CardContent className="flex flex-wrap items-center gap-3 py-4">
+            <span className="font-medium text-destructive">Could not load</span>
+            <span className="text-sm text-muted-foreground">{error}</span>
+            <Button variant="outline" size="sm" onClick={() => void load()}>
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      ) : state && state.items.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
+            <HiRectangleStack className="size-10 text-muted-foreground/60" aria-hidden="true" />
+            <span className="text-sm font-medium">No programs yet</span>
+            <span className="text-sm text-muted-foreground">
+              Create your first program, or load the pre-filled content from the
+              dashboard.
+            </span>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {state?.items.map((program) => (
+            <div key={program.id} className="flex flex-col gap-2">
+              <ProgramCard
+                program={program}
+                onEdit={() => {
+                  setFormError(null);
+                  setDialog({ mode: "edit", program });
+                }}
+              />
+              <div className="flex flex-wrap items-center gap-1.5 px-1">
+                {(["DRAFT", "PUBLISHED", "ARCHIVED"] as ProgramStatus[])
+                  .filter((next) => next !== program.status)
+                  .map((next) => (
+                    <Button
+                      key={next}
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => void handleStatusChange(program, next)}
+                    >
+                      Set {next.toLowerCase()}
+                    </Button>
+                  ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {state && state.totalPages > 1 ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="text-sm text-muted-foreground">
+            Page {state.page} of {state.totalPages}
+          </span>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={state.page <= 1}
+              onClick={() => setPage(state.page - 1)}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={state.page >= state.totalPages}
+              onClick={() => setPage(state.page + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      <Dialog
+        open={dialog !== null}
+        onOpenChange={(open) => {
+          if (!open) setDialog(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="font-heading">
+              {dialog?.mode === "edit" ? "Edit program" : "Create program"}
+            </DialogTitle>
+            <DialogDescription>
+              {dialog?.mode === "edit"
+                ? "Edit everything the public page shows — basics and full page content."
+                : "New programs start as drafts. You can publish them right after."}
+            </DialogDescription>
+          </DialogHeader>
+          {dialog ? (
+            <ProgramForm
+              key={dialog.mode === "edit" ? dialog.program.id : "create"}
+              program={dialog.mode === "edit" ? dialog.program : null}
+              saving={saving}
+              error={formError}
+              onSubmit={handleSave}
+              onCancel={() => setDialog(null)}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

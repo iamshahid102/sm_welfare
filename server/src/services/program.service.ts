@@ -11,16 +11,29 @@ import {
 } from '../constants/program.js';
 import { ProgramModel, type Program } from '../models/program.model.js';
 import { ApiError } from '../utils/ApiError.js';
+import { generateUniqueSlug, slugifyTitle } from '../utils/slug.js';
+import {
+  extractContentPayload,
+  extractContentUpdate,
+} from '../utils/contentFields.js';
+import type {
+  ContentCta,
+  ContentFact,
+  ContentHighlight,
+  ContentImage,
+  ContentSection,
+} from '../types/content.js';
 
 /**
  * Program service - long-term welfare initiatives.
  *
  * Business rules enforced here (routes/controllers stay thin):
- *  - slug strategy: an explicit slug must already be URL-safe; an omitted slug
- *    is generated from the title
- *  - the unique slug index is the final authority against duplicates - a
- *    friendly pre-check is only a fast path, the E11000 race guard handles
- *    concurrent creation
+ *  - slug strategy: the admin never types a slug. It is derived from the title
+ *    at creation time and made unique automatically (slug, slug-2, slug-3 ...).
+ *    An explicit slug is only accepted from seed/tooling and must be URL-safe.
+ *  - the unique slug index is the final authority against duplicates - the
+ *    unique-derivation loop plus an E11000 race guard handle concurrent
+ *    creation safely
  *  - new programs start as DRAFT; status changes only via the dedicated
  *    status endpoint
  *  - unknown request fields are never persisted; only whitelisted program
@@ -41,6 +54,13 @@ export interface CreateProgramInput {
   shortDescription: string;
   description: string;
   displayOrder?: number;
+  tagline?: string;
+  coverImage?: ContentImage;
+  gallery: ContentImage[];
+  sections: ContentSection[];
+  highlights: ContentHighlight[];
+  facts: ContentFact[];
+  cta?: ContentCta;
 }
 
 export interface UpdateProgramInput {
@@ -49,6 +69,13 @@ export interface UpdateProgramInput {
   shortDescription?: string;
   description?: string;
   displayOrder?: number;
+  tagline?: string;
+  coverImage?: ContentImage;
+  gallery?: ContentImage[];
+  sections?: ContentSection[];
+  highlights?: ContentHighlight[];
+  facts?: ContentFact[];
+  cta?: ContentCta;
 }
 
 export interface ProgramListQuery {
@@ -75,6 +102,13 @@ export interface ProgramResponse {
   description: string;
   status: ProgramStatus;
   displayOrder: number;
+  tagline: string | null;
+  coverImage: ContentImage | null;
+  gallery: ContentImage[];
+  sections: ContentSection[];
+  highlights: ContentHighlight[];
+  facts: ContentFact[];
+  cta: ContentCta | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -127,17 +161,15 @@ function assertValidSlug(value: unknown): string {
   return trimmed;
 }
 
-/**
- * Generates a URL-safe slug from a title:
- * "Education Program" -> "education-program"
- * "Food & Community Support" -> "food-community-support"
- * Non-alphanumeric runs become single hyphens; surrounding hyphens are trimmed.
- */
-function slugifyTitle(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+/** Whether the request carried an explicit slug (tools/seeds only - the
+ * admin UI never sends one). */
+function hasExplicitSlug(body: unknown): boolean {
+  return (
+    body !== null &&
+    typeof body === 'object' &&
+    !Array.isArray(body) &&
+    (body as Record<string, unknown>).slug !== undefined
+  );
 }
 
 function assertValidShortDescription(value: unknown): string {
@@ -198,7 +230,8 @@ export function validateCreateProgramInput(body: unknown): CreateProgramInput {
   const title = assertValidTitle(body.title);
   // Slug strategy: explicit slug must be URL-safe; otherwise generate from
   // the title. A title that cannot produce a slug is rejected.
-  const slug = body.slug !== undefined ? assertValidSlug(body.slug) : slugifyTitle(title);
+  const slug =
+    body.slug !== undefined ? assertValidSlug(body.slug) : slugifyTitle(title, MAX_PROGRAM_SLUG_LENGTH);
   if (slug.length === 0) {
     throw new ApiError(400, 'Could not generate a valid slug from the title.');
   }
@@ -210,6 +243,7 @@ export function validateCreateProgramInput(body: unknown): CreateProgramInput {
     ...(body.displayOrder !== undefined && {
       displayOrder: assertValidDisplayOrder(body.displayOrder),
     }),
+    ...extractContentPayload(body),
   };
 }
 
@@ -235,6 +269,7 @@ export function validateUpdateProgramInput(body: unknown): UpdateProgramInput {
   if (body.displayOrder !== undefined) {
     input.displayOrder = assertValidDisplayOrder(body.displayOrder);
   }
+  Object.assign(input, extractContentUpdate(body));
   if (Object.keys(input).length === 0) {
     if (body.status !== undefined) {
       throw new ApiError(400, 'Status changes must use the dedicated status endpoint.');
@@ -309,15 +344,31 @@ function escapeRegExp(value: string): string {
  */
 export async function createProgram(body: unknown): Promise<ProgramResponse> {
   const input = validateCreateProgramInput(body);
+  const explicitSlug = hasExplicitSlug(body);
 
-  const existing = await ProgramModel.exists({ slug: input.slug });
-  if (existing) {
-    throw new ApiError(409, 'A program with this slug already exists.');
+  // The admin never types a slug. A derived slug is made unique automatically
+  // (title -> slug, then slug-2, slug-3, ...) so creating a second program
+  // with an existing title succeeds instead of failing on a field the editor
+  // cannot see or fix.
+  const slug = explicitSlug
+    ? input.slug
+    : await generateUniqueSlug(
+        input.title,
+        async (candidate) => (await ProgramModel.exists({ slug: candidate })) !== null,
+        MAX_PROGRAM_SLUG_LENGTH,
+      );
+
+  if (explicitSlug) {
+    const existing = await ProgramModel.exists({ slug });
+    if (existing) {
+      throw new ApiError(409, 'A program with this slug already exists.');
+    }
   }
 
   try {
     const program = await ProgramModel.create({
       ...input,
+      slug,
       status: 'DRAFT',
     });
     return serializeProgram(program);
@@ -454,6 +505,13 @@ export function serializeProgram(program: Program & { id: string }): ProgramResp
     description: program.description,
     status: program.status,
     displayOrder: program.displayOrder,
+    tagline: program.tagline ?? null,
+    coverImage: program.coverImage ?? null,
+    gallery: program.gallery ?? [],
+    sections: program.sections ?? [],
+    highlights: program.highlights ?? [],
+    facts: program.facts ?? [],
+    cta: program.cta ?? null,
     ...(program.createdAt !== undefined && { createdAt: program.createdAt }),
     ...(program.updatedAt !== undefined && { updatedAt: program.updatedAt }),
   };

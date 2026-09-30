@@ -16,11 +16,20 @@
 const BTN_PILL =
   "h-11 rounded-full px-7 text-sm font-semibold whitespace-nowrap";
 
+/**
+ * Shared hover feel for the pill CTAs: a small lift plus a deeper shadow, on
+ * top of the colour change each variant already defines. The button base
+ * declares `duration-200`; these only add motion so the transition stays one
+ * consistent curve across the site.
+ */
+const BTN_LIFT =
+  "hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/15 transition-[color,background-color,border-color,box-shadow,transform]";
+
 /** Pill-shaped primary CTA — solid amber (hero, header Donate now). */
-export const BTN_PRIMARY_AMBER = `${BTN_PILL} bg-accent text-accent-foreground shadow-sm hover:bg-accent/90`;
+export const BTN_PRIMARY_AMBER = `${BTN_PILL} ${BTN_LIFT} bg-accent text-accent-foreground shadow-sm hover:bg-accent/90`;
 
 /** Pill-shaped primary CTA — solid blue (CTA band, mission More about us). */
-export const BTN_PRIMARY_BLUE = `${BTN_PILL} bg-primary text-primary-foreground shadow-sm hover:bg-primary/90`;
+export const BTN_PRIMARY_BLUE = `${BTN_PILL} ${BTN_LIFT} bg-primary text-primary-foreground shadow-sm hover:bg-primary/90`;
 
 /** Pill-shaped secondary/outline CTA — default border on light background. */
-export const BTN_OUTLINE_DEFAULT = `${BTN_PILL} border border-border bg-background text-foreground hover:bg-muted hover:text-foreground`;
+export const BTN_OUTLINE_DEFAULT = `${BTN_PILL} ${BTN_LIFT} border border-border bg-background text-foreground hover:border-primary/40 hover:bg-muted hover:text-foreground`;

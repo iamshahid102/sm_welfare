@@ -43,7 +43,7 @@ export function SocialLinks({ className, size = 16, light }: SocialLinksProps) {
               rel="noopener noreferrer"
               aria-label={`${SITE.name} on ${label}`}
               className={cn(
-                "flex size-8 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "flex size-8 items-center justify-center rounded-md transition-[color,background-color,transform] duration-200 ease-out hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 light
                   ? "text-blue-100 hover:bg-white/10 hover:text-white"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"

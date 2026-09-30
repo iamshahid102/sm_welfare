@@ -53,7 +53,9 @@ function formatDate(iso: string): string {
 
 // ─── Validation ─────────────────────────────────────────────────────────
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+// Must match the server's MAX_MEDIA_BYTES (4 MB) - Vercel caps a function's
+// request body at 4.5 MB, so anything larger is rejected before it arrives.
+const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const TITLE_MAX = 200;
 const DESC_MAX = 500;
@@ -707,7 +709,7 @@ export default function AdminMediaPage() {
                   <Badge variant="secondary">PNG</Badge>
                   <Badge variant="secondary">WebP</Badge>
                   <span>·</span>
-                  <span>Max 5 MB</span>
+                  <span>Max 4 MB</span>
                 </div>
                 <Button
                   size="lg"

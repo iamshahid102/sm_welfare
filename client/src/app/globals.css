@@ -151,12 +151,70 @@
   }
   html {
     @apply font-sans;
+    -webkit-tap-highlight-color: transparent;
+    /* Smooth in-page anchor jumps (the nav links to #anchors on projects). */
+    scroll-behavior: smooth;
   }
   h1,
   h2,
   h3,
   h4 {
     @apply font-heading;
+  }
+
+  /*
+   * CLICKABILITY
+   * Tailwind v4's preflight no longer forces `cursor: pointer` on buttons
+   * (browsers default them to the arrow cursor), and anchors styled as
+   * buttons inherited the wrong cursor too. Rather than sprinkling
+   * `cursor-pointer` across dozens of components, every genuinely
+   * interactive control is made clickable here — once — so the public site
+   * and the admin dashboard stay consistent.
+   */
+  a[href],
+  button,
+  [role="button"],
+  [role="tab"],
+  [role="menuitem"],
+  [role="menuitemcheckbox"],
+  [role="menuitemradio"],
+  [role="option"],
+  [role="switch"],
+  [role="checkbox"],
+  [role="radio"],
+  summary,
+  select,
+  label[for],
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="file"],
+  input[type="submit"],
+  input[type="button"],
+  input[type="reset"] {
+    cursor: pointer;
+  }
+
+  /* Disabled controls advertise that they cannot be used. */
+  :disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
+  /* Text fields should keep the caret cursor, never the hand. */
+  input:not([type]),
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="search"],
+  input[type="password"],
+  input[type="number"],
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="month"],
+  input[type="time"],
+  textarea {
+    cursor: text;
   }
 }
 
@@ -194,5 +252,221 @@
         transparent 60%
       ),
       linear-gradient(180deg, var(--section), color-mix(in oklab, var(--section) 60%, white));
+  }
+}
+
+/*
+ * ────────────────────────────────────────────────────────────────────────
+ * MOTION SYSTEM
+ * A small, shared vocabulary of animations so the public site and the admin
+ * dashboard move with the same rhythm instead of each component inventing
+ * its own timing.
+ *
+ * Two mechanisms:
+ *   1. `.reveal` — elements fade/slide in the first time they scroll into
+ *      view (driven by <Reveal/>, which toggles `.is-visible`).
+ *   2. `.anim-*` — one-shot entrance animations for things that are visible
+ *      on load (hero copy, page heroes), no observer required.
+ *
+ * Everything honours `prefers-reduced-motion` at the bottom of the file.
+ * ────────────────────────────────────────────────────────────────────────
+ */
+@layer components {
+  /* ── Scroll reveal ─────────────────────────────────────────────────── */
+  .reveal {
+    opacity: 0;
+    transform: translate3d(0, var(--reveal-y, 22px), 0)
+      scale(var(--reveal-scale, 1));
+    transition:
+      opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+  /* `data-revealed` is the durable flag (React never writes it); `.is-visible`
+     is kept as an equivalent selector for clarity and CSS-only use. */
+  .reveal.is-visible,
+  .reveal[data-revealed="true"] {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* ── One-shot entrances ────────────────────────────────────────────── */
+  .anim-fade-in {
+    animation: sm-fade-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .anim-fade-up {
+    animation: sm-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .anim-fade-down {
+    animation: sm-fade-down 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .anim-scale-in {
+    animation: sm-scale-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .anim-zoom-out {
+    animation: sm-zoom-out 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .anim-float {
+    animation: sm-float 6s ease-in-out infinite;
+  }
+  .anim-shimmer {
+    background-size: 200% 100%;
+    animation: sm-shimmer 2.4s linear infinite;
+  }
+
+  /* Staggering helper — pair with any `.anim-*` or `.reveal` via inline
+     `--delay` so a row of cards cascades instead of popping in together. */
+  .anim-delay-1 { animation-delay: 60ms; transition-delay: 60ms; }
+  .anim-delay-2 { animation-delay: 120ms; transition-delay: 120ms; }
+  .anim-delay-3 { animation-delay: 180ms; transition-delay: 180ms; }
+  .anim-delay-4 { animation-delay: 240ms; transition-delay: 240ms; }
+  .anim-delay-5 { animation-delay: 300ms; transition-delay: 300ms; }
+  .anim-delay-6 { animation-delay: 360ms; transition-delay: 360ms; }
+
+  /* ── Interaction helpers ───────────────────────────────────────────── */
+  /*
+   * Card/panel lift on hover. Declared as a component (not a Tailwind
+   * utility) and always applied *last* on an element so it never fights the
+   * `transition-shadow` utility that used to sit on these cards.
+   */
+  .hover-lift {
+    transition:
+      transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 0.35s ease,
+      background-color 0.35s ease;
+  }
+  /*
+   * The lift is deliberately small (4px). On tall cards a larger offset can
+   * move the surface out from under a pointer resting near the bottom edge,
+   * which makes hover state flicker on and off.
+   */
+  .hover-lift:hover {
+    transform: translate3d(0, -4px, 0);
+    box-shadow: 0 20px 44px -20px color-mix(in oklab, var(--primary) 45%, transparent);
+  }
+
+  /* Animated underline that grows from the left on hover/focus. */
+  .link-underline {
+    position: relative;
+  }
+  .link-underline::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: -2px;
+    height: 2px;
+    border-radius: 9999px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .link-underline:hover::after,
+  .link-underline:focus-visible::after {
+    transform: scaleX(1);
+  }
+
+  /* Gentle nudge for icon-bearing links (arrow slides a touch further). */
+  .hover-nudge:hover svg {
+    transform: translateX(3px);
+  }
+  .hover-nudge svg {
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+@keyframes sm-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes sm-fade-up {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 22px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sm-fade-down {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -18px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sm-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sm-zoom-out {
+  from {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sm-float {
+  0%,
+  100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -10px, 0); }
+}
+
+@keyframes sm-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+/*
+ * Accessibility: visitors who ask their OS for reduced motion get the final
+ * (settled) state immediately — no fades, no lifts, no parallax. This must
+ * stay last so it wins the cascade.
+ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .reveal,
+  .anim-fade-in,
+  .anim-fade-up,
+  .anim-fade-down,
+  .anim-scale-in,
+  .anim-zoom-out,
+  .anim-float,
+  .anim-shimmer {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+  .hover-lift,
+  .hover-lift:hover {
+    transform: none !important;
+  }
+  .hover-nudge svg,
+  .hover-nudge:hover svg {
+    transform: none !important;
+  }
+  .link-underline::after {
+    transition: none !important;
   }
 }

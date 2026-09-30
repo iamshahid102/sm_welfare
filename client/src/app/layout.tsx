@@ -54,6 +54,18 @@ export default function RootLayout({
         "--font-heading": "'Plus Jakarta Sans Variable', sans-serif",
       } as React.CSSProperties}
     >
+      <head>
+        {/*
+         * Scroll-reveal fallback. `.reveal` starts hidden and is switched on by
+         * the <Reveal/> component once the element scrolls into view. With
+         * JavaScript unavailable that class would never be toggled, so the
+         * whole page would stay invisible — this rule shows everything
+         * immediately for those visitors.
+         */}
+        <noscript>
+          <style>{`.reveal{opacity:1 !important;transform:none !important;}`}</style>
+        </noscript>
+      </head>
       <body className="flex min-h-full flex-col">
         <a
           href="#main-content"

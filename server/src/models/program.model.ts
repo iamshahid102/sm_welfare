@@ -9,6 +9,20 @@ import {
   PROGRAM_STATUSES,
   type ProgramStatus,
 } from '../constants/program.js';
+import {
+  contentCtaSchema,
+  contentFactSchema,
+  contentHighlightSchema,
+  contentImageSchema,
+  contentSectionSchema,
+} from './content.schema.js';
+import type {
+  ContentCta,
+  ContentFact,
+  ContentHighlight,
+  ContentImage,
+  ContentSection,
+} from '../types/content.js';
 
 /**
  * Shape of a program (long-term welfare initiative) document.
@@ -17,7 +31,12 @@ import {
  * duplicate slugs. `status` uses the ProgramStatus union (DRAFT/PUBLISHED/
  * ARCHIVED). Programs are never physically deleted; ARCHIVED keeps the
  * document while removing it from public visibility (a future phase).
- * No binary/image fields - media management is a dedicated future phase.
+ *
+ * Rich content: alongside the plain title/description fields every program
+ * carries the same page-building blocks the public detail page renders - a
+ * cover photo, a gallery, narrative sections, highlight cards, quick facts and
+ * an optional closing call to action. Images are stored as lightweight
+ * Cloudinary references (url + publicId + intrinsic size), never as bytes.
  */
 export interface Program {
   title: string;
@@ -26,6 +45,13 @@ export interface Program {
   description: string;
   status: ProgramStatus;
   displayOrder: number;
+  tagline?: string;
+  coverImage?: ContentImage;
+  gallery: ContentImage[];
+  sections: ContentSection[];
+  highlights: ContentHighlight[];
+  facts: ContentFact[];
+  cta?: ContentCta;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -83,6 +109,17 @@ const programSchema = new Schema<Program>(
       max: MAX_PROGRAM_DISPLAY_ORDER,
       default: 0,
     },
+    tagline: {
+      type: String,
+      trim: true,
+      maxlength: MAX_PROGRAM_TITLE_LENGTH,
+    },
+    coverImage: { type: contentImageSchema },
+    gallery: { type: [contentImageSchema], default: [] },
+    sections: { type: [contentSectionSchema], default: [] },
+    highlights: { type: [contentHighlightSchema], default: [] },
+    facts: { type: [contentFactSchema], default: [] },
+    cta: { type: contentCtaSchema },
   },
   {
     timestamps: true,

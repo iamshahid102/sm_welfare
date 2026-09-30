@@ -2,12 +2,15 @@
  * CMS content seed CLI - thin wrapper around the shared seed service.
  *
  * Usage (from server/):
- *   npm run seed:cms
+ *   npm run seed:cms                 # upsert content (local image fallback)
+ *   npm run seed:cms -- --reset      # wipe CMS content first (users kept)
+ *   npm run seed:cms -- --media      # upload curated images to Cloudinary
+ *   npm run seed:cms -- --reset --media
  *
- * Loads the real smwelfare.charity content (13 programs, 17 projects and the
- * site-settings singleton) into MongoDB so the public API serves exactly what
- * the live site publishes. The same routine is available as a one-click action
- * from the admin dashboard: POST /api/v1/seed.
+ * Loads the real smwelfare.charity content (13 programs, 17 projects, the
+ * site-settings singleton and the curated images) into MongoDB so the public
+ * API serves exactly what the live site publishes. The same routine is
+ * available as a one-click action from the admin dashboard: POST /api/v1/seed.
  *
  * Output policy: the MongoDB URI is never printed.
  */
@@ -17,15 +20,19 @@ import { seedCmsContent } from '../services/seed.service.js';
 
 const EXIT_FAILURE = 1;
 
+const args = new Set(process.argv.slice(2));
+const reset = args.has('--reset');
+const uploadMedia = args.has('--media');
+
 async function main(): Promise<void> {
   console.log(`[${APP_NAME}] connecting to MongoDB...`);
   await connectToDatabase();
   console.log(`[${APP_NAME}] connected to MongoDB`);
 
   try {
-    const result = await seedCmsContent();
+    const result = await seedCmsContent({ reset, uploadMedia });
 
-    console.log(`[${APP_NAME}] CMS seed complete:`);
+    console.log(`[${APP_NAME}] CMS seed complete${result.reset ? ' (reset)' : ''}:`);
     console.log(
       `  programs:      ${result.programs.created} created, ${result.programs.reSynced} re-synced (${result.programs.total} total)`,
     );
@@ -36,7 +43,10 @@ async function main(): Promise<void> {
       `  site settings: ${result.siteSettings.created ? 'created' : 're-synced'}`,
     );
     console.log(
-      'Media is not seeded - upload images through the admin panel (Cloudinary).',
+      `  media:         ${result.media.attached} attached of ${result.media.available} available` +
+        (result.media.cloudinary
+          ? ` (Cloudinary configured${result.reset ? `, ${result.media.destroyed} destroyed` : ''})`
+          : ' (Cloudinary NOT configured - using local /images fallback)'),
     );
   } finally {
     // Always release the connection, on success and on failure.

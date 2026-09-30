@@ -1,6 +1,13 @@
 import { ApiError } from '../../utils/ApiError.js';
 import { ProgramModel } from '../../models/program.model.js';
 import { ProjectModel } from '../../models/project.model.js';
+import type {
+  ContentCta,
+  ContentFact,
+  ContentHighlight,
+  ContentImage,
+  ContentSection,
+} from '../../types/content.js';
 
 /**
  * Public projects service.
@@ -49,6 +56,13 @@ export interface PublicProject {
   shortDescription: string;
   description: string;
   displayOrder: number;
+  tagline: string | null;
+  coverImage: ContentImage | null;
+  gallery: ContentImage[];
+  sections: ContentSection[];
+  highlights: ContentHighlight[];
+  facts: ContentFact[];
+  cta: ContentCta | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -63,6 +77,13 @@ type LeanProjectDocument = {
   shortDescription: string;
   description: string;
   displayOrder: number;
+  tagline?: string | null;
+  coverImage?: ContentImage | null;
+  gallery?: ContentImage[];
+  sections?: ContentSection[];
+  highlights?: ContentHighlight[];
+  facts?: ContentFact[];
+  cta?: ContentCta | null;
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -215,7 +236,33 @@ export function serializePublicProject(project: LeanProjectDocument): PublicProj
     shortDescription: project.shortDescription,
     description: project.description,
     displayOrder: project.displayOrder,
+    tagline: project.tagline ?? null,
+    coverImage: project.coverImage ?? null,
+    gallery: project.gallery ?? [],
+    sections: project.sections ?? [],
+    highlights: project.highlights ?? [],
+    facts: project.facts ?? [],
+    cta: project.cta ?? null,
     createdAt: project.createdAt?.toISOString() ?? '',
     updatedAt: project.updatedAt?.toISOString() ?? '',
   };
+}
+
+/**
+ * Returns one PUBLISHED project by slug (under a PUBLISHED program), or null.
+ * Used by the dynamic public detail route.
+ */
+export async function getPublicProjectBySlug(slug: string): Promise<PublicProject | null> {
+  if (typeof slug !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+    return null;
+  }
+  const project = await ProjectModel.findOne({ slug, status: PUBLIC_STATUS })
+    .populate('programId', 'title slug status')
+    .lean();
+  if (!project) return null;
+  const program = (project as unknown as LeanProjectDocument).programId as
+    | (LeanProgramDocument & { status?: string })
+    | null;
+  if (!program || program.status !== PUBLIC_STATUS) return null;
+  return serializePublicProject(project as unknown as LeanProjectDocument);
 }

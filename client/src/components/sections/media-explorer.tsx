@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { FilterChips } from "@/components/shared/filter-chips";
 import { MediaCard } from "@/components/shared/media-card";
 import { Container } from "@/components/shared/container";
+import { Reveal } from "@/components/shared/reveal";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Empty,
@@ -16,7 +16,23 @@ import {
   type PublicMediaQuery,
 } from "@/services/public-media";
 import type { PublicMedia } from "@/types/public-api";
-import { BLOG_POSTS } from "@/data/site-images";
+import {
+  BLOG_POSTS,
+  DUPLICATE_MEDIA_FILES,
+  SITE_CHROME_FILES,
+} from "@/data/site-images";
+
+/**
+ * The stored filename for a media record — the original filename when known,
+ * otherwise the last segment of its CDN URL. Used to keep interface assets
+ * (logos, hero banner, founder portrait) out of the gallery.
+ */
+function mediaFilename(media: PublicMedia): string {
+  const original = media.originalFilename?.trim();
+  if (original) return original.toLowerCase();
+  const path = media.secureUrl.split("?")[0];
+  return (path.split("/").pop() ?? "").toLowerCase();
+}
 
 /**
  * Media page body.
@@ -37,7 +53,19 @@ export function MediaExplorer() {
     try {
       const query: PublicMediaQuery = { limit: 40 };
       const result = await listPublicMedia(query);
-      setMedia(result.items);
+      // Two things never render in the gallery:
+      //  - site chrome (logos, hero banner, founder portrait): interface
+      //    assets that already live on their own pages and sections
+      //  - duplicate twins: the same photo stored twice under a second name
+      setMedia(
+        result.items.filter((item) => {
+          const filename = mediaFilename(item);
+          return (
+            !SITE_CHROME_FILES.has(filename) &&
+            !DUPLICATE_MEDIA_FILES.has(filename)
+          );
+        }),
+      );
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to load media",
@@ -55,34 +83,9 @@ export function MediaExplorer() {
     load();
   }, [fetchMedia]);
 
-  /** Derive categories from the folder field of returned media items. */
-  const categories = Array.from(
-    new Set(media.map((m) => m.folder).filter(Boolean)),
-  );
-
-  const [activeCategory, setActiveCategory] = useState<string>("All");
-
-  const visible =
-    activeCategory === "All"
-      ? media
-      : media.filter((m) => m.folder === activeCategory);
-
-  const chipOptions: readonly string[] = [
-    "All",
-    ...categories,
-  ];
-
   return (
     <section className="bg-white">
       <Container className="flex flex-col gap-10 py-14 sm:py-16">
-        {chipOptions.length > 1 ? (
-          <FilterChips
-            options={chipOptions}
-            onSelect={setActiveCategory}
-            className="justify-center"
-          />
-        ) : null}
-
         {error ? (
           <div className="flex flex-col items-center gap-3 py-10 text-center">
             <Empty className="border-none p-0">
@@ -95,36 +98,53 @@ export function MediaExplorer() {
           </div>
         ) : loading ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            <Skeleton className="aspect-[16/9] rounded-xl" />
-            <Skeleton className="aspect-[16/9] rounded-xl" />
-            <Skeleton className="aspect-[16/9] rounded-xl" />
-            <Skeleton className="aspect-square rounded-xl" />
-            <Skeleton className="aspect-square rounded-xl" />
-            <Skeleton className="aspect-square rounded-xl" />
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div
+                key={index}
+                className="overflow-hidden rounded-xl border border-border bg-white"
+              >
+                <Skeleton className="aspect-[4/3] rounded-none" />
+                <div className="flex flex-col gap-3 p-5">
+                  <Skeleton className="h-5 w-3/4" />
+                  <Skeleton className="h-4 w-full" />
+                </div>
+              </div>
+            ))}
           </div>
-        ) : visible.length === 0 ? (
+        ) : media.length === 0 ? (
           /* The live /blog/ archive, reproduced: the six posts the site's
              own blog lists, in the live order, each with its real photo. */
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {BLOG_POSTS.map((post) => (
-              <MediaCard
+            {BLOG_POSTS.map((post, index) => (
+              <Reveal
                 key={post.slug}
-                update={{
-                  slug: post.slug,
-                  category: post.category,
-                  title: post.title,
-                  summary: post.summary,
-                  image: post.image,
-                  imageAspect: post.imageAspect,
-                  source: "static",
-                }}
-              />
+                delay={Math.min(index, 5) * 70}
+                className="h-full"
+              >
+                <MediaCard
+                  update={{
+                    slug: post.slug,
+                    category: post.category,
+                    title: post.title,
+                    summary: post.summary,
+                    image: post.image,
+                    imageAspect: post.imageAspect,
+                    source: "static",
+                  }}
+                />
+              </Reveal>
             ))}
           </div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {visible.map((item) => (
-              <MediaCard key={item.id} apiMedia={{ ...item, source: "api" }} />
+            {media.map((item, index) => (
+              <Reveal
+                key={item.id}
+                delay={Math.min(index, 5) * 70}
+                className="h-full"
+              >
+                <MediaCard apiMedia={{ ...item, source: "api" }} />
+              </Reveal>
             ))}
           </div>
         )}

@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Kicker } from "@/components/shared/kicker";
+import { Reveal } from "@/components/shared/reveal";
 
 interface SectionHeadingProps {
   /** Small overline/kicker label. */
@@ -23,7 +24,10 @@ export function SectionHeading({
   className,
 }: SectionHeadingProps) {
   return (
-    <div
+    <Reveal
+      // The reveal wrapper *is* the heading root, so wrapping it does not add
+      // a box between the section and its heading (max-width, centring and
+      // the caller's className all still land on the same element).
       className={cn(
         "flex max-w-2xl flex-col gap-3",
         center && "mx-auto items-center text-center",
@@ -53,6 +57,6 @@ export function SectionHeading({
           {description}
         </p>
       ) : null}
-    </div>
+    </Reveal>
   );
 }

@@ -274,7 +274,11 @@ describe('project service - create input validation', () => {
     });
     assert.deepEqual(Object.keys(input).sort(), [
       'description',
+      'facts',
+      'gallery',
+      'highlights',
       'programId',
+      'sections',
       'shortDescription',
       'slug',
       'title',
@@ -414,6 +418,10 @@ describe('project service - serialization', () => {
         description: 'Long',
         status: 'DRAFT',
         displayOrder: 1,
+        gallery: [],
+        sections: [],
+        highlights: [],
+        facts: [],
         createdAt,
         updatedAt: createdAt,
       },
@@ -426,15 +434,22 @@ describe('project service - serialization', () => {
     );
 
     assert.deepEqual(Object.keys(project).sort(), [
+      'coverImage',
       'createdAt',
+      'cta',
       'description',
       'displayOrder',
+      'facts',
+      'gallery',
+      'highlights',
       'id',
       'program',
       'programId',
+      'sections',
       'shortDescription',
       'slug',
       'status',
+      'tagline',
       'title',
       'updatedAt',
     ]);
@@ -462,6 +477,10 @@ describe('project service - serialization', () => {
         description: 'D',
         status: 'DRAFT',
         displayOrder: 0,
+        gallery: [],
+        sections: [],
+        highlights: [],
+        facts: [],
       },
       null,
     );

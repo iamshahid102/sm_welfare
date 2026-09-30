@@ -99,16 +99,16 @@ describeDb('Public media API (MongoDB-backed)', () => {
       .join('; ');
   }
 
-  async function createMediaFixture(): Promise<string> {
+  async function createMediaFixture(folder: string = MEDIA_UPLOAD_FOLDER): Promise<string> {
     const media = await MediaModel.create({
-      publicId: `${MEDIA_UPLOAD_FOLDER}/public-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      publicId: `${folder}/public-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       secureUrl: 'https://res.cloudinary.com/example/image/upload/v1/sm-welfare/test.png',
       resourceType: 'image',
       format: 'png',
       width: 100,
       height: 100,
       bytes: 1000,
-      folder: MEDIA_UPLOAD_FOLDER,
+      folder,
       originalFilename: 'test.png',
       createdBy: adminId,
     });
@@ -248,6 +248,32 @@ describeDb('Public media API (MongoDB-backed)', () => {
     const result = await request('/api/v1/public/media?page=0');
     assert.equal(result.status, 400);
     assert.match(asError(result.body).message, /Page must be between 1 and/);
+  });
+
+  it('scopes the list to a folder when one is requested', async () => {
+    const certificatesFolder = `${MEDIA_UPLOAD_FOLDER}/certificates`;
+    const certificateId = await createMediaFixture(certificatesFolder);
+    const otherId = await createMediaFixture();
+
+    const result = await request(
+      `/api/v1/public/media?folder=${encodeURIComponent(certificatesFolder)}&limit=40`,
+    );
+    assert.equal(result.status, 200);
+    const list = asPublicList(result.body);
+    assert.ok(list.items.length >= 1);
+    assert.equal(
+      list.items.every((item) => item.folder === certificatesFolder),
+      true,
+      'every returned item must belong to the requested folder',
+    );
+    assert.ok(list.items.some((item) => item.id === certificateId));
+    assert.equal(list.items.some((item) => item.id === otherId), false);
+  });
+
+  it('rejects a malformed folder parameter', async () => {
+    const result = await request('/api/v1/public/media?folder=%24ne');
+    assert.equal(result.status, 400);
+    assert.match(asError(result.body).message, /Folder must be a Cloudinary path/);
   });
 
   it('preserves the protected admin media endpoint behavior', async () => {

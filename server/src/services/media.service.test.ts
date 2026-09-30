@@ -203,6 +203,6 @@ describe('media - shared constants', () => {
   it('keeps upload rules centralized and consistent', () => {
     assert.equal(MEDIA_UPLOAD_FOLDER, 'sm-welfare');
     assert.deepEqual(ALLOWED_IMAGE_FORMATS, ['jpg', 'png', 'webp']);
-    assert.equal(MAX_MEDIA_BYTES, 5 * 1024 * 1024);
+    assert.equal(MAX_MEDIA_BYTES, 4 * 1024 * 1024);
   });
 });

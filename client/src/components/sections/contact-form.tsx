@@ -127,7 +127,7 @@ export function ContactForm() {
     <form
       noValidate
       onSubmit={handleSubmit}
-      className="flex flex-col gap-5 rounded-2xl border border-border bg-white p-6 shadow-sm sm:p-8"
+      className="anim-fade-up flex flex-col gap-5 rounded-2xl border border-border bg-white p-6 shadow-sm sm:p-8"
     >
       <h2 className="font-heading text-2xl font-bold tracking-tight">
         Send a message

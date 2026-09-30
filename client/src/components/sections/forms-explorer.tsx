@@ -184,7 +184,7 @@ function PublicFormCard({ definition }: { definition: PublicFormDefinition }) {
 
   if (submitted) {
     return (
-      <div className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-white p-8 text-center shadow-sm">
+      <div className="anim-fade-up flex flex-col items-center gap-4 rounded-2xl border border-border bg-white p-8 text-center shadow-sm">
         <span className="flex size-12 items-center justify-center rounded-full bg-secondary text-primary">
           <HiCheckCircle className="size-7" aria-hidden="true" />
         </span>
@@ -206,11 +206,13 @@ function PublicFormCard({ definition }: { definition: PublicFormDefinition }) {
     );
   }
 
+  // NOTE: `anim-fade-up` replays on every chip switch, because the explorer
+  // remounts this card with a `key` per form definition.
   return (
     <form
       noValidate
       onSubmit={handleSubmit}
-      className="flex flex-col gap-5 rounded-2xl border border-border bg-white p-6 shadow-sm sm:p-8"
+      className="anim-fade-up flex flex-col gap-5 rounded-2xl border border-border bg-white p-6 shadow-sm sm:p-8"
     >
       <div className="flex flex-col gap-2">
         <h2 className="font-heading text-xl font-bold tracking-tight">

@@ -8,8 +8,22 @@
 /** Cloudinary folder namespace for every asset uploaded by this project. */
 export const MEDIA_UPLOAD_FOLDER = 'sm-welfare';
 
-/** Maximum accepted upload size (bytes). Enforced by multer and re-checked on the buffer. */
-export const MAX_MEDIA_BYTES = 5 * 1024 * 1024; // 5 MB
+/**
+ * Cloudinary sub-folder holding the trust's certificates and registrations.
+ * The public media endpoint can be scoped to it with `?folder=` so the
+ * Founder's Profile page can list exactly these assets.
+ */
+export const MEDIA_CERTIFICATES_FOLDER = `${MEDIA_UPLOAD_FOLDER}/certificates`;
+
+/**
+ * Maximum accepted upload size (bytes). Enforced by multer and re-checked on
+ * the buffer.
+ *
+ * 4 MB (not 5 MB) because the API runs as a Vercel Function, and Vercel caps a
+ * function's request body at 4.5 MB. A 5 MB limit would let the client send a
+ * file the platform rejects with an opaque 413 before the API ever sees it.
+ */
+export const MAX_MEDIA_BYTES = 4 * 1024 * 1024; // 4 MB
 
 /**
  * Image formats the media foundation accepts. Detection is content-based

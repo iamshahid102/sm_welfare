@@ -30,6 +30,8 @@ export interface SeedProgram {
   shortDescription: string;
   description: string;
   displayOrder: number;
+  /** Key into PAGE_CONTENT (defaults to `slug`). */
+  page?: string;
 }
 
 export interface SeedProject {
@@ -40,6 +42,8 @@ export interface SeedProject {
   shortDescription: string;
   description: string;
   displayOrder: number;
+  /** Key into PAGE_CONTENT (defaults to `slug`). */
+  page?: string;
 }
 
 export interface SeedSiteSettings {
@@ -160,7 +164,7 @@ export const SEED_PROGRAMS: readonly SeedProgram[] = [
   },
   {
     title: 'Tree for Tomorrow',
-    slug: 'tree-for-tomorrow',
+    slug: 'tree-for-tomorrow-plantation-compaign',
     shortDescription: 'Green Earth, Healthy Life.',
     description:
       '"Whoever plants a tree and looks after it until it bears fruit, it becomes a Sadaqah Jariyah for him." (Musnad Ahmad) With Orangi Town experiencing temperatures exceeding 40°C every year and a severe shortage of trees, our plantation campaign turns an act of worship into a responsibility — planting and caring for trees across Karachi.',
@@ -284,7 +288,7 @@ export const SEED_PROJECTS: readonly SeedProject[] = [
     displayOrder: 10,
   },
   {
-    programSlug: 'tree-for-tomorrow',
+    programSlug: 'tree-for-tomorrow-plantation-compaign',
     title: 'Tree for Tomorrow (Plantation Campaign)',
     slug: 'tree-for-tomorrow',
     shortDescription: 'Green Earth, Healthy Life.',
@@ -345,7 +349,7 @@ export const SEED_PROJECTS: readonly SeedProject[] = [
   {
     programSlug: 'sasta-khana-project',
     title: 'Monthly Raashan Support Program',
-    slug: 'monthly-raashan-support',
+    slug: 'monthly-raashan-support-program',
     shortDescription: 'True Help is What Opens the Doors to Self-Reliance!',
     description:
       'Around 70 deserving families — including widows, the sick and extremely poor individuals — receive monthly ration packages, with their dignity and self-respect carefully preserved so they never feel like a burden on society. A meaningful effort that goes beyond short-term relief to offer sustainable support.',

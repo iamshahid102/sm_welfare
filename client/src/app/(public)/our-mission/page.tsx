@@ -4,6 +4,7 @@ import { PageHero } from "@/components/shared/page-hero";
 import { Container } from "@/components/shared/container";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { CtaBand } from "@/components/shared/cta-band";
+import { Reveal } from "@/components/shared/reveal";
 
 /**
  * Our Mission — mirrors the live /our-mission/ page.
@@ -77,7 +78,7 @@ export default function OurMissionPage() {
       {/* Live section 1 — kicker "We Provide" / "Our Mission" + photo */}
       <section className="bg-white">
         <Container className="grid items-start gap-12 py-16 sm:py-20 lg:grid-cols-[1.15fr_0.85fr] lg:gap-16">
-          <div className="flex flex-col gap-5">
+          <Reveal className="flex flex-col gap-5">
             <SectionHeading kicker="We Provide" title="Our Mission" />
             {MISSION_PARAGRAPHS.map((paragraph) => (
               <p
@@ -87,14 +88,16 @@ export default function OurMissionPage() {
                 {paragraph}
               </p>
             ))}
-          </div>
-          <div className="relative aspect-[1417/1473] overflow-hidden rounded-2xl shadow-lg lg:sticky lg:top-24">
+          </Reveal>
+          {/* Sticky: kept out of <Reveal/> so the transform stays off its
+              ancestor chain. */}
+          <div className="group relative aspect-[1417/1473] overflow-hidden rounded-2xl shadow-lg lg:sticky lg:top-24">
             <Image
               src={MISSION_IMAGE.src}
               alt={MISSION_IMAGE.alt}
               fill
               sizes="(max-width: 1024px) 100vw, 45vw"
-              className="object-cover"
+              className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
             />
           </div>
         </Container>
@@ -103,16 +106,16 @@ export default function OurMissionPage() {
       {/* Live section 2 — kicker "We Provide" / "Our Vision", reversed layout */}
       <section className="border-t border-border bg-section">
         <Container className="grid items-start gap-12 py-16 sm:py-20 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16">
-          <div className="relative aspect-[736/699] overflow-hidden rounded-2xl shadow-lg lg:sticky lg:top-24">
+          <div className="group relative aspect-[736/699] overflow-hidden rounded-2xl shadow-lg lg:sticky lg:top-24">
             <Image
               src={VISION_IMAGE.src}
               alt={VISION_IMAGE.alt}
               fill
               sizes="(max-width: 1024px) 100vw, 45vw"
-              className="object-cover"
+              className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
             />
           </div>
-          <div className="flex flex-col gap-5">
+          <Reveal className="flex flex-col gap-5">
             <SectionHeading kicker="We Provide" title="Our Vision" />
             {VISION_PARAGRAPHS.map((paragraph) => (
               <p
@@ -122,7 +125,7 @@ export default function OurMissionPage() {
                 {paragraph}
               </p>
             ))}
-          </div>
+          </Reveal>
         </Container>
       </section>
 

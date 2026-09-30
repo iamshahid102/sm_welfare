@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/empty";
 import { FilterChips } from "@/components/shared/filter-chips";
 import { Container } from "@/components/shared/container";
+import { Reveal } from "@/components/shared/reveal";
 import { BTN_PRIMARY_BLUE } from "@/components/shared/home-styles";
 import { PROJECTS } from "@/data/projects";
 import { resolveProjectImage } from "@/data/site-images";
@@ -59,7 +60,7 @@ function ProjectDetail({
   return (
     <article
       id={project.slug}
-      className="grid items-start gap-8 rounded-2xl border border-border bg-white p-6 shadow-sm sm:p-8 lg:grid-cols-[0.9fr_1.1fr]"
+      className="group grid items-start gap-8 rounded-2xl border border-border bg-white p-6 shadow-sm transition-[box-shadow,border-color,transform] duration-300 ease-out hover:-translate-y-1 hover:border-primary/25 hover:shadow-xl sm:p-8 lg:grid-cols-[0.9fr_1.1fr]"
     >
       <div className={cn("relative", imageRight && "lg:order-2")}>
         <div
@@ -75,7 +76,7 @@ function ProjectDetail({
               alt={image.alt}
               fill
               sizes="(max-width: 1024px) 100vw, 45vw"
-              className="object-cover"
+              className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.05]"
             />
           ) : null}
         </div>
@@ -84,7 +85,7 @@ function ProjectDetail({
         </Badge>
       </div>
       <div className={cn("flex flex-col gap-4", imageRight && "lg:order-1")}>
-        <h2 className="font-heading text-2xl font-bold tracking-tight">
+        <h2 className="font-heading text-2xl font-bold tracking-tight transition-colors duration-300 group-hover:text-primary">
           {project.title}
         </h2>
         <p className="text-base leading-relaxed text-foreground">
@@ -272,33 +273,35 @@ export function ProjectsExplorer() {
           <div className="flex flex-col gap-8">
             {projects.length > 0
               ? projects.map((project, index) => (
-                  <ProjectDetail
-                    key={project.id}
-                    index={index}
-                    project={{
-                      slug: project.slug,
-                      title: project.title,
-                      badge: project.program.title,
-                      shortDescription: project.shortDescription,
-                      description: project.description,
-                    }}
-                  />
+                  <Reveal key={project.id} delay={Math.min(index, 5) * 70}>
+                    <ProjectDetail
+                      index={index}
+                      project={{
+                        slug: project.slug,
+                        title: project.title,
+                        badge: project.program.title,
+                        shortDescription: project.shortDescription,
+                        description: project.description,
+                      }}
+                    />
+                  </Reveal>
                 ))
               : /* The public API is optional in local/preview environments, so
                    fall back to the curated six programmes rather than showing
                    an empty state on a page whose job is to list them. */
                 PROJECTS.map((project, index) => (
-                  <ProjectDetail
-                    key={project.slug}
-                    index={index}
-                    project={{
-                      slug: project.slug,
-                      title: project.name,
-                      badge: project.category,
-                      shortDescription: project.summary,
-                      description: project.description,
-                    }}
-                  />
+                  <Reveal key={project.slug} delay={Math.min(index, 5) * 70}>
+                    <ProjectDetail
+                      index={index}
+                      project={{
+                        slug: project.slug,
+                        title: project.name,
+                        badge: project.category,
+                        shortDescription: project.summary,
+                        description: project.description,
+                      }}
+                    />
+                  </Reveal>
                 ))}
           </div>
         )}

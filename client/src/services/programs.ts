@@ -1,5 +1,6 @@
 import { api } from "@/lib/api/client";
 import type { Program, ProgramListResponse, ProgramStatus } from "@/types/api";
+import type { ContentFieldsInput } from "@/types/content";
 
 export type {
   Program,
@@ -14,17 +15,18 @@ export interface ListProgramsQuery {
   status?: ProgramStatus;
 }
 
-export interface CreateProgramInput {
+// NOTE: slugs are never part of the admin payload. The API derives the slug
+// from the title and keeps it unique (slug, slug-2, slug-3 ...), so the editor
+// never has to think about URLs.
+export interface CreateProgramInput extends ContentFieldsInput {
   title: string;
-  slug?: string;
   shortDescription: string;
   description: string;
   displayOrder?: number;
 }
 
-export interface UpdateProgramInput {
+export interface UpdateProgramInput extends ContentFieldsInput {
   title?: string;
-  slug?: string;
   shortDescription?: string;
   description?: string;
   displayOrder?: number;

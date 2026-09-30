@@ -21,9 +21,16 @@ const DEFAULT_PAGE_LIMIT = 12;
 const MAX_PAGE_LIMIT = 40;
 const MAX_PAGE = 10_000;
 
+/** Bound on the optional `folder` filter (Cloudinary folder paths are short). */
+const MAX_FOLDER_LENGTH = 120;
+/** Only the characters Cloudinary uses in folder paths - never a Mongo operator. */
+const FOLDER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/;
+
 export interface PublicMediaListQuery {
   page: number;
   limit: number;
+  /** Exact Cloudinary folder to scope the list to (optional). */
+  folder?: string;
 }
 
 export interface PublicMedia {
@@ -54,6 +61,7 @@ export interface PublicMediaListEnvelope {
 export function validatePublicMediaListQuery(query: {
   page?: unknown;
   limit?: unknown;
+  folder?: unknown;
 }): PublicMediaListQuery {
   let page = DEFAULT_PAGE;
   if (query.page !== undefined) {
@@ -79,13 +87,35 @@ export function validatePublicMediaListQuery(query: {
     }
   }
 
-  return { page, limit };
+  let folder: string | undefined;
+  if (query.folder !== undefined) {
+    // A repeated query param arrives as an array - reject it rather than
+    // letting it reach the Mongo filter as an object.
+    if (
+      typeof query.folder !== 'string' ||
+      query.folder.length === 0 ||
+      query.folder.length > MAX_FOLDER_LENGTH ||
+      !FOLDER_PATTERN.test(query.folder)
+    ) {
+      throw new ApiError(
+        400,
+        `Folder must be a Cloudinary path of at most ${MAX_FOLDER_LENGTH} characters.`,
+      );
+    }
+    folder = query.folder;
+  }
+
+  return { page, limit, folder };
 }
 
 export async function listPublicMedia(query: PublicMediaListQuery): Promise<PublicMediaListEnvelope> {
+  // Scoping to a folder lets a page request exactly one group of assets
+  // (e.g. the certificates) without exposing or paging through the rest.
+  const filter = query.folder ? { folder: query.folder } : {};
+
   const [total, media] = await Promise.all([
-    MediaModel.countDocuments(),
-    MediaModel.find()
+    MediaModel.countDocuments(filter),
+    MediaModel.find(filter)
       .sort({ createdAt: -1 })
       .skip((query.page - 1) * query.limit)
       .limit(query.limit)

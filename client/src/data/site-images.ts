@@ -221,6 +221,41 @@ export const EASYPAISA_LOGO: SiteImage = {
   height: 300,
 };
 
+/**
+ * Site chrome — brand marks, the homepage hero banner and the founder
+ * portrait. These are interface assets, already placed on their own pages and
+ * sections (Donate logos, homepage hero, Founder's Profile portrait), so they
+ * are not media updates and must not appear in the public media gallery.
+ *
+ * The gallery filters by filename (see `MediaExplorer`), because uploaded
+ * Media records carry the source filename. Add a filename here to keep an
+ * asset off the media page.
+ */
+export const SITE_CHROME_FILES: ReadonlySet<string> = new Set([
+  "faysal-bank-logo.png",
+  "easypaisa-logo.png",
+  "hero-homepage-banner.jpg",
+  "muzammil-smwelfare.jpg",
+]);
+
+/**
+ * Photos uploaded twice under two filenames — a page photo plus its
+ * lower-resolution "project grid" twin. Verified perceptually identical
+ * (matching 8×8 average and difference hashes), so the media gallery shows the
+ * higher-resolution original only and hides the twin:
+ *
+ *   qurbani-barae-waqaf.jpg  (1600×900)  ↔  project-qurbani-barae-waqaf.jpg  (1000×563)
+ *   free-eid-shopping.jpg    (1600×900)  ↔  project-free-eid-shopping.jpg    (1000×563)
+ *
+ * HIDDEN, NOT DELETED: both copies are still referenced by the pages that use
+ * them (the Qurbani/Free Eid pages and the project cards), so the records must
+ * stay in the library — only the gallery listing skips the twin.
+ */
+export const DUPLICATE_MEDIA_FILES: ReadonlySet<string> = new Set([
+  "project-qurbani-barae-waqaf.jpg",
+  "project-free-eid-shopping.jpg",
+]);
+
 /** Used for the About page "Our story" column. */
 export const ABOUT_IMAGE: SiteImage = {
   src: "/images/story-empowering-women-vocational-training.jpg",

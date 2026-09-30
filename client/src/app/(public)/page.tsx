@@ -24,6 +24,7 @@ import { SectionHeading } from "@/components/shared/section-heading";
 import { ProjectCard } from "@/components/shared/project-card";
 import { MediaCard } from "@/components/shared/media-card";
 import { CtaBand } from "@/components/shared/cta-band";
+import { Reveal } from "@/components/shared/reveal";
 import {
   MISSION_PARAGRAPHS,
   IMPACT_STATS,
@@ -130,11 +131,11 @@ function TrustStrip() {
           <div
             key={point.label}
             className={cn(
-              "flex items-start gap-3",
+              "group flex items-start gap-3",
               index > 0 && "lg:border-l lg:border-border lg:pl-8"
             )}
           >
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary text-primary">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary text-primary transition-[background-color,color,transform] duration-300 group-hover:-translate-y-0.5 group-hover:bg-primary group-hover:text-primary-foreground">
               <point.icon className="size-5" aria-hidden="true" />
             </span>
             <div className="flex min-w-0 flex-col gap-0.5">
@@ -189,7 +190,7 @@ async function ProgramChips() {
   return (
     <section className="border-b border-border bg-section">
       <Container className="py-10 sm:py-12">
-        <div className="flex flex-col gap-5 rounded-2xl border border-border bg-white p-5 shadow-sm sm:rounded-3xl sm:p-7">
+        <Reveal className="flex flex-col gap-5 rounded-2xl border border-border bg-white p-5 shadow-sm sm:rounded-3xl sm:p-7">
           {/* Panel header — label and count on the left, action on the right */}
           <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
             <div className="flex flex-col gap-1.5">
@@ -235,7 +236,7 @@ async function ProgramChips() {
               </li>
             ))}
           </ul>
-        </div>
+        </Reveal>
       </Container>
     </section>
   );
@@ -265,9 +266,10 @@ function ImpactBand() {
           {IMPACT_STATS.map((stat, index) => {
             const Icon = IMPACT_ICONS[index % IMPACT_ICONS.length];
             return (
-              <div
+              <Reveal
                 key={stat.label}
-                className="group flex flex-col items-center gap-3 rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-7 text-center backdrop-blur-sm transition-colors duration-300 hover:border-accent/40 hover:bg-white/[0.12]"
+                delay={index * 90}
+                className="hover-lift group flex flex-col items-center gap-3 rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-7 text-center backdrop-blur-sm hover:border-accent/40 hover:bg-white/[0.12]"
               >
                 <span className="flex size-11 items-center justify-center rounded-full bg-white/10 text-accent transition-colors duration-300 group-hover:bg-accent group-hover:text-accent-foreground">
                   <Icon className="size-5" aria-hidden="true" />
@@ -276,7 +278,7 @@ function ImpactBand() {
                   {stat.value}
                 </span>
                 <span className="text-sm text-blue-100/90">{stat.label}</span>
-              </div>
+              </Reveal>
             );
           })}
         </div>
@@ -331,23 +333,23 @@ async function ProjectsSection() {
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {projects.length > 0
-            ? projects.map((project) => (
-                <ProjectCard
-                  key={project.id}
-                  apiProject={{ ...project, source: "api" }}
-                />
+            ? projects.map((project, index) => (
+                <Reveal key={project.id} delay={index * 80} className="h-full">
+                  <ProjectCard apiProject={{ ...project, source: "api" }} />
+                </Reveal>
               ))
-            : curated.map((project) => (
-                <ProjectCard
-                  key={project.slug}
-                  project={{
-                    slug: project.slug,
-                    name: project.name,
-                    category: project.category,
-                    summary: project.summary,
-                    source: "static",
-                  }}
-                />
+            : curated.map((project, index) => (
+                <Reveal key={project.slug} delay={index * 80} className="h-full">
+                  <ProjectCard
+                    project={{
+                      slug: project.slug,
+                      name: project.name,
+                      category: project.category,
+                      summary: project.summary,
+                      source: "static",
+                    }}
+                  />
+                </Reveal>
               ))}
         </div>
       </Container>
@@ -370,9 +372,11 @@ function AboutSection() {
           {PROGRAMS.map((program, index) => {
             const Icon = PROGRAM_ICONS[index % PROGRAM_ICONS.length];
             return (
-              <article
+              <Reveal
+                as="article"
                 key={program.number}
-                className="group relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-border bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/25 hover:shadow-lg"
+                delay={index * 80}
+                className="hover-lift group relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-border bg-white p-6 shadow-sm hover:border-primary/25"
               >
                 {/* Amber rule that draws itself in on hover. */}
                 <span
@@ -393,7 +397,7 @@ function AboutSection() {
                 <p className="text-sm leading-relaxed text-muted-foreground">
                   {program.description}
                 </p>
-              </article>
+              </Reveal>
             );
           })}
         </div>
@@ -411,14 +415,14 @@ function MissionSection() {
   return (
     <section className="border-t border-border bg-white">
       <Container className="grid items-center gap-12 py-16 sm:py-20 lg:grid-cols-[0.95fr_1.05fr] lg:gap-14">
-        <div className="relative">
-          <div className="relative aspect-[4/3] overflow-hidden rounded-3xl shadow-xl">
+        <Reveal className="relative" scale={0.97}>
+          <div className="group relative aspect-[4/3] overflow-hidden rounded-3xl shadow-xl">
             <Image
               src={ABOUT_IMAGE.src}
               alt={ABOUT_IMAGE.alt}
               fill
               sizes="(max-width: 1024px) 100vw, 45vw"
-              className="object-cover"
+              className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
             />
           </div>
           <div className="absolute bottom-4 left-4 flex items-center gap-3 rounded-2xl bg-white/95 px-4 py-3 shadow-lg backdrop-blur sm:bottom-6 sm:left-6 sm:px-5 sm:py-3.5">
@@ -434,9 +438,9 @@ function MissionSection() {
               </span>
             </span>
           </div>
-        </div>
+        </Reveal>
 
-        <div className="flex flex-col gap-5">
+        <Reveal className="flex flex-col gap-5">
           <SectionHeading
             kicker="About us"
             title="Our Mission"
@@ -462,7 +466,7 @@ function MissionSection() {
               />
             </Link>
           </div>
-        </div>
+        </Reveal>
       </Container>
     </section>
   );
@@ -512,21 +516,24 @@ async function MediaSection() {
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {mediaItems.length > 0
-            ? mediaItems.map((item) => (
-                <MediaCard key={item.id} apiMedia={{ ...item, source: "api" }} />
+            ? mediaItems.map((item, index) => (
+                <Reveal key={item.id} delay={index * 80} className="h-full">
+                  <MediaCard apiMedia={{ ...item, source: "api" }} />
+                </Reveal>
               ))
-            : stories.map((story) => (
-                <MediaCard
-                  key={story.slug}
-                  update={{
-                    slug: story.slug,
-                    category: story.category,
-                    title: story.title,
-                    summary: story.summary,
-                    image: story.image,
-                    source: "static",
-                  }}
-                />
+            : stories.map((story, index) => (
+                <Reveal key={story.slug} delay={index * 80} className="h-full">
+                  <MediaCard
+                    update={{
+                      slug: story.slug,
+                      category: story.category,
+                      title: story.title,
+                      summary: story.summary,
+                      image: story.image,
+                      source: "static",
+                    }}
+                  />
+                </Reveal>
               ))}
         </div>
       </Container>

@@ -5,6 +5,7 @@
  */
 
 import type { PublicFormType } from "@/types/forms";
+import type { ContentFields } from "@/types/content";
 
 export interface ApiSuccessResponse<T> {
   success: true;
@@ -82,7 +83,7 @@ export interface SiteSettingsResponse {
 
 export type ProgramStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 
-export interface Program {
+export interface Program extends ContentFields {
   id: string;
   title: string;
   slug: string;
@@ -117,7 +118,7 @@ export interface ProjectProgramSummary {
   status: ProgramStatus;
 }
 
-export interface Project {
+export interface Project extends ContentFields {
   id: string;
   programId: string;
   program: ProjectProgramSummary | null;

@@ -176,6 +176,10 @@ describe('program service - create input validation', () => {
     });
     assert.deepEqual(Object.keys(input).sort(), [
       'description',
+      'facts',
+      'gallery',
+      'highlights',
+      'sections',
       'shortDescription',
       'slug',
       'title',
@@ -297,18 +301,29 @@ describe('program service - serialization', () => {
       description: 'Long',
       status: 'PUBLISHED',
       displayOrder: 1,
+      gallery: [],
+      sections: [],
+      highlights: [],
+      facts: [],
       createdAt,
       updatedAt: createdAt,
     });
 
     assert.deepEqual(Object.keys(program).sort(), [
+      'coverImage',
       'createdAt',
+      'cta',
       'description',
       'displayOrder',
+      'facts',
+      'gallery',
+      'highlights',
       'id',
+      'sections',
       'shortDescription',
       'slug',
       'status',
+      'tagline',
       'title',
       'updatedAt',
     ]);

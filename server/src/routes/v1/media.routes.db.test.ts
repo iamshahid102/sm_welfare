@@ -210,7 +210,7 @@ describeDb('Media API (MongoDB-backed)', () => {
   });
 
   it('returns 413 for an oversize upload (multer size limit) and persists nothing', async () => {
-    const oversized = Buffer.alloc(5 * 1024 * 1024 + 1, 0x00);
+    const oversized = Buffer.alloc(4 * 1024 * 1024 + 1, 0x00);
     const form = multipartFile(oversized, 'huge.png', PNG_MIME);
     const result = await request('/api/v1/media', { method: 'POST', body: form }, cookies);
 

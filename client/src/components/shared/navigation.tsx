@@ -318,8 +318,10 @@ export function Navigation({
   };
 
   // Button-like shell shared by top-level triggers on both colour schemes.
+  // The hover lift is a single pixel so the underline pill and its dropdown
+  // stay visually anchored while still giving the tap-target modern feedback.
   const triggerClass = cn(
-    "relative inline-flex items-center rounded-full px-3.5 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2",
+    "relative inline-flex items-center rounded-full px-3.5 py-2 text-sm font-semibold transition-[color,background-color,transform] duration-200 ease-out hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2",
     light
       ? "text-white/85 hover:bg-white/10 hover:text-white focus-visible:ring-white/60"
       : "text-foreground hover:bg-muted hover:text-primary focus-visible:ring-ring"

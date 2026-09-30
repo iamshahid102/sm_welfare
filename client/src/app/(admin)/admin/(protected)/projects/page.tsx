@@ -1,1101 +1,619 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
+import Image from "next/image";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import { useAuth } from "@/hooks/use-auth";
-import { canAccessAdmin } from "@/types/auth";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import { AdminPageHeader } from "@/components/admin/page-header";
+import { ContentEditor } from "@/components/admin/content-editor";
+import { listPrograms, type Program } from "@/services/programs";
 import {
-  listProjects,
   createProject,
+  listProjects,
   updateProject,
   updateProjectStatus,
-  listProgramsForSelector,
   type CreateProjectInput,
-  type UpdateProjectInput,
   type Project,
   type ProjectStatus,
-  type Program,
+  type UpdateProjectInput,
 } from "@/services/projects";
-import { HiLockClosed } from "react-icons/hi2";
+import type { ContentFieldsInput } from "@/types/content";
+import { cn } from "@/lib/utils";
+import {
+  HiArrowTopRightOnSquare,
+  HiFolderOpen,
+  HiPhoto,
+  HiPlus,
+  HiPencilSquare,
+} from "react-icons/hi2";
 
-// Title is set via the layout
+/**
+ * Admin → Projects.
+ *
+ * A project is a page inside a program (Ambulance Services under Health Care,
+ * for example). This screen lists every project with its cover photo, parent
+ * program and content summary, and edits exactly what the public page shows.
+ */
 
 const PAGE_SIZE = 10;
 
-type PageState =
-  | { status: "loading" }
-  | { status: "error"; message: string }
-  | {
-      status: "ready";
-      projects: Project[];
-      page: number;
-      limit: number;
-      total: number;
-      totalPages: number;
-      search: string;
-      filterProgramId: string | "all";
-      filterStatus: ProjectStatus | "all";
-      programs: Program[];
-      /** True while a refetch is in flight - the rendered list stays mounted. */
-      refreshing: boolean;
-      editingProject: Project | null;
-      editingForm: UpdateProjectInput;
-      saving: boolean;
-      lastError: string | null;
-    };
-
-function isReadyState(
-  state: PageState,
-): state is Extract<PageState, { status: "ready" }> {
-  return state.status === "ready";
-}
-
 const STATUS_BADGE_VARIANT: Record<
   ProjectStatus,
-  | "secondary"
-  | "default"
-  | "outline"
-  | "ghost"
-  | "destructive"
-  | "link"
-  | null
-  | undefined
+  "secondary" | "default" | "outline"
 > = {
   DRAFT: "secondary",
   PUBLISHED: "default",
   ARCHIVED: "outline",
 };
 
-function ProjectRow({
+interface ListState {
+  items: Project[];
+  page: number;
+  total: number;
+  totalPages: number;
+}
+
+function ProjectCard({
   project,
   onEdit,
-  canEdit,
 }: {
   project: Project;
   onEdit: () => void;
-  canEdit: boolean;
 }) {
+  const photoCount = (project.coverImage ? 1 : 0) + project.gallery.length;
+
   return (
-    <tr className="group cursor-default border-border/60 hover:bg-muted/50">
-      <td className="px-4 py-3 align-middle font-medium">
-        <div className="flex flex-wrap items-center gap-2">
-          <span>{project.title}</span>
-          <Badge
-            variant={STATUS_BADGE_VARIANT[project.status]}
-            className="whitespace-nowrap"
-          >
-            {project.status}
-          </Badge>
-        </div>
-      </td>
-      <td className="px-4 py-3 align-middle text-sm">
-        {project.program ? (
-          <span className="text-muted-foreground">{project.program.title}</span>
+    // Shadow-only hover (no lift): these rows carry action buttons, and a
+    // row that moves under the pointer makes those targets harder to click.
+    <div className="group flex flex-col gap-4 rounded-2xl border border-border bg-background p-4 transition-[box-shadow,border-color] duration-300 hover:border-primary/25 hover:shadow-lg sm:flex-row sm:items-center">
+      <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden rounded-xl border border-border bg-muted sm:w-40">
+        {project.coverImage ? (
+          <Image
+            src={project.coverImage.url}
+            alt={project.coverImage.alt ?? project.title}
+            fill
+            unoptimized
+            sizes="200px"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+          />
         ) : (
-          <span className="text-muted-foreground line-through">
-            Program not found
+          <span className="flex h-full w-full items-center justify-center text-muted-foreground">
+            <HiPhoto className="size-6" aria-hidden="true" />
           </span>
         )}
-      </td>
-      <td className="px-4 py-3 align-middle text-sm text-muted-foreground font-mono text-xs">
-        {project.slug}
-      </td>
-      <td className="px-4 py-3 align-middle text-sm text-muted-foreground">
-        {project.shortDescription}
-      </td>
-      <td className="px-4 py-3 align-middle text-sm">
-        <span className="font-mono text-muted-foreground">
-          {project.displayOrder}
+        <span className="absolute left-2 top-2">
+          <Badge variant={STATUS_BADGE_VARIANT[project.status]}>
+            {project.status}
+          </Badge>
         </span>
-      </td>
-      <td className="px-4 py-3 align-middle">
-        {canEdit && (
-          <Button variant="ghost" size="sm" onClick={onEdit}>
-            Edit
-          </Button>
-        )}
-      </td>
-    </tr>
-  );
-}
-
-export default function AdminProjectsPage() {
-  const { user } = useAuth();
-  const [state, setState] = useState<PageState>({ status: "loading" });
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<ProjectStatus | "all">("all");
-  const [programIdFilter, setProgramIdFilter] = useState<string | "all">("all");
-  const [page, setPage] = useState(1);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  // Bumped after a mutation so the effect refetches even when the query
-  // parameters themselves are unchanged (e.g. create while on page 1).
-  const [refreshToken, setRefreshToken] = useState(0);
-
-  // Only the newest request may write state - a slow response for an older
-  // search term can never overwrite a newer one.
-  const requestIdRef = useRef(0);
-
-  // The single admin owns every content type — editing is always allowed.
-  const canEdit = canAccessAdmin(user);
-
-  /**
-   * Loads the project page together with the program selector options - both
-   * are needed to render every state of this screen.
-   */
-  const loadProjects = useCallback(
-    async (query: {
-      page: number;
-      search: string;
-      status: ProjectStatus | "all";
-      programId: string | "all";
-    }) => {
-      const requestId = ++requestIdRef.current;
-
-      // Refetching must NOT unmount the ready UI: replacing it with a skeleton
-      // would unmount the search input mid-typing and drop keyboard focus.
-      setState((prev) =>
-        prev.status === "ready"
-          ? { ...prev, refreshing: true }
-          : { status: "loading" },
-      );
-
-      try {
-        const [projectsData, programsData] = await Promise.all([
-          listProjects({
-            page: query.page,
-            limit: PAGE_SIZE,
-            search: query.search || undefined,
-            status: query.status !== "all" ? query.status : undefined,
-            programId: query.programId !== "all" ? query.programId : undefined,
-          }),
-          listProgramsForSelector({ limit: 100 }),
-        ]);
-        if (requestId !== requestIdRef.current) return;
-        setState({
-          status: "ready",
-          projects: projectsData.items,
-          page: projectsData.page,
-          limit: projectsData.limit,
-          total: projectsData.total,
-          totalPages: projectsData.totalPages,
-          search: query.search,
-          filterStatus: query.status,
-          filterProgramId: query.programId,
-          programs: programsData.items,
-          refreshing: false,
-          editingProject: null,
-          editingForm: {},
-          saving: false,
-          lastError: null,
-        });
-      } catch (error) {
-        if (requestId !== requestIdRef.current) return;
-        setState({
-          status: "error",
-          message:
-            error instanceof Error
-              ? error.message
-              : "Failed to load projects.",
-        });
-      }
-    },
-    [],
-  );
-
-  useEffect(() => {
-    if (user) {
-      loadProjects({ page, search, status, programId: programIdFilter });
-    }
-  }, [
-    user,
-    loadProjects,
-    page,
-    search,
-    status,
-    programIdFilter,
-    refreshToken,
-  ]);
-
-  const handleSearch = useCallback((value: string) => {
-    setSearch(value);
-    setPage(1);
-  }, []);
-
-  const handleStatusFilter = useCallback((filter: ProjectStatus | "all") => {
-    setStatus(filter);
-    setPage(1);
-  }, []);
-
-  const handleProgramFilter = useCallback((id: string | "all") => {
-    setProgramIdFilter(id);
-    setPage(1);
-  }, []);
-
-  const handlePageChange = useCallback((newPage: number) => {
-    setPage(newPage);
-  }, []);
-
-  const openEditDialog = useCallback((project: Project) => {
-    setState((prev) =>
-      prev.status === "ready"
-        ? {
-            ...prev,
-            editingProject: project,
-            editingForm: {
-              programId: project.programId,
-              title: project.title,
-              slug: project.slug,
-              shortDescription: project.shortDescription,
-              description: project.description,
-              displayOrder: project.displayOrder,
-            },
-            saving: false,
-            lastError: null,
-          }
-        : prev,
-    );
-  }, []);
-
-  const closeDialog = useCallback(() => {
-    setState((prev) =>
-      prev.status === "ready"
-        ? {
-            ...prev,
-            editingProject: null,
-            editingForm: {},
-            saving: false,
-            lastError: null,
-          }
-        : prev,
-    );
-  }, []);
-
-  const handleCreate = useCallback(
-    async (values: CreateProjectInput) => {
-      setState((prev) =>
-        prev.status === "ready"
-          ? { ...prev, saving: true, lastError: null }
-          : prev,
-      );
-      try {
-        await createProject(values);
-        setCreateDialogOpen(false);
-        setPage(1);
-        setSearch("");
-        setStatus("all");
-        setProgramIdFilter("all");
-        setState((prev) =>
-          prev.status === "ready"
-            ? {
-                ...prev,
-                editingProject: null,
-                editingForm: {},
-                saving: false,
-                lastError: null,
-              }
-            : prev,
-        );
-        // Refetch even when the filters were already at their defaults.
-        setRefreshToken((token) => token + 1);
-      } catch (error) {
-        setState((prev) =>
-          prev.status === "ready"
-            ? {
-                ...prev,
-                saving: false,
-                lastError:
-                  error instanceof Error
-                    ? error.message
-                    : "Failed to create project.",
-              }
-            : prev,
-        );
-      }
-    },
-    [],
-  );
-
-  const handleUpdate = useCallback(
-    async (values: UpdateProjectInput) => {
-      setState((prev) =>
-        prev.status === "ready"
-          ? { ...prev, saving: true, lastError: null }
-          : prev,
-      );
-      try {
-        const readyState = isReadyState(state) ? state : null;
-        if (!readyState || !readyState.editingProject) return;
-        const updated = await updateProject(
-          readyState.editingProject.id,
-          values,
-        );
-        setState((prev) =>
-          prev.status === "ready"
-            ? {
-                ...prev,
-                projects: prev.projects.map((p) =>
-                  p.id === updated.id ? updated : p,
-                ),
-                editingProject: updated,
-                editingForm: values,
-                saving: false,
-                lastError: null,
-              }
-            : prev,
-        );
-      } catch (error) {
-        setState((prev) =>
-          prev.status === "ready"
-            ? {
-                ...prev,
-                saving: false,
-                lastError:
-                  error instanceof Error
-                    ? error.message
-                    : "Failed to update project.",
-              }
-            : prev,
-        );
-      }
-    },
-    [state],
-  );
-
-  const handleStatusChange = useCallback(
-    async (projectId: string, newStatus: ProjectStatus) => {
-      try {
-        const updated = await updateProjectStatus(projectId, newStatus);
-        setState((prev) =>
-          prev.status === "ready"
-            ? {
-                ...prev,
-                projects: prev.projects.map((p) =>
-                  p.id === updated.id ? updated : p,
-                ),
-              }
-            : prev,
-        );
-      } catch (error) {
-        setState((prev) =>
-          prev.status === "ready"
-            ? {
-                ...prev,
-                lastError:
-                  error instanceof Error
-                    ? error.message
-                    : "Failed to change status.",
-              }
-            : prev,
-        );
-      }
-    },
-    [],
-  );
-
-  if (!user) {
-    return null;
-  }
-
-  if (state.status === "loading") {
-    return (
-      <div className="flex flex-col gap-6">
-        <div>
-          <Skeleton className="h-8 w-36" />
-          <Skeleton className="mt-2 h-4 w-64" />
-        </div>
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <CardTitle className="font-heading">
-                <Skeleton className="h-6 w-32" />
-              </CardTitle>
-              <div className="flex gap-2">
-                <Skeleton className="h-8 w-16" />
-                <Skeleton className="h-8 w-16" />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-10 w-full" />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
       </div>
-    );
-  }
 
-  if (state.status === "error") {
-    return (
-      <div className="flex flex-col gap-6">
-        <div>
-          <h1 className="font-heading text-2xl font-semibold">Projects</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage the projects shown on the public Projects page.
-          </p>
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="font-heading text-base font-bold tracking-tight">
+            {project.title}
+          </h3>
+          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+            {project.program?.title ?? "No program"}
+          </span>
         </div>
-        <Card className="border-destructive/50">
-          <CardContent className="flex items-center gap-3 py-4">
-            <span className="text-destructive font-medium">Error</span>
-            <span className="text-sm text-muted-foreground">
-              {state.message}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                loadProjects({
-                  page: 1,
-                  search,
-                  status,
-                  programId: programIdFilter,
-                })
-              }
-            >
-              Retry
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (state.status !== "ready") {
-    return null;
-  }
-
-  const {
-    projects,
-    total,
-    totalPages,
-    editingProject,
-    editingForm,
-    saving,
-    lastError,
-    programs,
-    refreshing,
-  } = state;
-
-  const EmptyState = (
-    <Card className="border-dashed">
-      <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
-        <HiLockClosed
-          className="size-10 text-muted-foreground/60"
-          aria-hidden="true"
-        />
-        <span className="text-sm font-medium">No projects yet</span>
-        <span className="text-sm text-muted-foreground">
-          Create a project to start organizing initiatives.
-        </span>
-      </CardContent>
-    </Card>
-  );
-
-  return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="font-heading text-2xl font-semibold">Projects</h1>
-        <p className="text-sm text-muted-foreground">
-          Manage the projects shown on the public Projects page.
+        {project.tagline ? (
+          <p className="text-sm font-medium text-primary">{project.tagline}</p>
+        ) : null}
+        <p className="line-clamp-2 text-sm text-muted-foreground">
+          {project.shortDescription}
         </p>
+        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+            <HiPhoto className="size-3" aria-hidden="true" />
+            {photoCount} photo{photoCount === 1 ? "" : "s"}
+          </span>
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+            {project.sections.length} section
+            {project.sections.length === 1 ? "" : "s"}
+          </span>
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+            {project.highlights.length} card
+            {project.highlights.length === 1 ? "" : "s"}
+          </span>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-wrap items-center gap-4">
-          <div className="flex-1">
-            <CardTitle className="font-heading">All projects</CardTitle>
-            <CardDescription>
-              {total} project{total === 1 ? "" : "s"} total
-              {refreshing ? " · Refreshing…" : ""}
-            </CardDescription>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Input
-              placeholder="Search projects…"
-              value={search}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="w-48"
-            />
-            <Select
-              value={status === "all" ? "all" : status}
-              onValueChange={(val) =>
-                handleStatusFilter(
-                  val === "all"
-                    ? ("all" as ProjectStatus | "all")
-                    : (val as ProjectStatus),
-                )
-              }
-            >
-              <SelectTrigger className="w-36">
-                <SelectValue placeholder="All statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All statuses</SelectItem>
-                <SelectItem value="DRAFT">Draft</SelectItem>
-                <SelectItem value="PUBLISHED">Published</SelectItem>
-                <SelectItem value="ARCHIVED">Archived</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select
-              value={programIdFilter ?? "all"}
-              onValueChange={(val) => handleProgramFilter(val as string)}
-            >
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="All programs" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All programs</SelectItem>
-                {programs.map((program) => (
-                  <SelectItem key={program.id} value={program.id}>
-                    {program.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {canEdit && (
-              <Dialog
-                open={createDialogOpen}
-                onOpenChange={setCreateDialogOpen}
-              >
-                <DialogTrigger
-                  render={<Button size="sm">Create project</Button>}
-                />
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle className="font-heading">
-                      Create project
-                    </DialogTitle>
-                    <DialogDescription>
-                      Add a new project under a program. It will start as a
-                      draft.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <CreateProjectForm
-                    programs={programs}
-                    onSubmit={handleCreate}
-                    saving={saving}
-                    lastError={lastError}
-                    onClose={() => setCreateDialogOpen(false)}
-                  />
-                </DialogContent>
-              </Dialog>
-            )}
-          </div>
-        </CardHeader>
-
-        <CardContent>
-          {projects.length === 0 ? (
-            EmptyState
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-border/60 text-left">
-                      <th className="px-4 py-2 text-sm font-medium">Name</th>
-                      <th className="px-4 py-2 text-sm font-medium">Program</th>
-                      <th className="px-4 py-2 text-sm font-medium">Slug</th>
-                      <th className="px-4 py-2 text-sm font-medium">
-                        Short description
-                      </th>
-                      <th className="px-4 py-2 text-sm font-medium">Order</th>
-                      <th className="px-4 py-2 text-sm font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {projects.map((project) => (
-                      <ProjectRow
-                        key={project.id}
-                        project={project}
-                        onEdit={() => openEditDialog(project)}
-                        canEdit={canEdit}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {totalPages > 1 && (
-                <div className="flex flex-wrap items-center justify-between gap-4 pt-4">
-                  <div className="text-sm text-muted-foreground">
-                    Page {page} of {totalPages}
-                  </div>
-                  <PaginationControls
-                    page={page}
-                    totalPages={totalPages}
-                    onPageChange={handlePageChange}
-                  />
-                </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {editingProject && canEdit && (
-        <Dialog open onOpenChange={(open) => !open && closeDialog()}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="font-heading">Edit project</DialogTitle>
-              <DialogDescription>Update the project details.</DialogDescription>
-            </DialogHeader>
-            <EditProjectForm
-              project={editingProject}
-              initialValues={editingForm}
-              programs={programs}
-              onSave={handleUpdate}
-              onStatusChange={handleStatusChange}
-              saving={saving}
-              lastError={lastError}
-              onClose={closeDialog}
-            />
-            <div className="mt-4 flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={closeDialog}>
-                Close
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-    </div>
-  );
-}
-
-function PaginationControls({
-  page,
-  totalPages,
-  onPageChange,
-}: {
-  page: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
-}) {
-  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
-  return (
-    // flex-wrap keeps a long page list from forcing horizontal page overflow
-    // on narrow screens.
-    <div className="flex max-w-full flex-wrap items-center gap-1">
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={page <= 1}
-        onClick={() => onPageChange(page - 1)}
-      >
-        Previous
-      </Button>
-      {pages.map((p) => (
-        <Button
-          key={p}
-          variant={p === page ? "default" : "outline"}
-          size="sm"
-          onClick={() => onPageChange(p)}
-        >
-          {p}
+      <div className="flex shrink-0 items-center gap-2 sm:flex-col sm:items-stretch">
+        <Button size="sm" variant="outline" onClick={onEdit}>
+          <HiPencilSquare className="mr-1.5 size-4" aria-hidden="true" />
+          Edit content
         </Button>
-      ))}
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={page >= totalPages}
-        onClick={() => onPageChange(page + 1)}
-      >
-        Next
-      </Button>
+        <Link
+          href={`/${project.slug}`}
+          target="_blank"
+          className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <HiArrowTopRightOnSquare className="size-3.5" aria-hidden="true" />
+          Preview
+        </Link>
+      </div>
     </div>
   );
 }
 
-function CreateProjectForm({
+function ProjectForm({
+  project,
   programs,
-  onSubmit,
   saving,
-  lastError,
-  onClose,
+  error,
+  onSubmit,
+  onCancel,
 }: {
+  project: Project | null;
   programs: Program[];
-  onSubmit: (values: CreateProjectInput) => void;
   saving: boolean;
-  lastError: string | null;
-  onClose: () => void;
+  error: string | null;
+  onSubmit: (values: CreateProjectInput | UpdateProjectInput) => void;
+  onCancel: () => void;
 }) {
-  const [selectedProgramId, setSelectedProgramId] = useState("");
-  const hasSelectedProgramRef = useRef(false);
-  const [title, setTitle] = useState("");
-  const [slug, setSlug] = useState("");
-  const [shortDescription, setShortDescription] = useState("");
-  const [description, setDescription] = useState("");
-  const [displayOrder, setDisplayOrder] = useState<number | undefined>(
-    undefined,
+  const [programId, setProgramId] = useState(
+    project?.programId ?? programs[0]?.id ?? "",
   );
+  const [title, setTitle] = useState(project?.title ?? "");
+  const [shortDescription, setShortDescription] = useState(
+    project?.shortDescription ?? "",
+  );
+  const [description, setDescription] = useState(project?.description ?? "");
+  const [displayOrder, setDisplayOrder] = useState(
+    project?.displayOrder !== undefined ? String(project.displayOrder) : "",
+  );
+  const [content, setContent] = useState<ContentFieldsInput>({
+    tagline: project?.tagline ?? undefined,
+    coverImage: project?.coverImage ?? null,
+    gallery: project?.gallery ?? [],
+    sections: project?.sections ?? [],
+    highlights: project?.highlights ?? [],
+    facts: project?.facts ?? [],
+    cta: project?.cta ?? null,
+  });
+  const [tab, setTab] = useState<"basics" | "content">("basics");
 
-  useEffect(() => {
-    if (programs.length > 0 && !hasSelectedProgramRef.current) {
-      hasSelectedProgramRef.current = true;
-      setSelectedProgramId(programs[0].id);
-    }
-  }, [programs]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedProgramId) return;
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const orderValue = displayOrder.trim() === "" ? undefined : Number(displayOrder);
     onSubmit({
-      programId: selectedProgramId,
+      programId,
       title: title.trim(),
-      ...(slug.trim() && { slug: slug.trim() }),
       shortDescription: shortDescription.trim(),
       description: description.trim(),
-      ...(displayOrder !== undefined && { displayOrder }),
+      ...(orderValue !== undefined && !Number.isNaN(orderValue)
+        ? { displayOrder: orderValue }
+        : {}),
+      tagline: content.tagline,
+      coverImage: content.coverImage ?? null,
+      gallery: content.gallery,
+      sections: content.sections,
+      highlights: content.highlights,
+      facts: content.facts,
+      cta: content.cta ?? null,
     });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {lastError && (
-        <div className="rounded-lg border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-          {lastError}
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      {error ? (
+        <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
+
+      <div className="flex gap-1 rounded-lg border border-border bg-muted/40 p-1">
+        {(
+          [
+            ["basics", "Basics"],
+            ["content", "Page content"],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setTab(key)}
+            className={cn(
+              "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+              tab === key
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "basics" ? (
+        <div className="flex flex-col gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="projectProgram">Program *</Label>
+            <select
+              id="projectProgram"
+              required
+              value={programId}
+              disabled={saving}
+              onChange={(event) => setProgramId(event.target.value)}
+              className="h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              <option value="" disabled>
+                Select a program
+              </option>
+              {programs.map((program) => (
+                <option key={program.id} value={program.id}>
+                  {program.title}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              The program this project belongs to.
+            </p>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="projectTitle">Title *</Label>
+            <Input
+              id="projectTitle"
+              value={title}
+              required
+              disabled={saving}
+              onChange={(event) => setTitle(event.target.value)}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="projectShort">Short description *</Label>
+            <Textarea
+              id="projectShort"
+              rows={2}
+              value={shortDescription}
+              required
+              disabled={saving}
+              onChange={(event) => setShortDescription(event.target.value)}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="projectDescription">Full description *</Label>
+            <Textarea
+              id="projectDescription"
+              rows={5}
+              value={description}
+              required
+              disabled={saving}
+              onChange={(event) => setDescription(event.target.value)}
+            />
+          </div>
+          <div className="grid gap-2 sm:max-w-xs">
+            <Label htmlFor="projectOrder">Display order</Label>
+            <Input
+              id="projectOrder"
+              type="number"
+              min={0}
+              step={1}
+              value={displayOrder}
+              disabled={saving}
+              onChange={(event) => setDisplayOrder(event.target.value)}
+            />
+          </div>
         </div>
+      ) : (
+        <ContentEditor value={content} onChange={setContent} disabled={saving} />
       )}
-      <div className="grid gap-2">
-        <Label htmlFor="createProgramId">Program *</Label>
-        <Select
-          value={selectedProgramId || "all"}
-          onValueChange={(val) => setSelectedProgramId(val ?? "")}
-          disabled={saving}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select a program" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all" disabled>
-              Select a program
-            </SelectItem>
-            {programs.map((program) => (
-              <SelectItem key={program.id} value={program.id}>
-                {program.title}
-                <span className="text-muted-foreground ml-2">
-                  ({program.status})
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {programs.length === 0 && (
-          <p className="text-xs text-muted-foreground">
-            No programs available yet - create a program first, because every
-            project belongs to one.
-          </p>
-        )}
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="createTitle">Title *</Label>
-        <Input
-          id="createTitle"
-          value={title}
-          onChange={(e) => {
-            setTitle(e.target.value);
-          }}
-          required
-          disabled={saving}
-          aria-invalid={lastError ? true : undefined}
-        />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="createSlug">Slug (optional)</Label>
-        <Input
-          id="createSlug"
-          value={slug}
-          onChange={(e) => {
-            setSlug(e.target.value);
-          }}
-          disabled={saving}
-          placeholder="Auto-generated from title if empty"
-          className="text-xs font-mono"
-        />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="createShortDescription">Short description *</Label>
-        <Textarea
-          id="createShortDescription"
-          value={shortDescription}
-          onChange={(e) => {
-            setShortDescription(e.target.value);
-          }}
-          required
-          disabled={saving}
-          rows={2}
-        />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="createDescription">Description *</Label>
-        <Textarea
-          id="createDescription"
-          value={description}
-          onChange={(e) => {
-            setDescription(e.target.value);
-          }}
-          required
-          disabled={saving}
-          rows={4}
-        />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="createDisplayOrder">Display order</Label>
-        <Input
-          id="createDisplayOrder"
-          type="number"
-          min={0}
-          step={1}
-          value={(displayOrder ?? "").toString()}
-          onChange={(e) => {
-            const val = e.target.value;
-            setDisplayOrder(val ? Number(val) : undefined);
-          }}
-          disabled={saving}
-        />
-      </div>
-      <div className="flex justify-end gap-2 pt-2">
-        <Button
-          type="button"
-          variant="outline"
-          disabled={saving}
-          onClick={onClose}
-        >
+
+      <div className="flex justify-end gap-2 border-t border-border pt-4">
+        <Button type="button" variant="outline" disabled={saving} onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="submit" disabled={saving || !selectedProgramId}>
-          {saving ? "Creating…" : "Create project"}
+        <Button type="submit" disabled={saving || !programId}>
+          {saving ? "Saving…" : project ? "Save changes" : "Create project"}
         </Button>
       </div>
     </form>
   );
 }
 
-function EditProjectForm({
-  project,
-  initialValues,
-  programs,
-  onSave,
-  onStatusChange,
-  saving,
-  lastError,
-  onClose,
-}: {
-  project: Project;
-  initialValues: UpdateProjectInput;
-  programs: Program[];
-  onSave: (values: UpdateProjectInput) => void;
-  onStatusChange: (id: string, status: ProjectStatus) => void;
-  saving: boolean;
-  lastError: string | null;
-  onClose: () => void;
-}) {
-  const [selectedProgramId, setSelectedProgramId] = useState(
-    initialValues.programId ?? project.programId,
-  );
-  const [title, setTitle] = useState(initialValues.title ?? project.title);
-  const [slug, setSlug] = useState(initialValues.slug ?? project.slug);
-  const [shortDescription, setShortDescription] = useState(
-    initialValues.shortDescription ?? project.shortDescription,
-  );
-  const [description, setDescription] = useState(
-    initialValues.description ?? project.description,
-  );
-  const [displayOrderValue, setDisplayOrderValue] = useState<
-    number | undefined
-  >(initialValues.displayOrder ?? project.displayOrder);
+export default function AdminProjectsPage() {
+  const [state, setState] = useState<ListState | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [programs, setPrograms] = useState<Program[]>([]);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<ProjectStatus | "all">("all");
+  const [programFilter, setProgramFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const [refreshToken, setRefreshToken] = useState(0);
+  const [dialog, setDialog] = useState<
+    { mode: "create" } | { mode: "edit"; project: Project } | null
+  >(null);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
 
-  const hasChanges =
-    selectedProgramId !== project.programId ||
-    title !== project.title ||
-    slug !== project.slug ||
-    shortDescription !== project.shortDescription ||
-    description !== project.description ||
-    displayOrderValue !== project.displayOrder;
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const data = await listPrograms({ limit: 100 });
+        if (!cancelled) setPrograms(data.items);
+      } catch {
+        // The selector stays empty; the page itself surfaces list errors.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave({
-      ...(selectedProgramId !== project.programId && {
-        programId: selectedProgramId,
-      }),
-      ...(title !== project.title && { title: title.trim() }),
-      ...(slug !== project.slug && { slug: slug.trim() }),
-      ...(shortDescription !== project.shortDescription && {
-        shortDescription: shortDescription.trim(),
-      }),
-      ...(description !== project.description && {
-        description: description.trim(),
-      }),
-      ...(displayOrderValue !== project.displayOrder && {
-        displayOrder: displayOrderValue,
-      }),
-    });
-  };
+  const load = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
+    try {
+      const data = await listProjects({
+        page,
+        limit: PAGE_SIZE,
+        search: search || undefined,
+        status: status !== "all" ? status : undefined,
+        programId: programFilter !== "all" ? programFilter : undefined,
+      });
+      if (requestId !== requestIdRef.current) return;
+      setState({
+        items: data.items,
+        page: data.page,
+        total: data.total,
+        totalPages: data.totalPages,
+      });
+      setError(null);
+    } catch (err) {
+      if (requestId !== requestIdRef.current) return;
+      setError(err instanceof Error ? err.message : "Failed to load projects.");
+    } finally {
+      if (requestId === requestIdRef.current) setLoading(false);
+    }
+  }, [page, search, status, programFilter]);
+
+  // Guarded so an effect can never fire twice for the same query (and a
+  // refreshToken bump always forces a fresh load).
+  const loadKeyRef = useRef<string>("");
+  useEffect(() => {
+    const key = `${page}|${search}|${status}|${programFilter}|${refreshToken}`;
+    if (loadKeyRef.current === key) return;
+    loadKeyRef.current = key;
+    void load();
+  }, [load, page, search, status, programFilter, refreshToken]);
+
+  const handleSave = useCallback(
+    async (values: CreateProjectInput | UpdateProjectInput) => {
+      if (!dialog) return;
+      setSaving(true);
+      setFormError(null);
+      try {
+        if (dialog.mode === "create") {
+          await createProject(values as CreateProjectInput);
+        } else {
+          await updateProject(dialog.project.id, values as UpdateProjectInput);
+        }
+        setDialog(null);
+        setPage(1);
+        setRefreshToken((token) => token + 1);
+      } catch (err) {
+        setFormError(err instanceof Error ? err.message : "Failed to save.");
+      } finally {
+        setSaving(false);
+      }
+    },
+    [dialog],
+  );
+
+  const handleStatusChange = useCallback(
+    async (project: Project, next: ProjectStatus) => {
+      try {
+        const updated = await updateProjectStatus(project.id, next);
+        setState((prev) =>
+          prev
+            ? {
+                ...prev,
+                items: prev.items.map((p) => (p.id === updated.id ? updated : p)),
+              }
+            : prev,
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to change status.");
+      }
+    },
+    [],
+  );
 
   return (
-    <div className="space-y-6">
-      {lastError && (
-        <div className="rounded-lg border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-          {lastError}
+    <div className="flex flex-col gap-6">
+      <AdminPageHeader
+        title="Projects"
+        description="The pages inside each program — every project owns its own photos, sections, cards and facts."
+        icon={HiFolderOpen}
+        actions={
+          <Button
+            size="sm"
+            disabled={programs.length === 0}
+            onClick={() => {
+              setFormError(null);
+              setDialog({ mode: "create" });
+            }}
+          >
+            <HiPlus className="mr-1.5 size-4" aria-hidden="true" />
+            Create project
+          </Button>
+        }
+      />
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          placeholder="Search projects…"
+          value={search}
+          onChange={(event) => {
+            setSearch(event.target.value);
+            setPage(1);
+          }}
+          className="w-56"
+        />
+        <select
+          value={programFilter}
+          onChange={(event) => {
+            setProgramFilter(event.target.value);
+            setPage(1);
+          }}
+          className="h-9 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          <option value="all">All programs</option>
+          {programs.map((program) => (
+            <option key={program.id} value={program.id}>
+              {program.title}
+            </option>
+          ))}
+        </select>
+        <select
+          value={status === "all" ? "" : status}
+          onChange={(event) => {
+            setStatus((event.target.value as ProjectStatus) || "all");
+            setPage(1);
+          }}
+          className="h-9 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          <option value="">All statuses</option>
+          <option value="DRAFT">Draft</option>
+          <option value="PUBLISHED">Published</option>
+          <option value="ARCHIVED">Archived</option>
+        </select>
+        {state ? (
+          <span className="text-sm text-muted-foreground">
+            {state.total} project{state.total === 1 ? "" : "s"}
+          </span>
+        ) : null}
+      </div>
+
+      {loading && !state ? (
+        <div className="flex flex-col gap-3">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Skeleton key={index} className="h-32 rounded-2xl" />
+          ))}
+        </div>
+      ) : error ? (
+        <Card className="border-destructive/40">
+          <CardContent className="flex flex-wrap items-center gap-3 py-4">
+            <span className="font-medium text-destructive">Could not load</span>
+            <span className="text-sm text-muted-foreground">{error}</span>
+            <Button variant="outline" size="sm" onClick={() => void load()}>
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      ) : state && state.items.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
+            <HiFolderOpen className="size-10 text-muted-foreground/60" aria-hidden="true" />
+            <span className="text-sm font-medium">No projects yet</span>
+            <span className="text-sm text-muted-foreground">
+              Create a project inside a program, or load the pre-filled content
+              from the dashboard.
+            </span>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {state?.items.map((project) => (
+            <div key={project.id} className="flex flex-col gap-2">
+              <ProjectCard
+                project={project}
+                onEdit={() => {
+                  setFormError(null);
+                  setDialog({ mode: "edit", project });
+                }}
+              />
+              <div className="flex flex-wrap items-center gap-1.5 px-1">
+                {(["DRAFT", "PUBLISHED", "ARCHIVED"] as ProjectStatus[])
+                  .filter((next) => next !== project.status)
+                  .map((next) => (
+                    <Button
+                      key={next}
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => void handleStatusChange(project, next)}
+                    >
+                      Set {next.toLowerCase()}
+                    </Button>
+                  ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid gap-2">
-          <Label htmlFor="editProgramId">Program</Label>
-          <Select
-            value={selectedProgramId || "all"}
-            onValueChange={(val) => setSelectedProgramId(val ?? "")}
-            disabled={saving}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {programs.map((program) => (
-                <SelectItem key={program.id} value={program.id}>
-                  {program.title}
-                  <span className="text-muted-foreground ml-2">
-                    ({program.status})
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="editTitle">Title</Label>
-          <Input
-            id="editTitle"
-            value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-            }}
-            required
-            disabled={saving}
-            aria-invalid={lastError ? true : undefined}
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="editSlug">Slug</Label>
-          <Input
-            id="editSlug"
-            value={slug}
-            onChange={(e) => {
-              setSlug(e.target.value);
-            }}
-            disabled={saving}
-            className="text-xs font-mono"
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="editShortDescription">Short description</Label>
-          <Textarea
-            id="editShortDescription"
-            value={shortDescription}
-            onChange={(e) => {
-              setShortDescription(e.target.value);
-            }}
-            disabled={saving}
-            rows={2}
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="editDescription">Description</Label>
-          <Textarea
-            id="editDescription"
-            value={description}
-            onChange={(e) => {
-              setDescription(e.target.value);
-            }}
-            disabled={saving}
-            rows={4}
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="editDisplayOrder">Display order</Label>
-          <Input
-            id="editDisplayOrder"
-            type="number"
-            min={0}
-            step={1}
-            value={(displayOrderValue ?? "").toString()}
-            onChange={(e) => {
-              const val = e.target.value;
-              setDisplayOrderValue(val ? Number(val) : undefined);
-            }}
-            disabled={saving}
-          />
-        </div>
-        <div className="flex justify-end gap-2 pt-2">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={saving}
-            onClick={onClose}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" disabled={saving || !hasChanges}>
-            {saving ? "Saving…" : "Save changes"}
-          </Button>
-        </div>
-      </form>
 
-      <Separator />
-
-      <div>
-        <h3 className="font-heading text-base font-medium mb-3">Status</h3>
-        <div className="flex flex-wrap gap-2">
-          {["DRAFT", "PUBLISHED", "ARCHIVED"]
-            .filter((s) => s !== project.status)
-            .map((nextStatus) => (
-              <Button
-                key={nextStatus}
-                variant="outline"
-                size="sm"
-                disabled={saving}
-                onClick={() =>
-                  onStatusChange(project.id, nextStatus as ProjectStatus)
-                }
-              >
-                Set to{" "}
-                {nextStatus.charAt(0) + nextStatus.slice(1).toLowerCase()}
-              </Button>
-            ))}
+      {state && state.totalPages > 1 ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="text-sm text-muted-foreground">
+            Page {state.page} of {state.totalPages}
+          </span>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={state.page <= 1}
+              onClick={() => setPage(state.page - 1)}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={state.page >= state.totalPages}
+              onClick={() => setPage(state.page + 1)}
+            >
+              Next
+            </Button>
+          </div>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">
-          Status changes are made through a dedicated endpoint.
-        </p>
-      </div>
+      ) : null}
+
+      <Dialog
+        open={dialog !== null}
+        onOpenChange={(open) => {
+          if (!open) setDialog(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="font-heading">
+              {dialog?.mode === "edit" ? "Edit project" : "Create project"}
+            </DialogTitle>
+            <DialogDescription>
+              Edit everything the public page shows — basics and full page
+              content.
+            </DialogDescription>
+          </DialogHeader>
+          {dialog ? (
+            <ProjectForm
+              key={dialog.mode === "edit" ? dialog.project.id : "create"}
+              project={dialog.mode === "edit" ? dialog.project : null}
+              programs={programs}
+              saving={saving}
+              error={formError}
+              onSubmit={handleSave}
+              onCancel={() => setDialog(null)}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

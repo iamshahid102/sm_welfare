@@ -4,11 +4,14 @@
  * These types represent the whitelist contracts returned by:
  *   GET /api/v1/public/programs
  *   GET /api/v1/public/projects
+ *   GET /api/v1/public/pages/:slug
  *   GET /api/v1/public/site-settings
  *   GET /api/v1/public/media
  *
  * The backend is the source of truth. Do not invent fields.
  */
+
+import type { ContentFields } from "@/types/content";
 
 // ─── Shared pagination envelope ────────────────────────────────────────
 
@@ -22,7 +25,7 @@ export interface PublicListResult<T> {
 
 // ─── Public Program ────────────────────────────────────────────────────
 
-export interface PublicProgram {
+export interface PublicProgram extends ContentFields {
   id: string;
   title: string;
   slug: string;
@@ -41,7 +44,7 @@ export interface PublicProgramSummary {
   slug: string;
 }
 
-export interface PublicProject {
+export interface PublicProject extends ContentFields {
   id: string;
   programId: string;
   program: PublicProgramSummary;
@@ -52,6 +55,13 @@ export interface PublicProject {
   displayOrder: number;
   createdAt: string;
   updatedAt: string;
+}
+
+/** Response of GET /api/v1/public/pages/:slug — a resolved program or project. */
+export interface PublicPageResult {
+  kind: "program" | "project";
+  program: PublicProgram | null;
+  project: PublicProject | null;
 }
 
 // ─── Public Site Settings ──────────────────────────────────────────────

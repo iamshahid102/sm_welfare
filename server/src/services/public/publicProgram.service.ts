@@ -1,5 +1,12 @@
 import { ProgramModel } from '../../models/program.model.js';
 import { ApiError } from '../../utils/ApiError.js';
+import type {
+  ContentCta,
+  ContentFact,
+  ContentHighlight,
+  ContentImage,
+  ContentSection,
+} from '../../types/content.js';
 
 /**
  * Public programs service.
@@ -39,6 +46,13 @@ export interface PublicProgram {
   shortDescription: string;
   description: string;
   displayOrder: number;
+  tagline: string | null;
+  coverImage: ContentImage | null;
+  gallery: ContentImage[];
+  sections: ContentSection[];
+  highlights: ContentHighlight[];
+  facts: ContentFact[];
+  cta: ContentCta | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -146,20 +160,27 @@ export async function listPublicPrograms(query: PublicProgramListQuery): Promise
   };
 }
 
-export function serializePublicProgram(
-  program: {
-    id?: string;
-    _id: import('mongoose').Types.ObjectId;
-    __v?: number;
-    title: string;
-    slug: string;
-    shortDescription: string;
-    description: string;
-    displayOrder: number;
-    createdAt?: Date;
-    updatedAt?: Date;
-  },
-): PublicProgram {
+export interface LeanPublicProgramDocument {
+  id?: string;
+  _id: import('mongoose').Types.ObjectId;
+  __v?: number;
+  title: string;
+  slug: string;
+  shortDescription: string;
+  description: string;
+  displayOrder: number;
+  tagline?: string | null;
+  coverImage?: ContentImage | null;
+  gallery?: ContentImage[];
+  sections?: ContentSection[];
+  highlights?: ContentHighlight[];
+  facts?: ContentFact[];
+  cta?: ContentCta | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export function serializePublicProgram(program: LeanPublicProgramDocument): PublicProgram {
   return {
     id: program.id ?? String(program._id),
     title: program.title,
@@ -167,7 +188,27 @@ export function serializePublicProgram(
     shortDescription: program.shortDescription,
     description: program.description,
     displayOrder: program.displayOrder,
+    tagline: program.tagline ?? null,
+    coverImage: program.coverImage ?? null,
+    gallery: program.gallery ?? [],
+    sections: program.sections ?? [],
+    highlights: program.highlights ?? [],
+    facts: program.facts ?? [],
+    cta: program.cta ?? null,
     createdAt: program.createdAt?.toISOString() ?? '',
     updatedAt: program.updatedAt?.toISOString() ?? '',
   };
+}
+
+/**
+ * Returns one PUBLISHED program by slug, or null when it does not exist or is
+ * not public. Used by the dynamic public detail route.
+ */
+export async function getPublicProgramBySlug(slug: string): Promise<PublicProgram | null> {
+  if (typeof slug !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+    return null;
+  }
+  const program = await ProgramModel.findOne({ slug, status: PUBLIC_STATUS }).lean();
+  if (!program) return null;
+  return serializePublicProgram(program as unknown as LeanPublicProgramDocument);
 }

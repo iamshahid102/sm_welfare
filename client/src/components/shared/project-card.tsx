@@ -50,7 +50,7 @@ export function ProjectCard(props: ProjectCardProps) {
     const { apiProject } = props;
     const image = resolveProjectImage(apiProject);
     return (
-      <Card className="group flex h-full flex-col overflow-hidden border-border bg-white transition-shadow hover:shadow-lg">
+      <Card className="hover-lift group flex h-full flex-col overflow-hidden border-border bg-white hover:border-primary/25">
         <div
           className={cn(
             "relative aspect-[16/10] overflow-hidden",
@@ -74,7 +74,7 @@ export function ProjectCard(props: ProjectCardProps) {
           </Badge>
         </div>
         <CardContent className="flex flex-1 flex-col gap-3 p-6">
-          <h3 className="font-heading text-xl font-bold tracking-tight">
+          <h3 className="font-heading text-xl font-bold tracking-tight transition-colors duration-300 group-hover:text-primary">
             {apiProject.title}
           </h3>
           <p className="flex-1 text-sm leading-relaxed text-muted-foreground">
@@ -99,7 +99,7 @@ export function ProjectCard(props: ProjectCardProps) {
   const image = resolveProjectImage({ slug: project.slug, name: project.name });
 
   return (
-    <Card className="group flex h-full flex-col overflow-hidden border-border bg-white transition-shadow hover:shadow-lg">
+    <Card className="hover-lift group flex h-full flex-col overflow-hidden border-border bg-white hover:border-primary/25">
       <div
         className={cn(
           "relative aspect-[16/10] overflow-hidden",
@@ -120,7 +120,7 @@ export function ProjectCard(props: ProjectCardProps) {
         </Badge>
       </div>
       <CardContent className="flex flex-1 flex-col gap-3 p-6">
-        <h3 className="font-heading text-xl font-bold tracking-tight">
+        <h3 className="font-heading text-xl font-bold tracking-tight transition-colors duration-300 group-hover:text-primary">
           {project.name}
         </h3>
         <p className="flex-1 text-sm leading-relaxed text-muted-foreground">

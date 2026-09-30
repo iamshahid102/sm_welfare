@@ -14,6 +14,7 @@
     "start": "node dist/server.js",
     "provision:admin": "tsx src/scripts/provisionAdmin.ts",
     "seed:cms": "tsx src/scripts/seedCms.ts",
+    "seed:certificates": "tsx src/scripts/seedCertificates.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "cross-env NODE_ENV=test tsx --test \"src/**/*.test.ts\"",

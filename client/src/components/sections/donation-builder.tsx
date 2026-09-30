@@ -121,7 +121,7 @@ export function DonationBuilder() {
   return (
     <div className="grid items-start gap-8 lg:grid-cols-[1.1fr_0.9fr]">
       {/* Build your donation */}
-      <div className="flex flex-col gap-6 rounded-2xl border border-border bg-white p-6 shadow-sm sm:p-8">
+      <div className="anim-fade-up flex flex-col gap-6 rounded-2xl border border-border bg-white p-6 shadow-sm sm:p-8">
         <div className="flex items-start gap-3">
           <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
             <HiBanknotes className="size-5" aria-hidden="true" />
@@ -153,7 +153,7 @@ export function DonationBuilder() {
                     setCustom("");
                   }}
                   className={cn(
-                    "relative rounded-xl border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    "relative rounded-xl border p-4 text-left transition-[border-color,background-color,color,transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     selected
                       ? "border-primary bg-secondary ring-1 ring-primary/30"
                       : "border-border bg-white hover:border-primary/40"

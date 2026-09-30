@@ -9,6 +9,20 @@ import {
   PROJECT_STATUSES,
   type ProjectStatus,
 } from '../constants/project.js';
+import {
+  contentCtaSchema,
+  contentFactSchema,
+  contentHighlightSchema,
+  contentImageSchema,
+  contentSectionSchema,
+} from './content.schema.js';
+import type {
+  ContentCta,
+  ContentFact,
+  ContentHighlight,
+  ContentImage,
+  ContentSection,
+} from '../types/content.js';
 
 /**
  * Shape of a project (welfare initiative under exactly one program) document.
@@ -20,8 +34,11 @@ import {
  * (one wins, the other hits E11000).
  *
  * A project's `programId` references a Program document. Projects are never
- * physically deleted; ARCHIVED keeps the document. No binary/image fields -
- * media management is a dedicated future phase.
+ * physically deleted; ARCHIVED keeps the document.
+ *
+ * Rich content: a project carries the same page-building blocks as a program
+ * (cover photo, gallery, narrative sections, highlight cards, quick facts and
+ * an optional call to action). Images are Cloudinary references, never bytes.
  */
 export interface Project {
   programId: Types.ObjectId;
@@ -31,6 +48,13 @@ export interface Project {
   description: string;
   status: ProjectStatus;
   displayOrder: number;
+  tagline?: string;
+  coverImage?: ContentImage;
+  gallery: ContentImage[];
+  sections: ContentSection[];
+  highlights: ContentHighlight[];
+  facts: ContentFact[];
+  cta?: ContentCta;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -92,6 +116,17 @@ const projectSchema = new Schema<Project>(
       max: MAX_PROJECT_DISPLAY_ORDER,
       default: 0,
     },
+    tagline: {
+      type: String,
+      trim: true,
+      maxlength: MAX_PROJECT_TITLE_LENGTH,
+    },
+    coverImage: { type: contentImageSchema },
+    gallery: { type: [contentImageSchema], default: [] },
+    sections: { type: [contentSectionSchema], default: [] },
+    highlights: { type: [contentHighlightSchema], default: [] },
+    facts: { type: [contentFactSchema], default: [] },
+    cta: { type: contentCtaSchema },
   },
   {
     timestamps: true,

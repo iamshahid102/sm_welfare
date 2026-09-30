@@ -2,6 +2,7 @@ import Link from "next/link";
 import { HiHeart, HiPhone } from "react-icons/hi2";
 import { buttonVariants } from "@/components/ui/button";
 import { Container } from "@/components/shared/container";
+import { Reveal } from "@/components/shared/reveal";
 import { SITE } from "@/constants/site";
 import { DONATE_HREF } from "@/constants/navigation";
 import { cn } from "@/lib/utils";
@@ -19,7 +20,7 @@ export function CtaBand() {
   return (
     <section className="bg-white">
       <Container className="py-14 sm:py-16">
-        <div className="flex flex-col items-center gap-5 rounded-2xl border border-border bg-section px-6 py-12 text-center sm:px-12 sm:py-14">
+        <Reveal className="flex flex-col items-center gap-5 rounded-2xl border border-border bg-section px-6 py-12 text-center sm:px-12 sm:py-14">
           <h2 className="max-w-2xl font-heading text-3xl font-bold tracking-tight text-balance sm:text-4xl">
             Your donation starts today&apos;s meal
           </h2>
@@ -40,7 +41,7 @@ export function CtaBand() {
               Talk to our team
             </a>
           </div>
-        </div>
+        </Reveal>
       </Container>
     </section>
   );

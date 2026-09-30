@@ -5,6 +5,7 @@ import type {
   ProjectStatus,
   ProgramListResponse,
 } from "@/types/api";
+import type { ContentFieldsInput } from "@/types/content";
 
 export type {
   Project,
@@ -44,10 +45,11 @@ export async function getProject(id: string): Promise<Project> {
 
 // ─── Create project ─────────────────────────────────────────────────────
 
-export interface CreateProjectInput {
+// NOTE: slugs are never part of the admin payload. The API derives the slug
+// from the title and keeps it unique within the program.
+export interface CreateProjectInput extends ContentFieldsInput {
   programId: string;
   title: string;
-  slug?: string;
   shortDescription: string;
   description: string;
   displayOrder?: number;
@@ -60,10 +62,9 @@ export async function createProject(input: CreateProjectInput): Promise<Project>
 
 // ─── Update project ─────────────────────────────────────────────────────
 
-export interface UpdateProjectInput {
+export interface UpdateProjectInput extends ContentFieldsInput {
   programId?: string;
   title?: string;
-  slug?: string;
   shortDescription?: string;
   description?: string;
   displayOrder?: number;

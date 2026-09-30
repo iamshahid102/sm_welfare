@@ -5,6 +5,13 @@ import { PageHero } from "@/components/shared/page-hero";
 import { Container } from "@/components/shared/container";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { CtaBand } from "@/components/shared/cta-band";
+import { Reveal } from "@/components/shared/reveal";
+import {
+  CertificateGallery,
+  type CertificateItem,
+} from "@/components/shared/certificate-gallery";
+import { CERTIFICATES, CERTIFICATES_FOLDER } from "@/data/certificates";
+import { listPublicMedia } from "@/services/public-media";
 import { SITE } from "@/constants/site";
 
 /**
@@ -112,6 +119,66 @@ const FOUNDER_FACTS: readonly { label: string; value: React.ReactNode }[] = [
   },
 ];
 
+/**
+ * Certificate fallback — the curated local copies of the live /about-us/
+ * certificates, used when the public media API is unreachable so the section
+ * is never left empty.
+ */
+const FALLBACK_CERTIFICATES: readonly CertificateItem[] = CERTIFICATES.map(
+  (certificate) => ({
+    id: certificate.slug,
+    title: certificate.title,
+    description: certificate.description,
+    src: certificate.image.src,
+    width: certificate.image.width,
+    height: certificate.image.height,
+  }),
+);
+
+/**
+ * Live-page order for the certificates, keyed by the stored original filename.
+ * The media list is returned newest-first, so the API result is re-sorted to
+ * match the curated (live) order instead of showing it reversed.
+ */
+const CERTIFICATE_ORDER = new Map(
+  CERTIFICATES.map((certificate, index) => [certificate.file, index]),
+);
+
+/**
+ * Loads the trust's certificates from the public media API, scoped to the
+ * certificates Cloudinary folder. Falls back to the curated local copies when
+ * the API is unavailable (e.g. during a build without the server running).
+ */
+async function fetchCertificates(): Promise<readonly CertificateItem[]> {
+  try {
+    const result = await listPublicMedia({
+      folder: CERTIFICATES_FOLDER,
+      limit: 40,
+      page: 1,
+    });
+    const items = [...result.items]
+      .sort(
+        (a, b) =>
+          (CERTIFICATE_ORDER.get(a.originalFilename ?? "") ??
+            Number.MAX_SAFE_INTEGER) -
+          (CERTIFICATE_ORDER.get(b.originalFilename ?? "") ??
+            Number.MAX_SAFE_INTEGER),
+      )
+      .map((media) => ({
+        id: media.id,
+        title: media.title ?? media.originalFilename ?? "Certificate",
+        description: media.description ?? "",
+        src: media.secureUrl,
+        width: media.width,
+        height: media.height,
+      }));
+    return items.length > 0 ? items : FALLBACK_CERTIFICATES;
+  } catch (err) {
+    console.error("[Founder's Profile] Failed to fetch certificates:", err);
+    return FALLBACK_CERTIFICATES;
+  }
+}
+
 export const metadata: Metadata = {
   title: "Founder's Profile",
   description:
@@ -128,7 +195,9 @@ export const metadata: Metadata = {
   },
 };
 
-export default function FoundersProfilePage() {
+export default async function FoundersProfilePage() {
+  const certificates = await fetchCertificates();
+
   return (
     <>
       <PageHero
@@ -139,7 +208,7 @@ export default function FoundersProfilePage() {
       {/* Live intro copy + at-a-glance facts card */}
       <section className="bg-white">
         <Container className="grid items-start gap-12 py-16 sm:py-20 lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="flex flex-col gap-5">
+          <Reveal className="flex flex-col gap-5">
             <SectionHeading
               kicker="Our founder"
               title="Hafiz Muzammil Malik"
@@ -147,17 +216,17 @@ export default function FoundersProfilePage() {
             <p className="text-base leading-relaxed text-muted-foreground">
               {FOUNDER_INTRO}
             </p>
-          </div>
+          </Reveal>
 
           <div className="flex h-fit flex-col gap-6 lg:sticky lg:top-24">
             {/* Founder portrait — same rounded-frame treatment as the About page image */}
-            <div className="relative aspect-[16/10] overflow-hidden rounded-2xl shadow-lg">
+            <div className="group relative aspect-[16/10] overflow-hidden rounded-2xl shadow-lg">
               <Image
                 src={FOUNDER_IMAGE.src}
                 alt={FOUNDER_IMAGE.alt}
                 fill
                 sizes="(max-width: 1024px) 100vw, 40vw"
-                className="object-cover"
+                className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
               />
             </div>
             <aside className="flex flex-col gap-5 rounded-2xl border border-border bg-section p-6 shadow-sm sm:p-8">
@@ -190,8 +259,12 @@ export default function FoundersProfilePage() {
           />
           <div className="mx-auto flex w-full max-w-4xl flex-col">
             {PROFILE_SECTIONS.map((section, index) => (
-              <article
+              <Reveal
+                as="article"
                 key={section.title}
+                // The row itself is the reveal element (not a wrapper), so the
+                // `first:`/`last:` border and padding rules keep matching the
+                // real siblings inside this list.
                 className="grid gap-4 border-b border-border py-8 first:pt-0 last:border-b-0 last:pb-0 sm:grid-cols-[12rem_1fr] sm:gap-8 lg:grid-cols-[16rem_1fr] lg:gap-12"
               >
                 <div className="flex flex-col gap-2">
@@ -212,7 +285,7 @@ export default function FoundersProfilePage() {
                     </p>
                   ))}
                 </div>
-              </article>
+              </Reveal>
             ))}
           </div>
         </Container>
@@ -226,7 +299,7 @@ export default function FoundersProfilePage() {
             kicker="Recognition"
             title="Achievements and Impact"
           />
-          <div className="mx-auto flex max-w-3xl flex-col gap-4">
+          <Reveal className="mx-auto flex max-w-3xl flex-col gap-4">
             {ACHIEVEMENTS_PARAGRAPHS.map((paragraph) => (
               <p
                 key={paragraph.slice(0, 32)}
@@ -235,6 +308,23 @@ export default function FoundersProfilePage() {
                 {paragraph}
               </p>
             ))}
+          </Reveal>
+        </Container>
+      </section>
+
+      {/* Certificates & registrations — the four certificates the live
+          /about-us/ page publishes, served from Cloudinary via the public
+          media API (curated local images as fallback). */}
+      <section className="border-t border-border bg-section">
+        <Container className="flex flex-col gap-10 py-16 sm:py-20">
+          <SectionHeading
+            center
+            kicker="Registered & recognized"
+            title="Certificates"
+            description="Official registrations and recognition certificates of Sirat-e-Mustaqeem Welfare Trust."
+          />
+          <div className="mx-auto w-full max-w-6xl">
+            <CertificateGallery certificates={certificates} />
           </div>
         </Container>
       </section>
@@ -242,7 +332,7 @@ export default function FoundersProfilePage() {
       {/* Live "Contact Information" line — same number as the site constants */}
       <section className="border-t border-border bg-section">
         <Container className="py-14 sm:py-16">
-          <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 rounded-2xl border border-border bg-white px-6 py-10 text-center shadow-sm sm:px-12">
+          <Reveal className="mx-auto flex max-w-3xl flex-col items-center gap-4 rounded-2xl border border-border bg-white px-6 py-10 text-center shadow-sm sm:px-12">
             <span className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
               <HiPhone className="size-5" aria-hidden="true" />
             </span>
@@ -260,7 +350,7 @@ export default function FoundersProfilePage() {
               </a>
               .
             </p>
-          </div>
+          </Reveal>
         </Container>
       </section>
 

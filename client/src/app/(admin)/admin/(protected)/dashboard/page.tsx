@@ -1,68 +1,91 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useAuth } from "@/hooks/use-auth";
-import { getUserInitials } from "@/types/auth";
+import { useCallback, useEffect, useRef, useState, type ElementType } from "react";
 import Link from "next/link";
+import {
+  HiArrowPath,
+  HiArrowRight,
+  HiCheckCircle,
+  HiPhoto,
+  HiPlus,
+  HiRectangleStack,
+  HiFolderOpen,
+  HiSquares2X2,
+} from "react-icons/hi2";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AdminPageHeader } from "@/components/admin/page-header";
+import { ADMIN_NAV_GROUPS } from "@/components/admin/admin-shell";
+import { useAuth } from "@/hooks/use-auth";
 import { listPrograms } from "@/services/programs";
 import { listProjects } from "@/services/projects";
 import { listMedia } from "@/services/media";
 import { runCmsSeed, type SeedResult } from "@/services/seed";
-import {
-  HiPlus,
-  HiPhoto,
-  HiCog6Tooth,
-  HiCommandLine,
-  HiFolderOpen,
-  HiInbox,
-  HiArrowPath,
-  HiCheckCircle,
-} from "react-icons/hi2";
-import type { ElementType } from "react";
+import { cn } from "@/lib/utils";
 
-// Title is set via the layout
+/**
+ * Admin dashboard.
+ *
+ * Answers two questions in order: "what is on the site right now?" (the counts)
+ * and "what do I want to change?" (the section cards). Every card links to the
+ * one page that does the job, so the panel needs no explanation.
+ */
 
-const PAGE_SIZE = 1;
-
-type DashboardData = {
-  programs: { total: number };
-  projects: { total: number };
-  media: { total: number };
+type DashboardCounts = {
+  programs: number;
+  projects: number;
+  media: number;
 };
 
-function MetricCard({
-  title,
+/** Counts are read with limit=1 - only `total` is needed. */
+const COUNT_ONLY = { page: 1, limit: 1 } as const;
+
+function CountCard({
+  label,
   value,
-  description,
-  action,
+  hint,
+  href,
   icon: Icon,
+  loading,
 }: {
-  title: string;
-  value: string | number;
-  description: string;
-  action?: React.ReactNode;
+  label: string;
+  value: number;
+  hint: string;
+  href: string;
   icon: ElementType;
+  loading: boolean;
 }) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center gap-4 space-y-0 pb-2">
-        <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
+    <Card className="hover-lift">
+      <CardContent className="flex items-start gap-4 p-5">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10">
           <Icon className="size-5 text-primary" aria-hidden="true" />
         </span>
-        <div className="flex-1">
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            {label}
+          </span>
+          {loading ? (
+            <Skeleton className="mt-1.5 h-8 w-14" />
+          ) : (
+            <span className="font-heading text-3xl font-bold leading-tight tracking-tight">
+              {value}
+            </span>
+          )}
+          <span className="mt-0.5 text-xs text-muted-foreground">{hint}</span>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <p className="font-heading text-3xl font-bold tracking-tight">
-          {value}
-        </p>
-        <p className="text-sm text-muted-foreground">{description}</p>
-        {action}
+        <Link
+          href={href}
+          aria-label={`Manage ${label.toLowerCase()}`}
+          className="group/arrow mt-1 shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <HiArrowRight
+            className="size-4 transition-transform duration-200 ease-out group-hover/arrow:translate-x-0.5"
+            aria-hidden="true"
+          />
+        </Link>
       </CardContent>
     </Card>
   );
@@ -71,283 +94,244 @@ function MetricCard({
 /** Human-readable summary of a completed seed run. */
 function describeSeed(result: SeedResult): string {
   return [
-    `${result.programs.created} programmes added, ${result.programs.reSynced} re-synced`,
+    `${result.programs.created} programs added, ${result.programs.reSynced} re-synced`,
     `${result.projects.created} projects added, ${result.projects.reSynced} re-synced`,
     result.siteSettings.created ? "site settings created" : "site settings updated",
+    result.media.attached > 0
+      ? `${result.media.attached} images linked`
+      : "images unchanged",
   ].join(" · ");
 }
 
 export default function AdminDashboardPage() {
-  const { user, isLoading: authLoading } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
-  const [data, setData] = useState<DashboardData | null>(null);
+  const { user } = useAuth();
+  const [counts, setCounts] = useState<DashboardCounts | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const hasLoadedRef = useRef(false);
-
   const [isSeeding, setIsSeeding] = useState(false);
   const [seedSummary, setSeedSummary] = useState<string | null>(null);
   const [seedError, setSeedError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
+  const fetchCounts = useCallback(async () => {
+    setLoading(true);
     setError(null);
     try {
-      const [programsData, projectsData, mediaData] = await Promise.all([
-        listPrograms({ page: 1, limit: PAGE_SIZE }),
-        listProjects({ page: 1, limit: PAGE_SIZE }),
-        listMedia({ page: 1, limit: PAGE_SIZE }),
+      const [programs, projects, media] = await Promise.all([
+        listPrograms(COUNT_ONLY),
+        listProjects(COUNT_ONLY),
+        listMedia(COUNT_ONLY),
       ]);
-      setData({
-        programs: { total: programsData.total },
-        projects: { total: projectsData.total },
-        media: { total: mediaData.total },
+      setCounts({
+        programs: programs.total,
+        projects: projects.total,
+        media: media.total,
       });
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to load dashboard data.",
-      );
+      setError(err instanceof Error ? err.message : "Failed to load dashboard data.");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }, []);
 
-  const handleSeed = useCallback(async () => {
-    setIsSeeding(true);
-    setSeedSummary(null);
-    setSeedError(null);
-    try {
-      const result = await runCmsSeed();
-      setSeedSummary(describeSeed(result));
-      // The counts above just changed - refresh them.
-      hasLoadedRef.current = true;
-      await fetchData();
-    } catch (err) {
-      setSeedError(
-        err instanceof Error ? err.message : "Failed to seed the site content.",
-      );
-    } finally {
-      setIsSeeding(false);
-    }
-  }, [fetchData]);
-
+  const hasLoadedRef = useRef(false);
   useEffect(() => {
-    // hasLoadedRef guards the single-run behavior, not the dependency array.
-    if (!authLoading && user && !hasLoadedRef.current) {
-      hasLoadedRef.current = true;
-      fetchData();
-    }
-  }, [authLoading, user, fetchData]);
+    if (hasLoadedRef.current) return;
+    hasLoadedRef.current = true;
+    void fetchCounts();
+  }, [fetchCounts]);
 
-  if (authLoading) {
-    return (
-      <div className="flex flex-col gap-6">
-        <div>
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="mt-2 h-4 w-64" />
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Card key={i}>
-              <CardHeader className="flex flex-row items-center gap-4 space-y-0 pb-2">
-                <Skeleton className="size-9 rounded-lg" />
-                <Skeleton className="h-4 w-24" />
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Skeleton className="h-9 w-16" />
-                <Skeleton className="h-4 w-40" />
-                <Skeleton className="h-4 w-28" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const runSeed = useCallback(
+    async (options: { reset?: boolean; uploadMedia?: boolean }) => {
+      setIsSeeding(true);
+      setSeedSummary(null);
+      setSeedError(null);
+      try {
+        const result = await runCmsSeed(options);
+        setSeedSummary(describeSeed(result));
+        await fetchCounts();
+      } catch (err) {
+        setSeedError(
+          err instanceof Error ? err.message : "Failed to seed the site content.",
+        );
+      } finally {
+        setIsSeeding(false);
+      }
+    },
+    [fetchCounts],
+  );
 
-  if (!user) {
-    return null;
-  }
+  const handleSeed = useCallback(
+    () => runSeed({ reset: true, uploadMedia: true }),
+    [runSeed],
+  );
 
-  const initials = getUserInitials(user);
+  const sections = ADMIN_NAV_GROUPS.flatMap((group) => group.items).filter(
+    (item) => item.href !== "/admin/dashboard",
+  );
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-3">
-        <span className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
-          {initials}
-        </span>
-        <div>
-          <h1 className="font-heading text-2xl font-semibold">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
-            Welcome back, {user.name}. Here&apos;s what&apos;s happening.
-          </p>
-        </div>
-      </div>
+      <AdminPageHeader
+        title={`Welcome back${user ? `, ${user.name.split(" ")[0]}` : ""}`}
+        description="Everything visitors see on smwelfare.charity is managed from this panel. Pick a section below to add or update content."
+        icon={HiSquares2X2}
+      />
 
       {error ? (
         <Alert variant="destructive">
-          <AlertDescription className="flex items-center gap-3">
+          <AlertDescription className="flex flex-wrap items-center gap-3">
             <span>{error}</span>
-            <Button variant="outline" size="sm" onClick={fetchData}>
-              Retry
+            <Button variant="outline" size="sm" onClick={() => void fetchCounts()}>
+              Try again
             </Button>
           </AlertDescription>
         </Alert>
       ) : (
-        <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <MetricCard
-              title="Programs"
-              value={isLoading ? "—" : data?.programs.total ?? 0}
-              description="Total programmes available"
-              icon={HiCommandLine}
-              action={
-                isLoading
-                  ? undefined
-                  : data && (
-                      <Link
-                        href="/admin/programs"
-                        className={buttonVariants({ variant: "ghost", size: "sm", className: "h-8 px-2" })}
-                      >
-                        <HiPlus className="mr-1 size-3.5" aria-hidden="true" />
-                        Manage programs
-                      </Link>
-                    )
-              }
-            />
-            <MetricCard
-              title="Projects"
-              value={isLoading ? "—" : data?.projects.total ?? 0}
-              description="Total projects across all programs"
-              icon={HiFolderOpen}
-              action={
-                isLoading
-                  ? undefined
-                  : data && (
-                      <Link
-                        href="/admin/projects"
-                        className={buttonVariants({ variant: "ghost", size: "sm", className: "h-8 px-2" })}
-                      >
-                        <HiPlus className="mr-1 size-3.5" aria-hidden="true" />
-                        Manage projects
-                      </Link>
-                    )
-              }
-            />
-            <MetricCard
-              title="Media"
-              value={isLoading ? "—" : data?.media.total ?? 0}
-              description="Images in the media library"
-              icon={HiPhoto}
-              action={
-                isLoading
-                  ? undefined
-                  : data && (
-                      <Link
-                        href="/admin/media"
-                        className={buttonVariants({ variant: "ghost", size: "sm", className: "h-8 px-2" })}
-                      >
-                        <HiPlus className="mr-1 size-3.5" aria-hidden="true" />
-                        Manage media
-                      </Link>
-                    )
-              }
-            />
-          </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <CountCard
+            label="Programs"
+            value={counts?.programs ?? 0}
+            hint="Main categories the site lists"
+            href="/admin/programs"
+            icon={HiRectangleStack}
+            loading={loading}
+          />
+          <CountCard
+            label="Projects"
+            value={counts?.projects ?? 0}
+            hint="Pages inside each program"
+            href="/admin/projects"
+            icon={HiFolderOpen}
+            loading={loading}
+          />
+          <CountCard
+            label="Media"
+            value={counts?.media ?? 0}
+            hint="Images stored on Cloudinary"
+            href="/admin/media"
+            icon={HiPhoto}
+            loading={loading}
+          />
+        </div>
+      )}
 
-          <Card className="border-primary/30 bg-primary/[0.03]">
-            <CardHeader>
-              <CardTitle className="font-heading">Site content</CardTitle>
-              <CardDescription>
-                Load the website&apos;s real content into the CMS — 13 programmes,
-                17 projects and the site settings. Everything the public site
-                currently shows becomes editable from this panel.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              <p className="text-sm text-muted-foreground">
-                Safe to run any number of times: content is matched by slug and
-                re-synced in place, never duplicated, and anything you created
-                yourself is left untouched. Images are not seeded — upload them
-                in the media library.
-              </p>
-              <div className="flex flex-wrap items-center gap-3">
-                <Button onClick={handleSeed} disabled={isSeeding}>
-                  <HiArrowPath
-                    className={`mr-1.5 size-4 ${isSeeding ? "animate-spin" : ""}`}
+      {/* ── Section shortcuts ── */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="font-heading text-base">
+            What do you want to change?
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {sections.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "group flex items-start gap-3 rounded-xl border border-border bg-background p-4 transition-[border-color,box-shadow,transform] duration-200 ease-out",
+                    "hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  )}
+                >
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted transition-colors group-hover:bg-primary/10">
+                    <Icon
+                      className="size-4.5 text-muted-foreground transition-[color,transform] duration-200 ease-out group-hover:scale-110 group-hover:text-primary"
+                      aria-hidden="true"
+                    />
+                  </span>
+                  <span className="flex min-w-0 flex-col">
+                    <span className="text-sm font-semibold">{item.label}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {item.description}
+                    </span>
+                  </span>
+                  <HiArrowRight
+                    className="ml-auto mt-1 size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
                     aria-hidden="true"
                   />
-                  {isSeeding ? "Seeding content…" : "Seed / re-sync content"}
-                </Button>
-                {seedSummary && (
-                  <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <HiCheckCircle className="size-4 text-primary" aria-hidden="true" />
-                    {seedSummary}
-                  </span>
-                )}
-              </div>
-              {seedError && (
-                <Alert variant="destructive">
-                  <AlertDescription>{seedError}</AlertDescription>
-                </Alert>
-              )}
-            </CardContent>
-          </Card>
+                </Link>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
-          <Card className="border-dashed">
-            <CardHeader>
-              <CardTitle className="font-heading">Quick actions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                <Link
-                  href="/admin/programs"
-                  className={buttonVariants({ variant: "secondary", size: "sm" })}
-                >
-                  <HiPlus className="mr-1.5 size-3.5" aria-hidden="true" />
-                  View programs
-                </Link>
-                <Link
-                  href="/admin/projects"
-                  className={buttonVariants({ variant: "secondary", size: "sm" })}
-                >
-                  <HiPlus className="mr-1.5 size-3.5" aria-hidden="true" />
-                  View projects
-                </Link>
-                <Link
-                  href="/admin/media"
-                  className={buttonVariants({ variant: "secondary", size: "sm" })}
-                >
-                  <HiPhoto className="mr-1.5 size-3.5" aria-hidden="true" />
-                  Upload media
-                </Link>
-                <Link
-                  href="/admin/submissions"
-                  className={buttonVariants({ variant: "secondary", size: "sm" })}
-                >
-                  <HiInbox className="mr-1.5 size-3.5" aria-hidden="true" />
-                  View submissions
-                </Link>
-                <Link
-                  href="/admin/site-settings"
-                  className={buttonVariants({ variant: "secondary", size: "sm" })}
-                >
-                  <HiCog6Tooth className="mr-1.5 size-3.5" aria-hidden="true" />
-                  Edit site settings
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        </>
-      )}
+      {/* ── One-click content load ── */}
+      <Card className="border-primary/30 bg-primary/[0.03]">
+        <CardHeader className="pb-3">
+          <CardTitle className="font-heading text-base">
+            Load the website&apos;s content
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <p className="text-sm text-muted-foreground">
+            Writes the site&apos;s real content into the database — 13 programs,
+            17 projects, the site settings and the page content (photos,
+            sections, cards and facts). Existing programs and projects are
+            cleared first, their Cloudinary images re-uploaded and re-linked, so
+            the database matches the site exactly. The admin login is never
+            touched.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={() => void handleSeed()} disabled={isSeeding}>
+              <HiArrowPath
+                className={cn("mr-1.5 size-4", isSeeding && "animate-spin")}
+                aria-hidden="true"
+              />
+              {isSeeding ? "Loading content…" : "Reset & reload content"}
+            </Button>
+            <Button
+              variant="outline"
+              disabled={isSeeding}
+              onClick={() => void runSeed({})}
+            >
+              Re-sync only
+            </Button>
+            <Link
+              href="/admin/site-settings"
+              className={buttonVariants({ variant: "outline" })}
+            >
+              Edit site settings
+              <HiArrowRight className="ml-1.5 size-3.5" aria-hidden="true" />
+            </Link>
+            {seedSummary ? (
+              <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                <HiCheckCircle className="size-4 text-primary" aria-hidden="true" />
+                {seedSummary}
+              </span>
+            ) : null}
+          </div>
+          {seedError ? (
+            <Alert variant="destructive">
+              <AlertDescription>{seedError}</AlertDescription>
+            </Alert>
+          ) : null}
+        </CardContent>
+      </Card>
 
-      {isLoading && !data && (
-        <Card>
-          <CardContent className="py-6 text-sm text-muted-foreground">
-            Loading dashboard data…
-          </CardContent>
-        </Card>
-      )}
+      {/* ── Shortcut to the most common task ── */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Link href="/admin/programs" className={buttonVariants({ size: "sm" })}>
+          <HiPlus className="mr-1.5 size-3.5" aria-hidden="true" />
+          New program
+        </Link>
+        <Link
+          href="/admin/projects"
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+        >
+          <HiPlus className="mr-1.5 size-3.5" aria-hidden="true" />
+          New project
+        </Link>
+        <Link
+          href="/admin/media"
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+        >
+          <HiPhoto className="mr-1.5 size-3.5" aria-hidden="true" />
+          Upload image
+        </Link>
+      </div>
     </div>
   );
 }

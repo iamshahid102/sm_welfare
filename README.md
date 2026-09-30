@@ -136,6 +136,13 @@ MongoDB only); donations/payment processing remains out of scope.
 | `npm run build` | Production build (`server`: compiles to `dist/`, `client`: `next build`) |
 | `npm run test` | Model tests via the Node test runner (`server` only; MongoDB-backed tests skip when `MONGODB_URI` is not set) |
 
+## Deployment
+
+Both halves deploy to Vercel as two independent projects (`server` → API,
+`client` → web). See **[DEPLOYMENT.md](./DEPLOYMENT.md)** for the project
+settings, environment variables, the same-origin API proxy that keeps the admin
+session cookies first-party, and the platform limits that shaped them.
+
 ## Project structure
 
 ```

@@ -12,6 +12,18 @@ import {
 import { ProjectModel, type Project } from '../models/project.model.js';
 import { ProgramModel, type Program } from '../models/program.model.js';
 import { ApiError } from '../utils/ApiError.js';
+import { generateUniqueSlug, slugifyTitle } from '../utils/slug.js';
+import {
+  extractContentPayload,
+  extractContentUpdate,
+} from '../utils/contentFields.js';
+import type {
+  ContentCta,
+  ContentFact,
+  ContentHighlight,
+  ContentImage,
+  ContentSection,
+} from '../types/content.js';
 
 /**
  * Project service - welfare initiatives that belong to exactly one Program.
@@ -20,10 +32,12 @@ import { ApiError } from '../utils/ApiError.js';
  *  - every project belongs to an existing Program; the Program must not be
  *    ARCHIVED when a project is created or moved under it (400). Existing
  *    projects under an archived Program remain untouched.
- *  - slug uniqueness is scoped to the program (compound unique index
- *    programId + slug): the same slug may exist under different programs,
- *    never twice within one. The index is the final authority; the friendly
- *    pre-check is only a fast path and the E11000 guard handles races.
+ *  - slug strategy: the admin never types a slug. It is derived from the title
+ *    at creation time, scoped to the program, and made unique automatically
+ *    (slug, slug-2, slug-3 ...). Slug uniqueness is scoped to the program
+ *    (compound unique index programId + slug): the same slug may exist under
+ *    different programs, never twice within one. The index is the final
+ *    authority; the unique-derivation loop plus an E11000 guard handle races.
  *  - new projects always start as DRAFT; status changes only via the
  *    dedicated status endpoint (never from a create/update body)
  *  - unknown request fields are never persisted; only whitelisted project
@@ -45,6 +59,13 @@ export interface CreateProjectInput {
   shortDescription: string;
   description: string;
   displayOrder?: number;
+  tagline?: string;
+  coverImage?: ContentImage;
+  gallery: ContentImage[];
+  sections: ContentSection[];
+  highlights: ContentHighlight[];
+  facts: ContentFact[];
+  cta?: ContentCta;
 }
 
 export interface UpdateProjectInput {
@@ -54,6 +75,13 @@ export interface UpdateProjectInput {
   shortDescription?: string;
   description?: string;
   displayOrder?: number;
+  tagline?: string;
+  coverImage?: ContentImage;
+  gallery?: ContentImage[];
+  sections?: ContentSection[];
+  highlights?: ContentHighlight[];
+  facts?: ContentFact[];
+  cta?: ContentCta;
 }
 
 export interface ProjectListQuery {
@@ -91,6 +119,13 @@ export interface ProjectResponse {
   description: string;
   status: ProjectStatus;
   displayOrder: number;
+  tagline: string | null;
+  coverImage: ContentImage | null;
+  gallery: ContentImage[];
+  sections: ContentSection[];
+  highlights: ContentHighlight[];
+  facts: ContentFact[];
+  cta: ContentCta | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -150,17 +185,15 @@ function assertValidSlug(value: unknown): string {
   return trimmed;
 }
 
-/**
- * Generates a URL-safe slug from a title:
- * "School Support Program" -> "school-support-program"
- * "Ramadan Ration & Food Distribution" -> "ramadan-ration-food-distribution"
- * Non-alphanumeric runs become single hyphens; surrounding hyphens are trimmed.
- */
-function slugifyTitle(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+/** Whether the request carried an explicit slug (tools/seeds only - the
+ * admin UI never sends one). */
+function hasExplicitSlug(body: unknown): boolean {
+  return (
+    body !== null &&
+    typeof body === 'object' &&
+    !Array.isArray(body) &&
+    (body as Record<string, unknown>).slug !== undefined
+  );
 }
 
 function assertValidShortDescription(value: unknown): string {
@@ -222,7 +255,8 @@ export function validateCreateProjectInput(body: unknown): CreateProjectInput {
   const title = assertValidTitle(body.title);
   // Slug strategy: explicit slug must be URL-safe; otherwise generate from
   // the title. A title that cannot produce a slug is rejected.
-  const slug = body.slug !== undefined ? assertValidSlug(body.slug) : slugifyTitle(title);
+  const slug =
+    body.slug !== undefined ? assertValidSlug(body.slug) : slugifyTitle(title, MAX_PROJECT_SLUG_LENGTH);
   if (slug.length === 0) {
     throw new ApiError(400, 'Could not generate a valid slug from the title.');
   }
@@ -235,6 +269,7 @@ export function validateCreateProjectInput(body: unknown): CreateProjectInput {
     ...(body.displayOrder !== undefined && {
       displayOrder: assertValidDisplayOrder(body.displayOrder),
     }),
+    ...extractContentPayload(body),
   };
 }
 
@@ -263,6 +298,7 @@ export function validateUpdateProjectInput(body: unknown): UpdateProjectInput {
   if (body.displayOrder !== undefined) {
     input.displayOrder = assertValidDisplayOrder(body.displayOrder);
   }
+  Object.assign(input, extractContentUpdate(body));
   if (Object.keys(input).length === 0) {
     if (body.status !== undefined) {
       throw new ApiError(400, 'Status changes must use the dedicated status endpoint.');
@@ -377,17 +413,35 @@ export async function createProject(body: unknown): Promise<ProjectResponse> {
     throw new ApiError(400, 'Projects cannot be created under an archived program.');
   }
 
-  const existing = await ProjectModel.exists({
-    programId: input.programId,
-    slug: input.slug,
-  });
-  if (existing) {
-    throw new ApiError(409, 'A project with this slug already exists in this program.');
+  const explicitSlug = hasExplicitSlug(body);
+
+  // The admin never types a slug. A derived slug is made unique within the
+  // program automatically, so creating a second project with an existing
+  // title succeeds instead of failing on a field the editor cannot see.
+  const slug = explicitSlug
+    ? input.slug
+    : await generateUniqueSlug(
+        input.title,
+        async (candidate) =>
+          (await ProjectModel.exists({ programId: input.programId, slug: candidate })) !==
+          null,
+        MAX_PROJECT_SLUG_LENGTH,
+      );
+
+  if (explicitSlug) {
+    const existing = await ProjectModel.exists({
+      programId: input.programId,
+      slug,
+    });
+    if (existing) {
+      throw new ApiError(409, 'A project with this slug already exists in this program.');
+    }
   }
 
   try {
     const project = await ProjectModel.create({
       ...input,
+      slug,
       status: 'DRAFT',
     });
     return serializeProject(project, toProgramSummary(program));
@@ -567,6 +621,13 @@ export function serializeProject(
     description: project.description,
     status: project.status,
     displayOrder: project.displayOrder,
+    tagline: project.tagline ?? null,
+    coverImage: project.coverImage ?? null,
+    gallery: project.gallery ?? [],
+    sections: project.sections ?? [],
+    highlights: project.highlights ?? [],
+    facts: project.facts ?? [],
+    cta: project.cta ?? null,
     ...(project.createdAt !== undefined && { createdAt: project.createdAt }),
     ...(project.updatedAt !== undefined && { updatedAt: project.updatedAt }),
   };

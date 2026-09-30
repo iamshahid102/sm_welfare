@@ -44,7 +44,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
       { label: "Free Schooling System", href: "/free-schooling-system" },
       {
         label: "Health Care Services",
-        href: "/projects", // live: /health-care-services-2/
+        href: "/health-care-services", // live: /health-care-services-2/
         children: [
           { label: "Ambulance Services", href: "/ambulance-services" },
           { label: "Heat Stroke Camp", href: "/heat-stroke-camp" },
@@ -56,7 +56,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
       },
       {
         label: "Sasta Khana Project",
-        href: "/projects", // live: /category/sasta-khana-project/
+        href: "/sasta-khana-project", // live: /category/sasta-khana-project/
         children: [
           { label: "Iftaar Dastarkhawan", href: "/iftaar-dastarkhawan" },
           { label: "Monthly Raashan Support Program", href: "/monthly-raashan-support-program" },
@@ -75,17 +75,11 @@ export const NAV_ITEMS: readonly NavItem[] = [
   },
   { label: "Media", href: "/media" }, // live: /blog/
   // { label: "Donate", href: "/donate" },
-  {
-    label: "Forms",
-    href: "/forms",
-    children: [
-      { label: "Hunarmand Beti Vocational Admission Form", href: "/forms" }, // live: /hunarmand-beti-vocational-admission-form/
-      { label: "IT Courses and Vocational Training Registration Form", href: "/forms" }, // live: /elementor-4435/
-      { label: "Employee Form", href: "/forms" }, // live: /employee-form/
-      { label: "Sirat e Mustaqeem Free Education System", href: "/forms" }, // live: /sm-free-schooling-system/
-      { label: "Sirat ul Quran Academy Form", href: "/forms" }, // live: /sirat-ul-quran-academy-form/
-    ],
-  },
+  // Plain link on purpose — every live form lives on the single /forms page,
+  // so a dropdown listing five identical destinations was pure noise. The page
+  // itself lists each form. (No `children`, so the desktop nav renders a plain
+  // trigger and the mobile sheet a plain row.)
+  { label: "Forms", href: "/forms" },
   { label: "Contact Us", href: "/contact" }, // live: /contact-us/
 ] as const;
 

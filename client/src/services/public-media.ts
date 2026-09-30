@@ -13,6 +13,8 @@ import type {
 export interface PublicMediaQuery {
   page?: number;
   limit?: number;
+  /** Exact Cloudinary folder to scope the list to (e.g. the certificates folder). */
+  folder?: string;
 }
 
 export async function listPublicMedia(
@@ -21,6 +23,7 @@ export async function listPublicMedia(
   const params = new URLSearchParams();
   if (query.page !== undefined) params.set("page", query.page.toString());
   if (query.limit !== undefined) params.set("limit", query.limit.toString());
+  if (query.folder !== undefined) params.set("folder", query.folder);
 
   const qs = params.toString();
   const response = await fetch(

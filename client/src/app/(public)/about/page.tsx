@@ -7,6 +7,7 @@ import { PageHero } from "@/components/shared/page-hero";
 import { Container } from "@/components/shared/container";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { CtaBand } from "@/components/shared/cta-band";
+import { Reveal } from "@/components/shared/reveal";
 import { BTN_PRIMARY_BLUE } from "@/components/shared/home-styles";
 import { PROGRAMS, MISSION_PARAGRAPHS } from "@/data/programs";
 import { ABOUT_IMAGE } from "@/data/site-images";
@@ -85,7 +86,7 @@ export default async function AboutPage() {
       {/* Live /about-us/ intro copy */}
       <section className="bg-white">
         <Container className="grid items-start gap-12 py-16 sm:py-20 lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="flex flex-col gap-5">
+          <Reveal className="flex flex-col gap-5">
             <SectionHeading
               kicker="Who we are"
               title="Serving Orangi Town, Karachi since 2017"
@@ -111,14 +112,16 @@ export default async function AboutPage() {
                 />
               </Link>
             </div>
-          </div>
-          <div className="relative aspect-[4/3] overflow-hidden rounded-2xl shadow-lg lg:sticky lg:top-24">
+          </Reveal>
+          {/* Sticky, so deliberately not wrapped in <Reveal/> (a transformed
+              ancestor would break sticky positioning). */}
+          <div className="group relative aspect-[4/3] overflow-hidden rounded-2xl shadow-lg lg:sticky lg:top-24">
             <Image
               src={ABOUT_IMAGE.src}
               alt={ABOUT_IMAGE.alt}
               fill
               sizes="(max-width: 1024px) 100vw, 45vw"
-              className="object-cover"
+              className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
             />
           </div>
         </Container>
@@ -134,12 +137,14 @@ export default async function AboutPage() {
             description="Areas of focus on the ground — thousands of families reached every month."
           />
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {areas.map((area) => (
-              <article
+            {areas.map((area, index) => (
+              <Reveal
+                as="article"
                 key={area.key}
-                className="flex flex-col gap-3 rounded-xl border border-border bg-white p-6 shadow-sm"
+                delay={Math.min(index, 5) * 70}
+                className="hover-lift group flex flex-col gap-3 rounded-xl border border-border bg-white p-6 shadow-sm hover:border-primary/25"
               >
-                <span className="font-heading text-3xl font-bold text-primary/30">
+                <span className="font-heading text-3xl font-bold text-primary/30 transition-colors duration-300 group-hover:text-primary/60">
                   {area.number}
                 </span>
                 <h3 className="font-heading text-lg font-bold tracking-tight">
@@ -148,7 +153,7 @@ export default async function AboutPage() {
                 <p className="text-sm leading-relaxed text-muted-foreground">
                   {area.description}
                 </p>
-              </article>
+              </Reveal>
             ))}
           </div>
         </Container>
@@ -163,7 +168,7 @@ export default async function AboutPage() {
             title="Our Mission"
             description="Beyond the boundaries of caste, sect, or religion."
           />
-          <div className="mx-auto flex max-w-3xl flex-col gap-4">
+          <Reveal className="mx-auto flex max-w-3xl flex-col gap-4">
             {MISSION_PARAGRAPHS.map((paragraph) => (
               <p
                 key={paragraph.slice(0, 32)}
@@ -172,7 +177,7 @@ export default async function AboutPage() {
                 {paragraph}
               </p>
             ))}
-          </div>
+          </Reveal>
         </Container>
       </section>
 
