@@ -1,5 +1,22 @@
-import rateLimit from 'express-rate-limit';
+import { rateLimit } from 'express-rate-limit';
 import { ApiError } from '../utils/ApiError.js';
+
+/**
+ * `rateLimit` is imported as a **named** import on purpose.
+ *
+ * express-rate-limit ships the factory both as the default export and as a
+ * named export (`export declare const rateLimit`). Which declaration file
+ * TypeScript resolves depends on the consumer's module resolution, and under
+ * some of them the default import is typed as the module *namespace*, so
+ * calling it reports `TS2349: This expression is not callable` (this is the
+ * same dual-typing problem that forced the helmet normalisation in `app.ts`,
+ * and it is what Vercel's own typecheck step hits).
+ *
+ * A named import resolves through the same `exports` conditions but is never
+ * synthesised, so it types correctly under ESM, CJS and bundler resolution
+ * alike. The runtime exposes `rateLimit` as a named export in both
+ * `dist/index.mjs` and `dist/index.cjs`, so this holds at runtime too.
+ */
 
 /**
  * Rate limiter for POST /api/v1/auth/login — 10 requests per 15 minutes per IP.

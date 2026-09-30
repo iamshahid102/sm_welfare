@@ -5,9 +5,11 @@ import { env } from '../config/env.js';
 import {
   accessCookieOptions,
   clearingCookieOptions,
+  clearingSessionHintCookieOptions,
   hashRefreshToken,
   refreshCookieOptions,
   serializeSafeUser,
+  sessionHintCookieOptions,
   signAuthToken,
   verifyAuthToken,
 } from './auth.js';
@@ -157,5 +159,21 @@ describe('auth utils', () => {
     assert.equal(access.maxAge, env.authAccessTokenTtlSeconds * 1000);
     assert.equal(refresh.maxAge, env.authRefreshTokenTtlSeconds * 1000);
     assert.equal(clearingCookieOptions().maxAge, 0);
+  });
+
+  it('builds a readable session hint that mirrors the session lifetime', () => {
+    const hint = sessionHintCookieOptions();
+
+    // Readable by design: the frontend uses it to skip an anonymous probe.
+    assert.equal(hint.httpOnly, false);
+    assert.equal(hint.path, '/');
+    assert.equal(hint.secure, env.authCookieSecure);
+    assert.equal(hint.sameSite, env.authCookieSameSite);
+    // Never outlives the refresh credential it advertises.
+    assert.equal(hint.maxAge, env.authRefreshTokenTtlSeconds * 1000);
+
+    const clearing = clearingSessionHintCookieOptions();
+    assert.equal(clearing.maxAge, 0);
+    assert.equal(clearing.httpOnly, false);
   });
 });

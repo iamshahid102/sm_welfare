@@ -83,7 +83,7 @@ Functions have no static egress IP. The app keeps a cached, pooled connection
 per instance (`maxPoolSize: 10`) so parallel instances do not exhaust the
 cluster's connection limit.
 
-### Two code details that exist because of serverless
+### Three code details that exist because of the platform
 
 1. **Database bootstrap** — `src/app.ts` opens the connection in a middleware
    rather than relying on `src/server.ts`. A serverless platform imports the
@@ -99,6 +99,17 @@ cluster's connection limit.
    *TS2349: This expression is not callable*. `src/app.ts` normalises the
    import once through a documented assertion that builds under both
    resolutions.
+3. **express-rate-limit's dual typings** — the same split applies to
+   `express-rate-limit@8`, which ships `index.d.mts` *and* `index.d.cts`. Under
+   Vercel's own typecheck step the default import resolves to the module
+   namespace, producing *TS2349* plus a cascade of *TS7006: Parameter
+   '_req' implicitly has an 'any' type* in
+   `src/middlewares/rateLimit.middleware.ts`. The fix is the package's
+   **named** export (`import { rateLimit } from 'express-rate-limit'`), which is
+   present in both the ESM and CJS builds. Note that plain `npm run build`,
+   a clean-room `npm ci && tsc`, and `npm run typecheck` all pass without it —
+   Vercel runs a *separate* TypeScript step (`Using TypeScript 6.0.3`), so the
+   failure only reproduces with `vercel build`.
 
 ### Verify
 
@@ -141,6 +152,29 @@ configure — the API proxy lives in `client/next.config.mjs`.
 All three are read at **build time** — changing any of them needs a redeploy,
 not just an env update.
 
+> **Git Bash mangles leading slashes.** Setting a value that starts with `/`
+> from Git Bash (MSYS) converts it into a Windows path, so
+> `--value "/api/v1"` is silently stored as
+> `C:/Program Files/Git/api/v1`. The client then fetches
+> `file:///C:/Program Files/Git/api/v1/...` and the browser reports
+> *“Not allowed to load local resource”*. Prefix the command with
+> `MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*"` (and keep the variable
+> non-sensitive) so it stays exactly `/api/v1`:
+>
+> ```bash
+> MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*" \
+>   vercel env add NEXT_PUBLIC_API_PROXY_PATH "production,preview" \
+>   --value "/api/v1" --no-sensitive --force -y </dev/null
+> ```
+>
+> Verify the built value, not just the env list — the proxy path is inlined
+> into the client bundle:
+>
+> ```bash
+> curl -s https://sm-welfare.vercel.app/_next/static/immutable/chunks/1mhc4ymzz8ax7.js \
+>   | grep -o 'API_BASE_URL",0,"[^"]*"'   # -> API_BASE_URL",0,"/api/v1"
+> ```
+
 ### Why the proxy exists (important)
 
 The API and the web app are on different `vercel.app` origins. `vercel.app` is
@@ -169,6 +203,23 @@ Node's `fetch` cannot resolve a relative URL. `client/src/lib/api/config.ts`
 picks the right one automatically. (This rewrite is on the **client** project,
 which is Next.js — it is unrelated to the Express project, which needs none.)
 
+### Why there is a `smw_session` cookie
+
+The `AuthProvider` lives in the **root** layout, so it would otherwise probe
+`GET /auth/me` on every page load. For an anonymous visitor that probe returns
+401 and the API client then retries via `POST /auth/refresh`, which also
+returns 401 — two failed requests, and two console errors, on every public
+page. On top of the API, `setAuthCookies` therefore also sets a **readable**
+(non-`HttpOnly`) marker cookie `smw_session=1` with the refresh token's
+lifetime, and `clearAuthCookies` clears it on logout. The client
+(`client/src/providers/auth-provider.tsx`) skips the probe when there is no
+hint and the current route is outside `/admin`; inside `/admin` it always
+probes, and the hint is cleared whenever the backend reports the session dead.
+
+The hint holds no secret and grants nothing — forging it only causes one extra
+probe — while the two `HttpOnly` credentials remain the only things the server
+validates. It is intentionally **not** `HttpOnly` so JavaScript can read it.
+
 ### Verify
 
 ```bash
@@ -180,8 +231,33 @@ Then in a browser:
 1. `https://sm-welfare.vercel.app/admin/login` → log in with the provisioned
    admin account → the dashboard must load (not bounce back to login).
 2. DevTools → Application → Cookies for `sm-welfare.vercel.app` → both
-   `smw_access_token` and `smw_refresh_token` present, `HttpOnly` + `Secure`.
+   `smw_access_token` and `smw_refresh_token` present, `HttpOnly` + `Secure`,
+   plus the readable `smw_session` marker. Opening a public page while logged
+   out must produce **no** `401` in the console (no `/auth/me` or
+   `/auth/refresh` request).
 3. Upload an image on `/admin/media` (≤ 4 MB) → appears in the library.
+
+---
+
+### Deploying with the Vercel CLI
+
+The client project's **Root Directory is `client`**, and the CLI resolves that
+relative to the directory it is run from. Running `vercel` inside `client/`
+therefore looks for `client/client` and fails; run it from the **repository
+root**, linked to the `sm-welfare` project:
+
+```bash
+# from the repository root (the root .gitignore ignores .vercel and .env*)
+vercel link --yes --project sm-welfare
+vercel --prod --yes --non-interactive
+```
+
+The API project's Root Directory is `server`, so deploy it from `server/`:
+
+```bash
+cd server
+vercel --prod --yes --non-interactive
+```
 
 ---
 

@@ -104,6 +104,24 @@ export function clearingCookieOptions(): CookieOptions {
 }
 
 /**
+ * The session hint is deliberately NOT HttpOnly: the whole point is that
+ * frontend JavaScript can read it to decide whether to probe the session. It
+ * mirrors the refresh credential's lifetime (the longest-lived secret) so the
+ * hint never outlives the session it advertises.
+ */
+export function sessionHintCookieOptions(): CookieOptions {
+  return {
+    ...baseCookieOptions(env.authRefreshTokenTtlSeconds),
+    httpOnly: false,
+  };
+}
+
+/** Max-Age=0 with the same flags - tells the browser to delete the hint. */
+export function clearingSessionHintCookieOptions(): CookieOptions {
+  return { ...sessionHintCookieOptions(), maxAge: 0 };
+}
+
+/**
  * SHA-256 hex digest of a refresh token - the only form ever persisted.
  * The raw token is never stored in MongoDB.
  */

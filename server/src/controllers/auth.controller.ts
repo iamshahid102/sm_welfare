@@ -1,5 +1,9 @@
 import type { Request, RequestHandler, Response } from 'express';
-import { AUTH_ACCESS_COOKIE, AUTH_REFRESH_COOKIE } from '../constants/auth.js';
+import {
+  AUTH_ACCESS_COOKIE,
+  AUTH_REFRESH_COOKIE,
+  AUTH_SESSION_HINT_COOKIE,
+} from '../constants/auth.js';
 import {
   login as authLogin,
   getCurrentUser,
@@ -11,19 +15,26 @@ import type { ApiSuccessResponse } from '../types/index.js';
 import {
   accessCookieOptions,
   clearingCookieOptions,
+  clearingSessionHintCookieOptions,
   refreshCookieOptions,
+  sessionHintCookieOptions,
 } from '../utils/auth.js';
 
-/** Sets both HttpOnly credentials on the response. */
+/**
+ * Sets both HttpOnly credentials plus the readable session hint on the
+ * response. The hint lets the frontend skip the anonymous /auth/me probe.
+ */
 function setAuthCookies(res: Response, tokens: AuthTokens): void {
   res.cookie(AUTH_ACCESS_COOKIE, tokens.accessToken, accessCookieOptions());
   res.cookie(AUTH_REFRESH_COOKIE, tokens.refreshToken, refreshCookieOptions());
+  res.cookie(AUTH_SESSION_HINT_COOKIE, '1', sessionHintCookieOptions());
 }
 
-/** Clears both credentials - the browser deletes them (Max-Age=0). */
+/** Clears both credentials and the hint - the browser deletes them (Max-Age=0). */
 function clearAuthCookies(res: Response): void {
   res.cookie(AUTH_ACCESS_COOKIE, '', clearingCookieOptions());
   res.cookie(AUTH_REFRESH_COOKIE, '', clearingCookieOptions());
+  res.cookie(AUTH_SESSION_HINT_COOKIE, '', clearingSessionHintCookieOptions());
 }
 
 function userResponse(res: Response, user: SafeUser): void {

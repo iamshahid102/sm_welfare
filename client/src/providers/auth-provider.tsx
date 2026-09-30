@@ -11,7 +11,11 @@ import {
 import { useRouter } from "next/navigation";
 import type { SafeUser } from "@/types/api";
 import * as authService from "@/services/auth";
-import { isSafeInternalAdminPath } from "@/lib/auth";
+import {
+  clearSessionHint,
+  hasSessionHint,
+  isSafeInternalAdminPath,
+} from "@/lib/auth";
 import { setUnauthorizedHandler } from "@/lib/api/client";
 
 /**
@@ -76,9 +80,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (hydrationAttempted.current) return;
     hydrationAttempted.current = true;
 
-    loadCurrentUser().finally(() => {
+    const hydrate = async () => {
+      // The provider lives in the ROOT layout, but only the admin area ever
+      // reads auth state. Probing /auth/me for a visitor with no session
+      // returns 401 and then triggers a second 401 from /auth/refresh —
+      // console noise on every public page load. The readable session-hint
+      // cookie (set by the API at login) tells us whether a session might
+      // exist, so anonymous visitors skip the probe.
+      //
+      // Protected admin pages are the exception: they always probe, because
+      // the route guard has already required credentials there and a skipped
+      // probe would look like a signed-out user and bounce an admin who holds
+      // a valid session but no hint (e.g. one established before the hint
+      // existed). The login page itself does NOT need that guarantee — with no
+      // hint there is nothing to hydrate, so it stays silent for logged-out
+      // visitors.
+      const path =
+        typeof window !== "undefined" ? window.location.pathname : "";
+      const isProtectedAdminPage =
+        path.startsWith("/admin") && path !== "/admin/login";
+
+      if (isProtectedAdminPage || hasSessionHint()) {
+        await loadCurrentUser();
+      }
       setIsLoading(false);
-    });
+    };
+
+    void hydrate();
   }, [loadCurrentUser]);
 
   /**
@@ -88,6 +116,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    */
   useEffect(() => {
     setUnauthorizedHandler(() => {
+      // The backend declared the session dead — drop the hint so the next
+      // page load does not probe an endpoint that is guaranteed to 401.
+      clearSessionHint();
       setUser(null);
       if (
         typeof window !== "undefined" &&
@@ -119,6 +150,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await authService.logout();
     } finally {
+      // The API clears the hint in its response; do it here too so a failed
+      // request cannot leave a stale hint behind.
+      clearSessionHint();
       setUser(null);
       router.push("/admin/login");
     }

@@ -145,6 +145,15 @@ describeDb('Auth API (MongoDB-backed)', () => {
     assert.match(setCookies, /SameSite=lax/i);
     assert.match(setCookies, /Path=\//i);
 
+    // The session hint is readable by design (frontend skips an anonymous
+    // auth probe) so it must NOT carry HttpOnly.
+    assert.equal(jar.smw_session, '1', 'session hint set');
+    const hintHeader = result.res.headers
+      .getSetCookie()
+      .find((header) => header.startsWith('smw_session='));
+    assert.ok(hintHeader, 'session hint cookie present');
+    assert.doesNotMatch(hintHeader, /HttpOnly/i);
+
     // lastLoginAt is updated after a successful login.
     const stored = await UserModel.findById(id);
     assert.ok(stored?.lastLoginAt instanceof Date);
@@ -219,6 +228,7 @@ describeDb('Auth API (MongoDB-backed)', () => {
     assert.equal(result.status, 200);
     assert.ok(jar.smw_refresh_token);
     assert.notEqual(jar.smw_refresh_token, oldRefreshToken, 'refresh token rotated');
+    assert.equal(jar.smw_session, '1', 'session hint refreshed');
 
     // Rotation: the previous refresh credential is now rejected.
     const reused = await fetch(`${baseUrl}/api/v1/auth/refresh`, {
@@ -269,6 +279,7 @@ describeDb('Auth API (MongoDB-backed)', () => {
     assert.equal(result.status, 200);
     assert.equal(jar.smw_access_token, undefined, 'access cookie cleared');
     assert.equal(jar.smw_refresh_token, undefined, 'refresh cookie cleared');
+    assert.equal(jar.smw_session, undefined, 'session hint cleared');
 
     const me = await api('/api/v1/auth/me');
     assert.equal(me.status, 401);
